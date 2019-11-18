@@ -290,6 +290,7 @@ mc_tasks/PostureTask.cpp
 mc_tasks/LookAtTask.cpp
 mc_tasks/LookAtSurfaceTask.cpp
 mc_tasks/MetaTaskLoader.cpp
+mc_tasks/stabilizer/LIPMStabilizerTask.cpp
 )
 
 set(mc_tasks_HDR
@@ -319,12 +320,25 @@ set(mc_tasks_HDR
 ../include/mc_tasks/PostureTask.h
 ../include/mc_tasks/LookAtTask.h
 ../include/mc_tasks/ExactCubicTrajectoryTask.h
+../include/mc_tasks/stabilizer/LIPMStabilizerTask.h
 )
 
 add_library(mc_tasks SHARED ${mc_tasks_SRC} ${mc_tasks_HDR})
 set_target_properties(mc_tasks PROPERTIES COMPILE_FLAGS "-DMC_TASKS_EXPORTS")
 target_link_libraries(mc_tasks PUBLIC mc_solver mc_rbdyn mc_trajectory mc_rtc_utils)
 install_mc_rtc_lib(mc_tasks)
+
+
+set(mc_signal_HDR
+../include/mc_signal/LowPassVelocityFilter.h
+../include/mc_signal/LowPassFiniteDifferencesVelocityFilter.h
+)
+
+# header-only
+add_library(mc_signal INTERFACE)
+target_include_directories(mc_signal INTERFACE $<INSTALL_INTERFACE:include> $<BUILD_INTERFACE:${MC_RTC_INCLUDE_DIR}>)
+install(TARGETS mc_signal 
+        EXPORT  ${TARGETS_EXPORT_NAME})
 
 
 set(mc_observers_SRC
@@ -336,13 +350,11 @@ set(mc_observers_HDR
 ../include/mc_observers/api.h
 ../include/mc_observers/ObserverLoader.h
 ../include/mc_observers/Observer.h
-../include/mc_observers/LowPassVelocityFilter.h
-../include/mc_observers/LowPassFiniteDifferencesVelocityFilter.h
 )
 
 add_library(mc_observers SHARED ${mc_observers_SRC} ${mc_observers_HDR})
 set_target_properties(mc_observers PROPERTIES COMPILE_FLAGS "-DMC_OBSERVERS_EXPORTS")
-target_link_libraries(mc_observers PUBLIC mc_rbdyn mc_rtc_gui)
+target_link_libraries(mc_observers PUBLIC mc_signal mc_rbdyn mc_rtc_gui)
 install_mc_rtc_lib(mc_observers)
 
 set(mc_control_SRC
