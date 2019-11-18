@@ -325,7 +325,7 @@ set(mc_tasks_HDR
 
 add_library(mc_tasks SHARED ${mc_tasks_SRC} ${mc_tasks_HDR})
 set_target_properties(mc_tasks PROPERTIES COMPILE_FLAGS "-DMC_TASKS_EXPORTS")
-target_link_libraries(mc_tasks PUBLIC mc_solver mc_rbdyn mc_trajectory mc_rtc_utils)
+target_link_libraries(mc_tasks PUBLIC mc_solver mc_rbdyn mc_trajectory mc_signal mc_rtc_utils)
 install_mc_rtc_lib(mc_tasks)
 
 
@@ -335,6 +335,7 @@ set(mc_signal_HDR
 ../include/mc_signal/ExponentialMovingAverage.h
 ../include/mc_signal/LeakyIntegrator.h
 ../include/mc_signal/StationaryOffsetFilter.h
+../include/mc_signal/utils/clamp.h
 )
 
 # header-only
