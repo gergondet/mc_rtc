@@ -16,26 +16,27 @@ on:
 
 jobs:
 
-  clang-format:
-    runs-on: ubuntu-18.04
-    steps:
-    - uses: actions/checkout@v1
-    - name: Install clang-format-6.0
-      run: |
-        sudo rm -f /etc/apt/sources.list.d/dotnetdev.list /etc/apt/sources.list.d/microsoft-prod.list
-        sudo apt-get -qq update
-        sudo apt-get -qq remove clang-6.0 libclang1-6.0 libclang-common-6.0-dev libllvm6.0
-        sudo apt-get -qq install clang-format-6.0 clang-format
-    - name: Run clang-format-check
-      run: |
-        ./.clang-format-check.sh
+  #  clang-format:
+  #    runs-on: ubuntu-18.04
+  #    steps:
+  #    - uses: actions/checkout@v1
+  #    - name: Install clang-format-6.0
+  #      run: |
+  #        sudo rm -f /etc/apt/sources.list.d/dotnetdev.list /etc/apt/sources.list.d/microsoft-prod.list
+  #        sudo apt-get -qq update
+  #        sudo apt-get -qq remove clang-6.0 libclang1-6.0 libclang-common-6.0-dev libllvm6.0
+  #        sudo apt-get -qq install clang-format-6.0 clang-format
+  #    - name: Run clang-format-check
+  #      run: |
+  #        ./.clang-format-check.sh
   build:
-    needs: clang-format
+    #    needs: clang-format
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-16.04, ubuntu-18.04, macos-latest, windows-latest]
-        build-type: [Debug, RelWithDebInfo]
+        #build-type: [Debug, RelWithDebInfo, script]
+        build-type: [script]
         compiler: [gcc, clang]
         exclude:
           # Only default compiler on macos-latest and windows-latest
@@ -43,131 +44,142 @@ jobs:
             compiler: clang
           - os: windows-latest
             compiler: clang
+          # Script always use default compiler
+          - build-type: script
+            compiler: clang
           # FIXME Getting strange linking errors on Xenial with clang
           - os: ubuntu-16.04
             compiler: clang
           # FIXME Windows Debug CI fails: tests are failing
           - os: windows-latest
             build-type: Debug
-
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: recursive
     - name: Temporary APT mirrors cleanup
+      if: startsWith(runner.os, 'Linux')
       run: |
         sudo rm -f /etc/apt/sources.list.d/dotnetdev.list /etc/apt/sources.list.d/microsoft-prod.list
-      if: startsWith(runner.os, 'Linux')
-    - name: Install dependencies
-      uses: jrl-umi3218/github-actions/install-dependencies@master
-      with:
-        compiler: ${{ matrix.compiler }}
-        build-type: ${{ matrix.build-type }}
-        ubuntu: |
-          apt: cython cython3 python-nose python3-nose python-numpy python3-numpy python-coverage python3-coverage python-setuptools python3-setuptools libeigen3-dev doxygen doxygen-latex libboost-all-dev libtinyxml2-dev libgeos++-dev libnanomsg-dev libyaml-cpp-dev libltdl-dev
-        macos: |
-          cask: gfortran
-          brew: eigen boost tinyxml2 geos nanomsg yaml-cpp pkg-config libtool
-          pip: Cython coverage nose numpy
-        windows: |
-          pip: Cython coverage nose numpy
-          github:
-            - path: eigenteam/eigen-git-mirror
-              ref: 3.3.7
-            - path: leethomason/tinyxml2
-              ref: 7.1.0
-            - path: libgeos/geos
-              options: -DGEOS_ENABLE_TESTS=False
-            - path: nanomsg/nanomsg
-              ref: 1.1.5
-            - path: jbeder/yaml-cpp
-        github: |
-          - path: humanoid-path-planner/hpp-spline
-            ref: v4.7.0
-            options: -DBUILD_PYTHON_INTERFACE:BOOL=OFF
-          - path: jrl-umi3218/Eigen3ToPython
-            windows-options: -DPYTHON_BINDING:BOOL=OFF
-          - path: jrl-umi3218/SpaceVecAlg
-            windows-options: -DPYTHON_BINDING:BOOL=OFF
-          - path: jrl-umi3218/sch-core
-            windows-options: -DPYTHON_BINDING:BOOL=OFF
-          - path: jrl-umi3218/eigen-qld
-            windows-options: -DPYTHON_BINDING:BOOL=OFF
-          - path: jrl-umi3218/sch-core-python
-            windows-options: -DPYTHON_BINDING:BOOL=OFF
-          - path: jrl-umi3218/RBDyn
-            windows-options: -DPYTHON_BINDING:BOOL=OFF
-          - path: jrl-umi3218/Tasks
-            windows-options: -DPYTHON_BINDING:BOOL=OFF
-          - path: jrl-umi3218/mc_rbdyn_urdf
-            windows-options: -DPYTHON_BINDING:BOOL=OFF
-          - path: jrl-umi3218/mc_rtc_data
-    # FIXME We disable Python bindings on Windows because it cannot find Python.h, should investigate the CI environment
-    - name: Build and test
-      uses: jrl-umi3218/github-actions/build-cmake-project@master
-      with:
-        compiler: ${{ matrix.compiler }}
-        build-type: ${{ matrix.build-type }}
-        windows-options: -DPYTHON_BINDING:BOOL=OFF
-    - name: Build with ROS
-      if: matrix.os == 'ubuntu-16.04' || matrix.os == 'ubuntu-18.04'
-      run: |
-        set -e
-        set -x
-        pushd .
-        if [ "${{ matrix.os }}" = "ubuntu-16.04" ]
-        then
-          export ROS_DISTRO="kinetic"
-        else
-          export ROS_DISTRO="melodic"
-        fi
-        sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
-        wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
-        sudo apt-get update -qq
-        sudo apt-get install -qq ros-${ROS_DISTRO}-ros-base ros-${ROS_DISTRO}-tf2-ros
-        . /opt/ros/${ROS_DISTRO}/setup.bash
-        mkdir -p /tmp/_ci/catkin_ws/src/
-        cd /tmp/_ci/catkin_ws/src
-        catkin_init_workspace
-        git clone --recursive https://github.com/jrl-umi3218/mc_rtc_msgs
-        cd ../
-        catkin_make || exit 1
-        . devel/setup.bash
-        popd
-        pushd .
-        cd build
-        cmake ../ && make -j2 && sudo make install || exit 1
-        popd
-    - name: Upload documentation
-      # Only run on master branch and for one configuration
-      if: matrix.os == 'ubuntu-18.04' && matrix.build-type == 'RelWithDebInfo' && matrix.compiler == 'gcc' && github.ref == 'refs/heads/master'
+    - name: Build with script
+      if: matrix.build-type == 'script'
+      shell: bash
       run: |
         set -x
-        pushd .
-        cd doc
-        cp -r /usr/local/share/doc/mc_rtc/doxygen-html .
-        find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/SpaceVecAlg/doxygen-html/@https://jrl-umi3218.github.io/SpaceVecAlg/doxygen/HEAD/@g'
-        find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/RBDyn/doxygen-html/@https://jrl-umi3218.github.io/RBDyn/doxygen/HEAD/@g'
-        find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/Tasks/doxygen-html/@https://jrl-umi3218.github.io/Tasks/doxygen/HEAD/@g'
-        find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/sch-core/doxygen-html/@https://jrl-umi3218.github.io/sch-core/doxygen/HEAD/@g'
-        find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/mc_rbdyn_urdf/doxygen-html/@https://jrl-umi3218.github.io/mc_rbdyn_urdf/doxygen/HEAD/@g'
-        sudo apt-get install -qq ruby-dev ruby-bundler libxml2-dev
-        bundle install --path vendor
-        git clone -b gh-pages https://gergondet:${{ secrets.GH_PAGES_TOKEN }}@github.com/jrl-umi3218/mc_rtc /tmp/website
-        bundle exec jekyll build --trace -b /mc_rtc -d /tmp/website
-        cd /tmp/website
-        git add .
-        git config --global user.email "pierre.gergondet@gmail.com"
-        git config --global user.name "Pierre Gergondet (Automated CI update)"
-        git commit -m "Website from commit ${GITHUB_SHA}"
-        git push origin gh-pages
-        popd
-    - name: Slack Notification
-      if: failure()
-      uses: archive/github-actions-slack@master
-      with:
-        slack-bot-user-oauth-access-token: ${{ secrets.SLACK_BOT_TOKEN }}
-        slack-channel: '#ci'
-        slack-text: >
-          [mc_rtc] Build *${{ matrix.os }}/${{ matrix.build-type }} (${{ matrix.compiler }})* failed on ${{ github.ref }}
+        cd utils
+        ./build_and_install.sh
+        #    - name: Install dependencies
+        #      uses: jrl-umi3218/github-actions/install-dependencies@master
+        #      if: matrix.build-type != 'script'
+        #      with:
+        #        compiler: ${{ matrix.compiler }}
+        #        build-type: ${{ matrix.build-type }}
+        #        ubuntu: |
+        #          apt: cython cython3 python-nose python3-nose python-numpy python3-numpy python-coverage python3-coverage python-setuptools python3-setuptools libeigen3-dev doxygen doxygen-latex libboost-all-dev libtinyxml2-dev libgeos++-dev libnanomsg-dev libyaml-cpp-dev libltdl-dev
+        #        macos: |
+        #          cask: gfortran
+        #          brew: eigen boost tinyxml2 geos nanomsg yaml-cpp pkg-config libtool
+        #          pip: Cython coverage nose numpy
+        #        windows: |
+        #          pip: Cython coverage nose numpy
+        #          github:
+        #            - path: eigenteam/eigen-git-mirror
+        #              ref: 3.3.7
+        #            - path: leethomason/tinyxml2
+        #              ref: 7.1.0
+        #            - path: libgeos/geos
+        #              options: -DGEOS_ENABLE_TESTS=False
+        #            - path: nanomsg/nanomsg
+        #              ref: 1.1.5
+        #            - path: jbeder/yaml-cpp
+        #        github: |
+        #          - path: humanoid-path-planner/hpp-spline
+        #            ref: v4.7.0
+        #            options: -DBUILD_PYTHON_INTERFACE:BOOL=OFF
+        #          - path: jrl-umi3218/Eigen3ToPython
+        #            windows-options: -DPYTHON_BINDING:BOOL=OFF
+        #          - path: jrl-umi3218/SpaceVecAlg
+        #            windows-options: -DPYTHON_BINDING:BOOL=OFF
+        #          - path: jrl-umi3218/sch-core
+        #            windows-options: -DPYTHON_BINDING:BOOL=OFF
+        #          - path: jrl-umi3218/eigen-qld
+        #            windows-options: -DPYTHON_BINDING:BOOL=OFF
+        #          - path: jrl-umi3218/sch-core-python
+        #            windows-options: -DPYTHON_BINDING:BOOL=OFF
+        #          - path: jrl-umi3218/RBDyn
+        #            windows-options: -DPYTHON_BINDING:BOOL=OFF
+        #          - path: jrl-umi3218/Tasks
+        #            windows-options: -DPYTHON_BINDING:BOOL=OFF
+        #          - path: jrl-umi3218/mc_rbdyn_urdf
+        #            windows-options: -DPYTHON_BINDING:BOOL=OFF
+        #          - path: jrl-umi3218/mc_rtc_data
+        #    # FIXME We disable Python bindings on Windows because it cannot find Python.h, should investigate the CI environment
+        #    - name: Build and test
+        #      if: matrix.build-type != 'script'
+        #      uses: jrl-umi3218/github-actions/build-cmake-project@master
+        #      with:
+        #        compiler: ${{ matrix.compiler }}
+        #        build-type: ${{ matrix.build-type }}
+        #        windows-options: -DPYTHON_BINDING:BOOL=OFF
+        #    - name: Build with ROS
+        #      if: (matrix.os == 'ubuntu-16.04' || matrix.os == 'ubuntu-18.04') && matrix.build-type != 'script'
+        #      run: |
+        #        set -e
+        #        set -x
+        #        pushd .
+        #        if [ "${{ matrix.os }}" = "ubuntu-16.04" ]
+        #        then
+        #          export ROS_DISTRO="kinetic"
+        #        else
+        #          export ROS_DISTRO="melodic"
+        #        fi
+        #        sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+        #        wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+        #        sudo apt-get update -qq
+        #        sudo apt-get install -qq ros-${ROS_DISTRO}-ros-base ros-${ROS_DISTRO}-tf2-ros
+        #        . /opt/ros/${ROS_DISTRO}/setup.bash
+        #        mkdir -p /tmp/_ci/catkin_ws/src/
+        #        cd /tmp/_ci/catkin_ws/src
+        #        catkin_init_workspace
+        #        git clone --recursive https://github.com/jrl-umi3218/mc_rtc_msgs
+        #        cd ../
+        #        catkin_make || exit 1
+        #        . devel/setup.bash
+        #        popd
+        #        pushd .
+        #        cd build
+        #        cmake ../ && make -j2 && sudo make install || exit 1
+        #        popd
+        #    - name: Upload documentation
+        #      # Only run on master branch and for one configuration
+        #      if: matrix.os == 'ubuntu-18.04' && matrix.build-type == 'RelWithDebInfo' && matrix.compiler == 'gcc' && github.ref == 'refs/heads/master'
+        #      run: |
+        #        set -x
+        #        pushd .
+        #        cd doc
+        #        cp -r /usr/local/share/doc/mc_rtc/doxygen-html .
+        #        find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/SpaceVecAlg/doxygen-html/@https://jrl-umi3218.github.io/SpaceVecAlg/doxygen/HEAD/@g'
+        #        find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/RBDyn/doxygen-html/@https://jrl-umi3218.github.io/RBDyn/doxygen/HEAD/@g'
+        #        find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/Tasks/doxygen-html/@https://jrl-umi3218.github.io/Tasks/doxygen/HEAD/@g'
+        #        find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/sch-core/doxygen-html/@https://jrl-umi3218.github.io/sch-core/doxygen/HEAD/@g'
+        #        find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/mc_rbdyn_urdf/doxygen-html/@https://jrl-umi3218.github.io/mc_rbdyn_urdf/doxygen/HEAD/@g'
+        #        sudo apt-get install -qq ruby-dev ruby-bundler libxml2-dev
+        #        bundle install --path vendor
+        #        git clone -b gh-pages https://gergondet:${{ secrets.GH_PAGES_TOKEN }}@github.com/jrl-umi3218/mc_rtc /tmp/website
+        #        bundle exec jekyll build --trace -b /mc_rtc -d /tmp/website
+        #        cd /tmp/website
+        #        git add .
+        #        git config --global user.email "pierre.gergondet@gmail.com"
+        #        git config --global user.name "Pierre Gergondet (Automated CI update)"
+        #        git commit -m "Website from commit ${GITHUB_SHA}"
+        #        git push origin gh-pages
+        #        popd
+        #    - name: Slack Notification
+        #      if: failure()
+        #      uses: archive/github-actions-slack@master
+        #      with:
+        #        slack-bot-user-oauth-access-token: ${{ secrets.SLACK_BOT_TOKEN }}
+        #        slack-channel: '#ci'
+        #        slack-text: >
+        #          [mc_rtc] Build *${{ matrix.os }}/${{ matrix.build-type }} (${{ matrix.compiler }})* failed on ${{ github.ref }}
