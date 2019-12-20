@@ -256,7 +256,21 @@ then
     brew update
     brew cask install $CASK_DEPENDENCIES
     brew install $BREW_DEPENDENCIES
-    pip install $PIP_DEPENDENCIES
+    if $WITH_PYTHON_SUPPORT
+    then
+      if $PYTHON_BUILD_PYTHON2_AND_PYTHON3
+      then
+        sudo pip2 install $PIP_DEPENDENCIES
+        sudo pip3 install $PIP_DEPENDENCIES
+      elif $PYTHON_FORCE_PYTHON2
+      then
+        sudo pip2 install $PIP_DEPENDENCIES
+      elif $PYTHON_FORCE_PYTHON3
+      then
+        sudo pip3 install $PIP_DEPENDENCIES
+      else
+        sudo pip install $PIP_DEPENDENCIES
+      fi
   else
     echo "Skip installation of system dependencies"
   fi
@@ -306,6 +320,7 @@ clone_git_dependency()
   cd "$2"
   mkdir -p "$git_dep"
   if [ ! -d "$git_dep/.git" ]
+  then
     git_clone -b $git_dep_branch "$git_dep_uri" "$git_dep"
   else
     pushd .
@@ -468,14 +483,17 @@ ctest -C ${CMAKE_BUILD_TYPE}
 if [ $? -ne 0 ]
 then
   if $WITH_PYTHON_SUPPORT
+  then
     echo "mc_rtc testing failed, asssuming you need to rebuild your Python bindings"
     if $PYTHON_BUILD_PYTHON2_AND_PYTHON3
     then
       make force-mc_rtc-python2-bindings
       make force-mc_rtc-python3-bindings
     elif $PYTHON_FORCE_PYTHON2
+    then
       make force-mc_rtc-python2-bindings
     elif $PYTHON_FORCE_PYTHON3
+    then
       make force-mc_rtc-python3-bindings
     else
       make force-mc_rtc-python-bindings
@@ -504,6 +522,7 @@ fi
 if $WITH_HRP2
 then
   if $WITH_ROS_SUPPORT
+  then
     build_catkin_git_dependency git@gite.lirmm.fr:mc-hrp2/hrp2_drc $CATKIN_DATA_WORKSPACE
   else
     build_git_dependency git@gite.lirmm.fr:mc-hrp2/hrp2_drc
@@ -514,6 +533,7 @@ fi
 if $WITH_HRP4
 then
   if $WITH_ROS_SUPPORT
+  then
     build_catkin_git_dependency git@gite.lirmm.fr:mc-hrp4/hrp4 $CATKIN_DATA_WORKSPACE
   else
     build_git_dependency git@gite.lirmm.fr:mc-hrp4/hrp4
