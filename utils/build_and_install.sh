@@ -397,7 +397,10 @@ build_git_dependency()
 
 build_git_dependency_no_test()
 {
+  OLD_CMAKE_OPTIONS="${CMAKE_ADDITIONAL_OPTIONS}"
+  export CMAKE_ADDITIONAL_OPTIONS="${OLD_CMAKE_OPTIONS} -DBUILD_TESTING:BOOL=OFF"
   build_git_dependency_configure_and_build $1
+  export CMAKE_ADDITIONAL_OPTIONS="${OLD_CMAKE_OPTIONS}"
 }
 
 build_catkin_git_dependency()
@@ -451,7 +454,7 @@ fi
 ##  --  GIT dependencies  --  #
 ###############################
 
-build_git_dependency humanoid-path-planner/hpp-spline#v4.7.0
+build_git_dependency_no_test humanoid-path-planner/hpp-spline#v4.7.0
 if [ "x$WITH_PYTHON_SUPPORT" == xON ]
 then
   build_git_dependency jrl-umi3218/Eigen3ToPython
