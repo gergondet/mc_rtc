@@ -550,8 +550,6 @@ fi
 if $WITH_ROS_SUPPORT
 then
   build_catkin_git_dependency jrl-umi3218/mc_rtc_ros $CATKIN_WORKSPACE
-else
-  build_git_dependency jrl-umi3218/mc_rtc_ros
 fi
 
 ################################
@@ -599,7 +597,7 @@ else
   if $WITH_ROS_SUPPORT
   then
     echo "source $CATKIN_WORKSPACE/devel/setup.bash"
+    echo ""
+    echo "If you are running zsh, replace setup.bash with setup.zsh in that last line"
   fi
-  echo ""
-  echo "If you are running zsh, replace setup.bash with setup.zsh"
 fi
