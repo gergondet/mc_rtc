@@ -343,7 +343,7 @@ clone_git_dependency()
 
 build_project()
 {
-  cmake --build . --config ${CMAKE_BUILD_TYPE}
+  cmake --build . --config ${BUILD_TYPE}
   if [ $? -ne 0 ]
   then
     echo "Build failed for $1"
@@ -351,9 +351,9 @@ build_project()
   fi
   if [ -f install_manifest.txt ]
   then
-    ${SUDO_CMD} cmake --build . --target uninstall --config ${CMAKE_BUILD_TYPE}
+    ${SUDO_CMD} cmake --build . --target uninstall --config ${BUILD_TYPE}
   fi
-  ${SUDO_CMD} cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
+  ${SUDO_CMD} cmake --build . --target install --config ${BUILD_TYPE}
   if [ $? -ne 0 ]
   then
     echo "Installation failed for $1"
@@ -387,7 +387,7 @@ build_git_dependency_configure_and_build()
 build_git_dependency()
 {
   build_git_dependency_configure_and_build $1
-  ctest -C ${CMAKE_BUILD_TYPE}
+  ctest -C ${BUILD_TYPE}
   if [ $? -ne 0 ]
   then
     echo "Testing failed for $git_dep"
@@ -512,7 +512,7 @@ then
   exit 1
 fi
 build_project mc_rtc
-ctest -C ${CMAKE_BUILD_TYPE}
+ctest -C ${BUILD_TYPE}
 if [ $? -ne 0 ]
 then
   if [ "x$WITH_PYTHON_SUPPORT" == xON ]
