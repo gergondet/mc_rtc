@@ -341,6 +341,26 @@ clone_git_dependency()
   fi
 }
 
+# This function is used in Windows to hide sh from the PATH
+hide_sh()
+{
+  export OLD_PATH=${PATH}
+  echo "PATH was ${OLD_PATH}"
+  sh_path=`which sh || echo ""`
+  while [[ "$sh_path" != "" ]]
+  do
+    sh_dir=`dirname $sh_path`
+    export PATH=`echo $PATH|sed -e "s@:${sh_dir}@@"`
+    sh_path=`which sh || echo ""`
+  done
+  echo "PATH is ${PATH}"
+}
+
+restore_path()
+{
+  export PATH=${OLD_PATH}
+}
+
 build_project()
 {
   cmake --build . --config ${BUILD_TYPE}
@@ -363,6 +383,10 @@ build_project()
 
 build_git_dependency_configure_and_build()
 {
+  if [[ $OS == "Windows" ]]
+  then
+    hide_sh
+  fi
   clone_git_dependency $1 "$SOURCE_DIR"
   echo "--> Compiling $git_dep (branch $git_dep_branch)"
   mkdir -p "$SOURCE_DIR/$git_dep/build"
@@ -382,6 +406,10 @@ build_git_dependency_configure_and_build()
     exit 1
   fi
   build_project $git_dep
+  if [[ $OS == "Windows" ]]
+  then
+    restore_path
+  fi
 }
 
 build_git_dependency()
