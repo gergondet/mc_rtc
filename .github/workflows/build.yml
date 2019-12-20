@@ -74,7 +74,12 @@ jobs:
       run: |
         set -x
         cd utils
-        ./build_and_install.sh
+        if [[ "${{ matrix.os }}" == "windows-latest" ]]
+        then
+          ./build_and_install.sh --with-python-support false
+        else
+          ./build_and_install.sh
+        fi
         #    - name: Install dependencies
         #      uses: jrl-umi3218/github-actions/install-dependencies@master
         #      if: matrix.build-type != 'script'
