@@ -383,14 +383,14 @@ build_project()
 
 build_git_dependency_configure_and_build()
 {
-  if [[ $OS == "Windows" ]]
-  then
-    hide_sh
-  fi
   clone_git_dependency $1 "$SOURCE_DIR"
   echo "--> Compiling $git_dep (branch $git_dep_branch)"
   mkdir -p "$SOURCE_DIR/$git_dep/build"
   cd "$SOURCE_DIR/$git_dep/build"
+  if [[ $OS == "Windows" ]]
+  then
+    hide_sh
+  fi
   cmake .. -DCMAKE_INSTALL_PREFIX:STRING="$INSTALL_PREFIX" \
            -DPYTHON_BINDING:BOOL=${WITH_PYTHON_SUPPORT} \
            -DPYTHON_BINDING_USER_INSTALL:BOOL=${PYTHON_USER_INSTALL} \
