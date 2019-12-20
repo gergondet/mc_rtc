@@ -45,6 +45,7 @@ if [[ $OSTYPE == "darwin"* ]]
 then
   . $this_dir/config_build_and_install.macos.sh
 elif [[ $OSTYPE == "linux-gnu" ]]
+then
   if [ -f $this_dir/config_build_and_install.`lsb_release -sc`.sh ]
   then
     . $this_dir/config_build_and_install.`lsb_release -sc`.sh
