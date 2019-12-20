@@ -62,6 +62,12 @@ jobs:
       if: startsWith(runner.os, 'Linux')
       run: |
         sudo rm -f /etc/apt/sources.list.d/dotnetdev.list /etc/apt/sources.list.d/microsoft-prod.list
+    - name: Clear environment (script)
+      uses: jrl-umi3218/github-actions/install-dependencies@master
+      if: matrix.build-type == 'script'
+      with:
+        compiler: ${{ matrix.compiler }}
+        build-type: RelWithDebInfo
     - name: Build with script
       if: matrix.build-type == 'script'
       shell: bash

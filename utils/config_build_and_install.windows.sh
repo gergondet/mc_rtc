@@ -20,7 +20,7 @@ build_system_dependency()
     cd $SRC/build
     cmake ../ -DCMAKE_BUILD_TYPE=$BUILD_TYPE         \
               -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX \
-              -DYAML_BUILD_SHARED_LIBS:BOOL=ON       \
+              -DBUILD_TESTING:BOOL=OFF               \
               -DGEOS_ENABLE_TESTS=False
     cmake --build . --config ${CMAKE_BUILD_TYPE}
     if [ $? -ne 0 ]
