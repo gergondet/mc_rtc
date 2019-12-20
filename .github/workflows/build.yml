@@ -68,7 +68,7 @@ jobs:
       run: |
         set -x
         cd utils
-        ./build_and_install.sh
+        ./build_and_install.sh --install-prefix /opt/mc_rtc
         #    - name: Install dependencies
         #      uses: jrl-umi3218/github-actions/install-dependencies@master
         #      if: matrix.build-type != 'script'
