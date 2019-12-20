@@ -36,6 +36,11 @@ else
 fi
 export CMAKE_BUILD_PARALLEL_LEVEL=${BUILD_CORE}
 
+mc_rtc_extra_steps()
+{
+  true
+}
+
 KERN=$(uname -s)
 if [ $KERN = Darwin ]
 then
@@ -48,9 +53,6 @@ else
     ROS_DISTRO=""
     APT_DEPENDENCIES=""
     ROS_APT_DEPENDENCIES=""
-    mc_rtc_extra_steps()
-    {
-    }
   fi
 fi
 
