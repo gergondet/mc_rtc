@@ -345,6 +345,7 @@ build_project()
 {
   cmake --build . --config ${CMAKE_BUILD_TYPE}
   if [ $? -ne 0 ]
+  then
     echo "Build failed for $1"
     exit 1
   fi
@@ -354,6 +355,7 @@ build_project()
   fi
   ${SUDO_CMD} cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
   if [ $? -ne 0 ]
+  then
     echo "Installation failed for $1"
     exit 1
   fi
