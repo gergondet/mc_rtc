@@ -271,6 +271,7 @@ then
       else
         sudo pip install $PIP_DEPENDENCIES
       fi
+    fi
   else
     echo "Skip installation of system dependencies"
   fi
