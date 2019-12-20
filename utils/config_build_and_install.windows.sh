@@ -39,7 +39,7 @@ build_system_dependency()
 
 mc_rtc_extra_steps()
 {
-  build_system_dependency eigenteam-eigen-git-mirror 3.3.7 "$SOURCE_DIR/eigen"
+  build_system_dependency eigenteam/eigen-git-mirror 3.3.7 "$SOURCE_DIR/eigen"
   build_system_dependency leethomason/tinyxml2 7.1.0 "$SOURCE_DIR/tinyxml2"
   build_system_dependency libgeos/geos master "$SOURCE_DIR/geos"
   build_system_dependency nanomsg/nanomsg 1.1.5 "$SOURCE_DIR/nanomsg"
