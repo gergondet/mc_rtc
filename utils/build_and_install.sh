@@ -27,6 +27,7 @@ PYTHON_BUILD_PYTHON2_AND_PYTHON3="false"
 WITH_HRP2="false"
 WITH_HRP4="false"
 BUILD_TYPE="RelWithDebInfo"
+BUILD_TESTING="true"
 INSTALL_APT_DEPENDENCIES="true"
 if command -v nproc > /dev/null
 then
@@ -63,6 +64,7 @@ readonly HELP_STRING="$(basename $0) [OPTIONS] ...
     --help                     (-h)               : print this help
     --install-prefix           (-i) PATH          : the directory used to install everything         (default $INSTALL_PREFIX)
     --build-type                    Type          : the build type to use                            (default $BUILD_TYPE)
+    --build-testing                 {true, false} : whether to build and run unit tests              (default $BUILD_TESTING)
     --build-core               (-j) N             : number of cores used for building                (default $BUILD_CORE)
     --with-hrp2                                   : enable HRP2 (requires mc-hrp2 group access)      (default $WITH_HRP2)
     --with-hrp4                                   : enable HRP4 (requires mc-hrp4 group access)      (default $WITH_HRP4)
@@ -154,6 +156,12 @@ do
         BUILD_TYPE="${!i}"
         ;;
 
+        --build-testing)
+        i=$(($i+1))
+        BUILD_TESTING="${!i}"
+        check_true_false --build-testing "$BUILD_TESTING"
+        ;;
+
         --install-apt-dependencies)
         i=$(($i+1))
         INSTALL_APT_DEPENDENCIES="${!i}"
@@ -219,6 +227,7 @@ readonly PYTHON_BUILD_PYTHON2_AND_PYTHON3
 readonly BUILD_TYPE
 readonly INSTALL_APT_DEPENDENCIES
 readonly BUILD_CORE
+readonly BUILD_TESTING
 
 readonly ROS_APT_DEPENDENCIES="ros-${ROS_DISTRO}-common-msgs ros-${ROS_DISTRO}-tf2-ros ros-${ROS_DISTRO}-xacro ros-${ROS_DISTRO}-rviz"
 
@@ -414,12 +423,17 @@ build_git_dependency_configure_and_build()
 
 build_git_dependency()
 {
-  build_git_dependency_configure_and_build $1
-  ctest -C ${BUILD_TYPE}
-  if [ $? -ne 0 ]
+  if $BUILD_TESTING
   then
-    echo "Testing failed for $git_dep"
-    exit 1
+    build_git_dependency_configure_and_build $1
+    ctest -C ${BUILD_TYPE}
+    if [ $? -ne 0 ]
+    then
+      echo "Testing failed for $git_dep"
+      exit 1
+    fi
+  else
+    build_git_dependency_no_test $1
   fi
 }
 
@@ -513,10 +527,17 @@ git submodule sync || true
 git submodule update --init
 mkdir -p build
 cd build
+if $BUILD_TESTING
+then
+  BUILD_TESTING_OPTION=ON
+else
+  BUILD_TESTING_OPTION=OFF
+fi
 if $WITH_ROS_SUPPORT
 then
   cmake ../ -DCMAKE_BUILD_TYPE:STRING="$BUILD_TYPE" \
             -DCMAKE_INSTALL_PREFIX:STRING="$INSTALL_PREFIX" \
+            -DBUILD_TESTING:BOOL=${BUILD_TESTING_OPTION} \
             -DPYTHON_BINDING:BOOL=${WITH_PYTHON_SUPPORT} \
             -DPYTHON_BINDING_USER_INSTALL:BOOL=${PYTHON_USER_INSTALL} \
             -DPYTHON_BINDING_FORCE_PYTHON2:BOOL=${PYTHON_FORCE_PYTHON2} \
@@ -526,6 +547,7 @@ then
 else
   cmake ../ -DCMAKE_BUILD_TYPE:STRING="'$BUILD_TYPE'" \
             -DCMAKE_INSTALL_PREFIX:STRING="'$INSTALL_PREFIX'" \
+            -DBUILD_TESTING:BOOL=${BUILD_TESTING_OPTION} \
             -DPYTHON_BINDING:BOOL=${WITH_PYTHON_SUPPORT} \
             -DPYTHON_BINDING_USER_INSTALL:BOOL=${PYTHON_USER_INSTALL} \
             -DPYTHON_BINDING_FORCE_PYTHON2:BOOL=${PYTHON_FORCE_PYTHON2} \
@@ -540,7 +562,10 @@ then
   exit 1
 fi
 build_project mc_rtc
-ctest -C ${BUILD_TYPE}
+if $BUILD_TESTING
+then
+  ctest -C ${BUILD_TYPE}
+fi
 if [ $? -ne 0 ]
 then
   if [ "x$WITH_PYTHON_SUPPORT" == xON ]
