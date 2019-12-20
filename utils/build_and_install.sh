@@ -41,11 +41,10 @@ mc_rtc_extra_steps()
   true
 }
 
-KERN=$(uname -s)
-if [ $KERN = Darwin ]
+if [[ $OSTYPE == "darwin"* ]]
 then
   . $this_dir/config_build_and_install.macos.sh
-else
+elif [[ $OSTYPE == "linux-gnu" ]]
   if [ -f $this_dir/config_build_and_install.`lsb_release -sc`.sh ]
   then
     . $this_dir/config_build_and_install.`lsb_release -sc`.sh
@@ -54,6 +53,9 @@ else
     APT_DEPENDENCIES=""
     ROS_APT_DEPENDENCIES=""
   fi
+else
+  # Assume Windows
+  . $this_dir/config_build_and_install.windows.sh
 fi
 
 readonly HELP_STRING="$(basename $0) [OPTIONS] ...
@@ -242,10 +244,9 @@ export PYTHONPATH=$INSTALL_PREFIX/lib/python$PYTHON_VERSION/site-packages:$PYTHO
 ##############################
 #  --  APT/Brew dependencies  --  #
 ##############################
-KERN=$(uname -s)
-if [ $KERN = Darwin ]
+if [[ $OSTYPE == "darwin"* ]]
 then
-  export OS=Darwin
+  export OS=macOS
   # Install brew on the system
   if $INSTALL_APT_DEPENDENCIES
   then
@@ -256,28 +257,29 @@ then
     brew update
     brew cask install $CASK_DEPENDENCIES
     brew install $BREW_DEPENDENCIES
-    if $WITH_PYTHON_SUPPORT
+    if [ "x$WITH_PYTHON_SUPPORT" == xON ]
     then
-      if $PYTHON_BUILD_PYTHON2_AND_PYTHON3
+      if [ "x$PYTHON_BUILD_PYTHON2_AND_PYTHON3" == xON ]
       then
         sudo pip2 install $PIP_DEPENDENCIES
         sudo pip3 install $PIP_DEPENDENCIES
-      elif $PYTHON_FORCE_PYTHON2
+      elif [ "x$PYTHON_FORCE_PYTHON2" == xON ]
       then
         sudo pip2 install $PIP_DEPENDENCIES
-      elif $PYTHON_FORCE_PYTHON3
+      elif [ "x$PYTHON_FORCE_PYTHON3" == xON ]
       then
         sudo pip3 install $PIP_DEPENDENCIES
       else
         sudo pip install $PIP_DEPENDENCIES
       fi
+      mc_rtc_extra_steps
     fi
   else
     echo "Skip installation of system dependencies"
   fi
-else
+elif [[ $OSTYPE == "linux-gnu" ]]
+then
   export OS=$(lsb_release -si)
-  export UBUNTU_MAJOR=0
   if [ $OS = Ubuntu ]
   then
     if $INSTALL_APT_DEPENDENCIES
@@ -291,6 +293,13 @@ else
   else
     echo "This script does not support your OS: ${OS}, assuming you have installed the required system dependencies already"
   fi
+else
+  export OS=Windows
+  if [ "x$WITH_PYTHON_SUPPORT" == xON ]
+  then
+    pip install ${PIP_DEPENDENCIES}
+  fi
+  mc_rtc_extra_steps
 fi
 
 git_dependency_parsing()
@@ -331,6 +340,24 @@ clone_git_dependency()
   fi
 }
 
+build_project()
+{
+  cmake --build . --config ${CMAKE_BUILD_TYPE}
+  if [ $? -ne 0 ]
+    echo "Build failed for $1"
+    exit 1
+  fi
+  if [ -f install_manifest.txt ]
+  then
+    ${SUDO_CMD} cmake --build . --target uninstall --config ${CMAKE_BUILD_TYPE}
+  fi
+  ${SUDO_CMD} cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
+  if [ $? -ne 0 ]
+    echo "Installation failed for $1"
+    exit 1
+  fi
+}
+
 build_git_dependency_configure_and_build()
 {
   clone_git_dependency $1 "$SOURCE_DIR"
@@ -351,18 +378,18 @@ build_git_dependency_configure_and_build()
     echo "CMake configuration failed for $git_dep"
     exit 1
   fi
-  cmake --build . --config ${CMAKE_BUILD_TYPE} || (echo "Build failed for $git_dep" && exit 1)
-  if [ -f install_manifest.txt ]
-  then
-    ${SUDO_CMD} cmake --build . --target uninstall --config ${CMAKE_BUILD_TYPE}
-  fi
-  ${SUDO_CMD} cmake --build . --target install --config ${CMAKE_BUILD_TYPE} || (echo "Installation failed for $git_dep" && exit 1)
+  build_project $git_dep
 }
 
 build_git_dependency()
 {
   build_git_dependency_configure_and_build $1
-  ctest -C ${CMAKE_BUILD_TYPE} || (echo "Testing failed for $git_dep" && exit 1)
+  ctest -C ${CMAKE_BUILD_TYPE}
+  if [ $? -ne 0 ]
+  then
+    echo "Testing failed for $git_dep"
+    exit 1
+  fi
 }
 
 build_git_dependency_no_test()
@@ -404,12 +431,16 @@ then
   mkdir -p ${CATKIN_DATA_WORKSPACE_SRC}
   cd ${CATKIN_DATA_WORKSPACE_SRC}
   catkin_init_workspace || true
+  cd ${CATKIN_DATA_WORKSPACE}
+  catkin_make
   . $CATKIN_DATA_WORKSPACE/devel/setup.bash
   CATKIN_WORKSPACE=$SOURCE_DIR/catkin_ws
   CATKIN_WORKSPACE_SRC=${CATKIN_WORKSPACE}/src/
   mkdir -p ${CATKIN_WORKSPACE_SRC}
   cd ${CATKIN_WORKSPACE_SRC}
   catkin_init_workspace || true
+  cd ${CATKIN_WORKSPACE}
+  catkin_make
   . $CATKIN_WORKSPACE/devel/setup.bash
 fi
 
@@ -474,33 +505,33 @@ then
   echo "CMake configuration failed for mc_rtc"
   exit 1
 fi
-cmake --build . --config ${CMAKE_BUILD_TYPE} || (echo "Build failed for mc_rtc" && exit 1)
-if [ -f install_manifest.txt ]
-then
-  ${SUDO_CMD} cmake --build . --target uninstall --config ${CMAKE_BUILD_TYPE}
-fi
-${SUDO_CMD} cmake --build . --target install --config ${CMAKE_BUILD_TYPE} || (echo "Installation failed for mc_rtc" && exit 1)
+build_project mc_rtc
 ctest -C ${CMAKE_BUILD_TYPE}
 if [ $? -ne 0 ]
 then
-  if $WITH_PYTHON_SUPPORT
+  if [ "x$WITH_PYTHON_SUPPORT" == xON ]
   then
     echo "mc_rtc testing failed, asssuming you need to rebuild your Python bindings"
-    if $PYTHON_BUILD_PYTHON2_AND_PYTHON3
+    if [ "x$PYTHON_BUILD_PYTHON2_AND_PYTHON3" == xON ]
     then
       make force-mc_rtc-python2-bindings
       make force-mc_rtc-python3-bindings
-    elif $PYTHON_FORCE_PYTHON2
+    elif [ "x$PYTHON_FORCE_PYTHON2" == xON ]
     then
       make force-mc_rtc-python2-bindings
-    elif $PYTHON_FORCE_PYTHON3
+    elif [ "x$PYTHON_FORCE_PYTHON3" == xON ]
     then
       make force-mc_rtc-python3-bindings
     else
       make force-mc_rtc-python-bindings
     fi
     ${SUDO_CMD} make install
-    make test || (echo "mc_rtc testing is still failing" && exit 1)
+    make test
+    if [ $? -ne 0 ]
+    then
+      echo "mc_rtc is still failing"
+      exit 1
+    fi
   else
     echo "Testing failed for mc_rtc"
     exit 1
