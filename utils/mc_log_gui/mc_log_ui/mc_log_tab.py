@@ -59,7 +59,7 @@ class TreeView(object):
       return
     self.leaf(key[0]).add(key[1:])
   def simplify(self):
-    while len(self.leafs) == 1 and not(self.hasData):
+    while len(self.leafs) == 1 and not(self.hasData) and self.parent is not None:
       self.name = self.name + '_' + self.leafs[0].name
       self.dataName = self.leafs[0].dataName
       self.hasData = self.leafs[0].hasData
