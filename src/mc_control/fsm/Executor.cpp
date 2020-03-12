@@ -16,6 +16,25 @@ namespace mc_control
 namespace fsm
 {
 
+namespace
+{
+
+std::string log_entry(const std::string & name)
+{
+  std::string log_entry = "Executor";
+  if(name.size())
+  {
+    log_entry += "_" + name;
+  }
+  else
+  {
+    log_entry += "_Main";
+  }
+  return log_entry;
+}
+
+} // namespace
+
 void Executor::init(Controller & ctl,
                     const mc_rtc::Configuration & config,
                     const std::string & name,
@@ -55,16 +74,7 @@ void Executor::init(Controller & ctl,
                                       [this](const mc_rtc::Configuration & c) { this->resume(c("State")); },
                                       mc_rtc::gui::FormDataComboInput("State", true, {"states"})));
   }
-  std::string log_entry = "Executor";
-  if(name_.size())
-  {
-    log_entry += "_" + name_;
-  }
-  else
-  {
-    log_entry += "_Main";
-  }
-  ctl.logger().addLogEntry(log_entry, [this]() { return curr_state_; });
+  ctl.logger().addEventLogEntry(log_entry(name), [this]() { return curr_state_; });
 }
 
 bool Executor::run(Controller & ctl, bool keep_state)
@@ -209,6 +219,7 @@ void Executor::next(Controller & ctl)
     }
   }
   curr_state_ = next_state_;
+  ctl.logger().updateEvent(log_entry(name_));
   next_state_ = "";
 }
 

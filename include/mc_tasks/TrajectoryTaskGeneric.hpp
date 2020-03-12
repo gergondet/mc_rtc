@@ -86,6 +86,10 @@ void TrajectoryTaskGeneric<T>::refVel(const Eigen::VectorXd & vel)
 {
   trajectoryT_->refVel(vel);
   refVel_ = vel;
+  if(logger_)
+  {
+    logger_->updateEvent(name_ + "_refVel");
+  }
 }
 
 template<typename T>
@@ -99,6 +103,10 @@ void TrajectoryTaskGeneric<T>::refAccel(const Eigen::VectorXd & accel)
 {
   trajectoryT_->refAccel(accel);
   refAccel_ = accel;
+  if(logger_)
+  {
+    logger_->updateEvent(name_ + "_refAccel");
+  }
 }
 
 template<typename T>
@@ -123,6 +131,11 @@ template<typename T>
 void TrajectoryTaskGeneric<T>::damping(double d)
 {
   damping_.setConstant(d);
+  if(logger_)
+  {
+    logger_->updateEvent(name_ + "_damping");
+    logger_->updateEvent(name_ + "_dimDamping");
+  }
   trajectoryT_->setGains(stiffness_, damping_);
 }
 
@@ -138,6 +151,13 @@ void TrajectoryTaskGeneric<T>::setGains(double s, double d)
   stiffness_.setConstant(s);
   damping_.setConstant(d);
   trajectoryT_->setGains(stiffness_, damping_);
+  if(logger_)
+  {
+    logger_->updateEvent(name_ + "_stiffness");
+    logger_->updateEvent(name_ + "_dimStiffness");
+    logger_->updateEvent(name_ + "_damping");
+    logger_->updateEvent(name_ + "_dimDamping");
+  }
 }
 
 template<typename T>
@@ -146,6 +166,13 @@ void TrajectoryTaskGeneric<T>::setGains(const Eigen::VectorXd & stiffness, const
   stiffness_ = stiffness;
   damping_ = damping;
   trajectoryT_->setGains(stiffness, damping);
+  if(logger_)
+  {
+    logger_->updateEvent(name_ + "_stiffness");
+    logger_->updateEvent(name_ + "_dimStiffness");
+    logger_->updateEvent(name_ + "_damping");
+    logger_->updateEvent(name_ + "_dimDamping");
+  }
 }
 
 template<typename T>
@@ -410,17 +437,19 @@ void TrajectoryTaskGeneric<T>::addToGUI(mc_rtc::gui::StateBuilder & gui)
 template<typename T>
 void TrajectoryTaskGeneric<T>::addToLogger(mc_rtc::Logger & logger)
 {
-  logger.addLogEntry(name_ + "_damping", [this]() { return damping_(0); });
-  logger.addLogEntry(name_ + "_stiffness", [this]() { return stiffness_(0); });
-  logger.addLogEntry(name_ + "_dimDamping", [this]() -> const Eigen::VectorXd & { return damping_; });
-  logger.addLogEntry(name_ + "_dimStiffness", [this]() -> const Eigen::VectorXd & { return stiffness_; });
-  logger.addLogEntry(name_ + "_refVel", [this]() { return refVel_; });
-  logger.addLogEntry(name_ + "_refAccel", [this]() { return refAccel_; });
+  logger_ = &logger;
+  logger.addEventLogEntry(name_ + "_damping", [this]() { return damping_(0); });
+  logger.addEventLogEntry(name_ + "_stiffness", [this]() { return stiffness_(0); });
+  logger.addEventLogEntry(name_ + "_dimDamping", [this]() -> const Eigen::VectorXd & { return damping_; });
+  logger.addEventLogEntry(name_ + "_dimStiffness", [this]() -> const Eigen::VectorXd & { return stiffness_; });
+  logger.addEventLogEntry(name_ + "_refVel", [this]() { return refVel_; });
+  logger.addEventLogEntry(name_ + "_refAccel", [this]() { return refAccel_; });
 }
 
 template<typename T>
 void TrajectoryTaskGeneric<T>::removeFromLogger(mc_rtc::Logger & logger)
 {
+  logger_ = nullptr;
   logger.removeLogEntry(name_ + "_damping");
   logger.removeLogEntry(name_ + "_stiffness");
   logger.removeLogEntry(name_ + "_dimDamping");

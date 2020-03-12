@@ -252,12 +252,22 @@ void Logger::log()
   builder.start_array(2 * log_entries_.size());
   for(auto & e : log_entries_)
   {
-    e.second(builder);
+    e.second(*this, e.first, builder);
   }
   builder.finish_array();
   builder.finish_array();
   size_t s = builder.finish();
   impl_->write(impl_->data_.data(), s);
+}
+
+void Logger::updateEvent(const std::string & name)
+{
+  if(event_entries_.count(name))
+  {
+    log_entries_[name] = [](Logger & logger, const std::string & name, mc_rtc::MessagePackBuilder & builder) {
+      logger.event_entries_[name](logger, name, builder);
+    };
+  }
 }
 
 void Logger::removeLogEntry(const std::string & name)
@@ -266,6 +276,11 @@ void Logger::removeLogEntry(const std::string & name)
   {
     log_entries_changed_ = true;
     log_entries_.erase(name);
+    if(event_entries_.count(name))
+    {
+      event_entries_.erase(name);
+      default_entries_.erase(name);
+    }
   }
 }
 

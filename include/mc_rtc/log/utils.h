@@ -119,8 +119,13 @@ struct LogWriter
 {
   static void write(const T & data, mc_rtc::MessagePackBuilder & builder)
   {
-    builder.write(static_cast<typename std::underlying_type<LogType>::type>(GetLogType<T>::type));
+    write(builder);
     builder.write(data);
+  }
+
+  static void write(mc_rtc::MessagePackBuilder & builder)
+  {
+    builder.write(static_cast<typename std::underlying_type<LogType>::type>(GetLogType<T>::type));
   }
 };
 
