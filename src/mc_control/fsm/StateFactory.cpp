@@ -233,7 +233,6 @@ StatePtr StateFactory::create(const std::string & state,
     mc_rtc::log::error("Creation of {} state failed", state);
     return nullptr;
   }
-  ret->name(state);
   if(configure)
   {
     ret->configure_(config);
@@ -242,8 +241,16 @@ StatePtr StateFactory::create(const std::string & state,
   return ret;
 }
 
+StatePtr StateFactory::create(const std::string & state, const mc_rtc::Configuration & config)
+{
+  StatePtr ret = create(state);
+  ret->configure_(config);
+  return ret;
+}
+
 StatePtr StateFactory::create(const std::string & state)
 {
+  StatePtr ret = nullptr;
   if(!hasState(state))
   {
     mc_rtc::log::error("Attempted to create unavailable state {}", state);
@@ -251,12 +258,19 @@ StatePtr StateFactory::create(const std::string & state)
   }
   if(has_object(state))
   {
-    return create_object(state);
+    ret = create_object(state);
   }
   else
   {
-    return states_factories_[state](*this);
+    ret = states_factories_[state](*this);
   }
+  if(!ret)
+  {
+    LOG_ERROR("Creation of " << state << " state failed")
+    return nullptr;
+  }
+  ret->name(state);
+  return ret;
 }
 
 bool StateFactory::hasState(const std::string & state) const
