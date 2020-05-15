@@ -11,6 +11,9 @@
 
 ### Added
 - New benchmark for task allocation performance
+- Introduce `mc_rbdyn::Device` a generic interface to add various devices to a robot
+- Added related devices API in `mc_rbdyn::Robot`
+- `mc_rbdyn::Sensor` is an alias for `mc_rbdyn::Device` and devices API in Robot has sensor aliases as well
 
 ### Fixes
 - Fix and upgrade benchmarks compilation
