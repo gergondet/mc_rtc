@@ -8,13 +8,15 @@
 
 #include <mc/rtc/deprecated.hh>
 
+#include <optional>
+#include <string_view>
+
 namespace mc_rbdyn
 {
 
 struct MC_RBDYN_DLLAPI Robots
 {
   friend struct Robot;
-  using value_type = mc_rbdyn::Robot;
 
 public:
   /** @name Iterators
@@ -23,44 +25,27 @@ public:
    *
    * @{
    */
-  typedef typename std::vector<mc_rbdyn::Robot>::iterator iterator;
-  typedef typename std::vector<mc_rbdyn::Robot>::const_iterator const_iterator;
-  typedef typename std::vector<mc_rbdyn::Robot>::reverse_iterator reverse_iterator;
-  typedef typename std::vector<mc_rbdyn::Robot>::const_reverse_iterator const_reverse_iterator;
-  typedef typename std::vector<mc_rbdyn::Robot>::size_type size_type;
+  using iterator = std::vector<RobotPtr>::iterator;
+  using const_iterator = std::vector<ConstRobotPtr>::const_iterator;
+  using reverse_iterator = std::vector<RobotPtr>::reverse_iterator;
+  using const_reverse_iterator = std::vector<ConstRobotPtr>::const_reverse_iterator;
+  using size_type = std::vector<RobotPtr>::size_type;
+  using value_type = std::vector<RobotPtr>::value_type;
   /** @} */
 
   Robots();
   Robots(const Robots & rhs);
   Robots & operator=(const Robots & rhs);
-
-  /** Give access to the underlying list of RobotModule objects */
-  const std::vector<mc_rbdyn::RobotModule> & robotModules() const;
+  Robots(Robots &&) = default;
+  Robots & operator=(Robots &&) = default;
 
   /** Give access to the underlying list of Robot objects */
-  std::vector<Robot> & robots();
+  std::vector<RobotPtr> & robots();
   /** Give access to the underlying list of Robot objects (const) */
-  const std::vector<Robot> & robots() const;
-
-  /** Give access to the underlying list of rbd::MultiBody objects */
-  std::vector<rbd::MultiBody> & mbs();
-  /** Give access to the underlying list of rbd::MultiBody objects (const) */
-  const std::vector<rbd::MultiBody> & mbs() const;
-
-  /** Give access to the underlying list of rbd::MultiBodyConfig objects */
-  std::vector<rbd::MultiBodyConfig> & mbcs();
-  /** Give access to the underlying list of rbd::MultiBodyConfig objects (const) */
-  const std::vector<rbd::MultiBodyConfig> & mbcs() const;
+  const std::vector<ConstRobotPtr> & robots() const;
 
   /** True if the given robot is part of this intance */
-  bool hasRobot(const std::string & name) const;
-
-  /** Index of the main robot */
-  unsigned int robotIndex() const;
-  /** Index of the first non-actuated robot (or the last actuated robot if no unactuated robot are loaded) */
-  unsigned int envIndex() const;
-  /** Index of a robot by name, throws if the robot does not exist */
-  unsigned int robotIndex(const std::string & name) const;
+  bool hasRobot(std::string_view name) const;
 
   /** @name Robot(s) loading/unloading functions
    *
@@ -75,122 +60,74 @@ public:
    *
    * \param module The RobotModule to fetch data from for this robot
    *
-   * \param base If non-null, used as the initial transformation between the base and the world
-   *
-   * \param bName If empty, use the "normal" base, otherwise use body bName as base
-   *
-   * \returns a reference to the robot that was just loaded
-   *
-   * \throws If a robot named <name> already exists
-   *
-   * \anchor load_robot_with_name
-   */
-  Robot & load(const std::string & name,
-               const RobotModule & module,
-               sva::PTransformd * base = nullptr,
-               const std::string & bName = "");
-
-  /** Load a single robot from a RobotModule with an optional base
-   *
-   * \param module The RobotModule to fetch data from for this robot. The module
-   * name is used as the new robot name
-   *
-   * Calls \ref road_robot_with_name with RobotModule::name as the new robot
-   * name
-   */
-  Robot & load(const RobotModule & module, sva::PTransformd * base = nullptr, const std::string & bName = "");
-
-  /** Load a robot and an environment from RobotModule instances with an optional base
-   *
-   * \param module RobotModule for the robot
-   *
-   * \param envModule RobotModule for the environment
+   * \param name Name that will identify this robot
    *
    * \param base If non-null, used as the initial transformation between the base and the world
    *
    * \param bName If empty, use the "normal" base, otherwise use body bName as base
-   */
-  void load(const RobotModule & module,
-            const RobotModule & envModule,
-            sva::PTransformd * base = nullptr,
-            const std::string & bName = "");
-
-  /** Load multiple robots from as many RobotModule instances
    *
-   * \param modules List of RobotModule to load the robots from
-   */
-  void load(const std::vector<std::shared_ptr<RobotModule>> & modules);
-
-  /** Rename an existing robot
+   * \throws If a robot with the same name already exists
    *
-   * \note This is generally unsafe to do late into the controller's life
+   * \returns the robot that was just loaded
    */
-  void rename(const std::string & oldName, const std::string & newName);
+  RobotPtr load(const RobotModule & module,
+                std::string_view name,
+                const std::optional<sva::PTransformd> & base = std::nullopt,
+                const std::optional<std::string_view> & bName = std::nullopt);
 
-  Robot & loadFromUrdf(const std::string & name,
-                       const std::string & urdf,
-                       bool withVirtualLinks = true,
-                       const std::vector<std::string> & filteredLinks = {},
-                       bool fixed = false,
-                       sva::PTransformd * base = nullptr,
-                       const std::string & baseName = "");
-
-  void robotCopy(const Robot & robot, const std::string & newName);
-
-  void createRobotWithBase(const std::string & name,
-                           Robots & robots,
-                           unsigned int robots_idx,
-                           const Base & base,
-                           const Eigen::Vector3d & baseAxis = Eigen::Vector3d::UnitZ());
-
-  void createRobotWithBase(const std::string & name,
-                           Robot & robot,
-                           const Base & base,
-                           const Eigen::Vector3d & baseAxis = Eigen::Vector3d::UnitZ());
-
-  void removeRobot(const std::string & name);
-
-  void removeRobot(unsigned int idx);
-
-  /** @name Deprecated
+  /** Load a Robot from URDF content
    *
-   * These loading functions are deprecated, do not use them in your code
+   * \param name Name of the robot
    *
-   * @{
+   * \param urdf URDF content
+   *
+   * \param withVirtualLinks If true, include virtual bodies in the resulting robot
+   *
+   * \param filteredLinks Exclude the bodies in this list from the resulting robot
+   *
+   * \param fixed If true the robot has fixed base
+   *
+   * \param base If provided used as the initial transformation between the base and the world
+   *
+   * \param baseName If provided overwrite the default base choice
    */
-  MC_RTC_DEPRECATED Robot & load(const RobotModule & module,
-                                 const std::string & surfaceDir,
-                                 sva::PTransformd * base = nullptr,
-                                 const std::string & bName = "");
+  RobotPtr loadFromUrdf(std::string_view name,
+                        const std::string & urdf,
+                        bool withVirtualLinks = true,
+                        const std::vector<std::string> & filteredLinks = {},
+                        bool fixed = false,
+                        const std::optional<sva::PTransformd> & base = std::nullopt,
+                        const std::optional<std::string_view> & bName = std::nullopt);
 
-  MC_RTC_DEPRECATED void load(const RobotModule & module,
-                              const std::string & surfaceDir,
-                              const RobotModule & envModule,
-                              const std::string & envSurfaceDir,
-                              sva::PTransformd * base = nullptr,
-                              const std::string & baseName = "");
+  /** Duplicate a Robot, it doesn't have to belong to this instance of Robots
+   *
+   * \param robot The robot to duplicate
+   *
+   * \param name Name of the robot
+   *
+   * \throws If the robot's name is already used in this instance
+   */
+  RobotPtr robotCopy(const Robot & robot, std::string_view name);
 
-  MC_RTC_DEPRECATED void load(const std::vector<std::shared_ptr<RobotModule>> & modules,
-                              const std::vector<std::string> & surfaceDirs);
-  /** @} */
-  /* End of deprecated loading functions */
+  /** Remove a Robot, does nothing if the robot is not loaded
+   *
+   * \param name Name of the robot to remove
+   */
+  void removeRobot(std::string_view name);
 
   /** @} */
   /* End of Robot(s) loading/unloading functions group */
 
-  const RobotModule & robotModule(size_t idx) const;
+  /** Access a robot by name
+   *
+   * \param name Name of the robot
+   *
+   * \throws If no such robot exists within the Robots
+   */
+  RobotPtr robot(std::string_view name);
 
-  Robot & robot();
-  const Robot & robot() const;
-
-  Robot & env();
-  const Robot & env() const;
-
-  Robot & robot(size_t idx);
-  const Robot & robot(size_t idx) const;
-
-  Robot & robot(const std::string & name);
-  const Robot & robot(const std::string & name) const;
+  /** Access a robot by name (const) */
+  ConstRobotPtr robot(std::string_view name) const;
 
   /** @name Iterators
    *
@@ -217,7 +154,7 @@ public:
 
   /** Number of robots
    *
-   * @return The number of robots
+   * \return The number of robots
    *
    */
   size_type size() const noexcept;
@@ -231,51 +168,10 @@ public:
   void reserve(size_type new_cap);
 
 protected:
-  RobotModuleVector robot_modules_;
-  std::vector<mc_rbdyn::Robot> robots_;
-  std::vector<rbd::MultiBody> mbs_;
-  std::vector<rbd::MultiBodyConfig> mbcs_;
-  std::vector<rbd::MultiBodyGraph> mbgs_;
-  unsigned int robotIndex_;
-  unsigned int envIndex_;
-  void updateIndexes();
-  std::unordered_map<std::string, unsigned int> robotNameToIndex_; ///< Correspondance between robot name and index
+  std::vector<mc_rbdyn::RobotPtr> robots_;
+  std::vector<mc_rbdyn::ConstRobotPtr> const_robots_;
+  const_iterator getRobot(std::string_view name) const;
+  RobotPtr addRobot(RobotPtr robot);
 };
-
-/* Static pendant of the loader functions to create Robots directly */
-MC_RBDYN_DLLAPI std::shared_ptr<Robots> loadRobot(const RobotModule & module,
-                                                  sva::PTransformd * base = nullptr,
-                                                  const std::string & baseName = "");
-
-MC_RBDYN_DLLAPI MC_RTC_DEPRECATED std::shared_ptr<Robots> loadRobot(const RobotModule & module,
-                                                                    const std::string & surfaceDir,
-                                                                    sva::PTransformd * base = nullptr,
-                                                                    const std::string & baseName = "");
-
-MC_RBDYN_DLLAPI std::shared_ptr<Robots> loadRobots(const std::vector<std::shared_ptr<RobotModule>> & modules);
-
-MC_RBDYN_DLLAPI MC_RTC_DEPRECATED std::shared_ptr<Robots> loadRobots(
-    const std::vector<std::shared_ptr<RobotModule>> & modules,
-    const std::vector<std::string> & surfaceDirs);
-
-MC_RBDYN_DLLAPI std::shared_ptr<Robots> loadRobotAndEnv(const RobotModule & module,
-                                                        const RobotModule & envModule,
-                                                        sva::PTransformd * base = nullptr,
-                                                        const std::string & baseName = "");
-
-MC_RBDYN_DLLAPI MC_RTC_DEPRECATED std::shared_ptr<Robots> loadRobotAndEnv(const RobotModule & module,
-                                                                          const std::string & surfaceDir,
-                                                                          const RobotModule & envModule,
-                                                                          const std::string & envSurfaceDir,
-                                                                          sva::PTransformd * base = nullptr,
-                                                                          const std::string & baseName = "");
-
-MC_RBDYN_DLLAPI std::shared_ptr<Robots> loadRobotFromUrdf(const std::string & name,
-                                                          const std::string & urdf,
-                                                          bool withVirtualLinks = true,
-                                                          const std::vector<std::string> & filteredLinks = {},
-                                                          bool fixed = false,
-                                                          sva::PTransformd * base = nullptr,
-                                                          const std::string & baseName = "");
 
 } // namespace mc_rbdyn

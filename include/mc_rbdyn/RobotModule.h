@@ -210,8 +210,8 @@ struct MC_RBDYN_DLLAPI RobotModule
    *
    * \param name Name of the robot
    */
-  RobotModule(const std::string & path, const std::string & name)
-  : RobotModule(path, name, path + "/urdf/" + name + ".urdf")
+  RobotModule(std::string_view path, std::string_view name)
+  : RobotModule(path, name, fmt::format("{}/urdf/{}.urdf", path, name))
   {
   }
 
@@ -227,14 +227,14 @@ struct MC_RBDYN_DLLAPI RobotModule
    *
    * \param urdf_path Path to the robot URDF
    */
-  RobotModule(const std::string & path, const std::string & name, const std::string & urdf_path)
-  : path(path), name(name), urdf_path(urdf_path), rsdf_dir(path + "/rsdf/" + name), calib_dir(path + "/calib/" + name),
-    _real_urdf(urdf_path)
+  RobotModule(std::string_view path, std::string_view name, std::string_view urdf_path)
+  : path(path), name(name), urdf_path(urdf_path), rsdf_dir(fmt::format("{}/rsdf/{}", path, name)),
+    calib_dir(fmt::format("{}/calib/{}", path, name)), _real_urdf(urdf_path)
   {
   }
 
   /** Construct from a parser result */
-  RobotModule(const std::string & name, const rbd::parsers::ParserResult & res);
+  RobotModule(std::string_view name, const rbd::parsers::ParserResult & res);
 
   /** \deprecated{Use rbd::parsers version instead } */
   MC_RTC_DEPRECATED RobotModule(const std::string & name, const mc_rbdyn_urdf::URDFParserResult & res);
