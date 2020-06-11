@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-16.04, ubuntu-18.04, macos-latest, windows-latest]
+        os: [ubuntu-18.04, macos-latest, windows-latest]
         build-type: [Debug, RelWithDebInfo, script]
         compiler: [gcc, clang]
         exclude:
@@ -48,9 +48,6 @@ jobs:
             compiler: clang
           # Script always use default compiler
           - build-type: script
-            compiler: clang
-          # FIXME Getting strange linking errors on Xenial with clang
-          - os: ubuntu-16.04
             compiler: clang
           # FIXME Windows Debug CI fails: tests are failing
           - os: windows-latest
@@ -126,11 +123,12 @@ jobs:
           - path: jrl-umi3218/eigen-qld
           - path: jrl-umi3218/sch-core-python
           - path: jrl-umi3218/RBDyn
-          - path: jrl-umi3218/Tasks
           - path: jrl-umi3218/mc_rbdyn_urdf
           - path: jrl-umi3218/mc_rtc_data
           - path: jrl-umi3218/eigen-quadprog
           - path: jrl-umi3218/state-observation
+          - path: jrl-umi3218/tvm
+            options: -DTVM_WITH_ROBOT:BOOL=OFF
     - name: Build and test
       if: matrix.build-type == 'RelWithDebInfo' || (matrix.build-type == 'Debug' && github.ref == 'refs/heads/master')
       uses: jrl-umi3218/github-actions/build-cmake-project@master
@@ -145,7 +143,7 @@ jobs:
         build-type: ${{ matrix.build-type }}
         options: '-DENABLE_FAST_TESTS:BOOL=ON'
     - name: Build with ROS
-      if: (matrix.os == 'ubuntu-16.04' || matrix.os == 'ubuntu-18.04') && matrix.build-type != 'script'
+      if: matrix.os == 'ubuntu-18.04' && matrix.build-type != 'script'
       run: |
         set -e
         set -x
@@ -186,7 +184,7 @@ jobs:
         cp -r /usr/local/share/doc/mc_rtc/doxygen-html .
         find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/SpaceVecAlg/doxygen-html/@https://jrl-umi3218.github.io/SpaceVecAlg/doxygen/HEAD/@g'
         find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/RBDyn/doxygen-html/@https://jrl-umi3218.github.io/RBDyn/doxygen/HEAD/@g'
-        find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/Tasks/doxygen-html/@https://jrl-umi3218.github.io/Tasks/doxygen/HEAD/@g'
+        find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/TVM/doxygen-html/@https://jrl-umi3218.github.io/tvm/doxygen/HEAD/@g'
         find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/sch-core/doxygen-html/@https://jrl-umi3218.github.io/sch-core/doxygen/HEAD/@g'
         find . -type f -print0 | xargs -0 sed -i -e's@/usr/local/share/doc/mc_rbdyn_urdf/doxygen-html/@https://jrl-umi3218.github.io/mc_rbdyn_urdf/doxygen/HEAD/@g'
         sudo apt-get install -qq ruby-dev ruby-bundler libxml2-dev
