@@ -28,4 +28,10 @@ struct PlanarSurface;
 struct CylindricalSurface;
 struct GripperSurface;
 
+struct Convex;
+using ConvexPtr = std::shared_ptr<Convex>;
+
+struct Frame;
+using FramePtr = std::shared_ptr<Frame>;
+
 } // namespace mc_rbdyn

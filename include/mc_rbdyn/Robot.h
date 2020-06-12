@@ -10,6 +10,10 @@
 
 #include <mc_control/generic_gripper.h>
 
+#include <mc_rtc/map.h>
+
+#include <RBDyn/CoM.h>
+#include <RBDyn/FD.h>
 #include <RBDyn/MultiBody.h>
 #include <RBDyn/MultiBodyConfig.h>
 #include <RBDyn/MultiBodyGraph.h>
@@ -36,25 +40,45 @@ namespace mc_rbdyn
  *
  * It also acts as \ref Convex, \ref Frame and \ref Surface factories.
  *
+ * Variables:
+ * - q (split between free-flyer and joints)
+ * - tau (see Outputs)
+ *
+ * Individual outputs:
+ *
+ * - FK: forward kinematics (computed by RBDyn::FK)
+ * - FV: forward velocity (computed by RBDyn::FV), depends on FK
+ * - FA: forward acceleration (computed by RBDyn::FA), depends on FV
+ * - NormalAcceleration: update bodies' normal acceleration, depends on FV
+ * - tau: generalized torque vector
+ * - CoM: center of mass signal, depends on FK
+ * - CoMJacobian: center of mass jacobian signal, depends on FV
+ * - CoMVelocity: center of mass velocity signal, depends on FV
+ * - CoMNormalAcceleration: center of mass normal acceleration, depends on NormalAcceleration
+ * - H: inertia matrix signal, depends on FV
+ * - C: non-linear effect vector signal (Coriolis, gravity, external forces), depends on FV
+ *
+ * Meta outputs:
+ *   These outputs are provided for convenience sake
+ * - Geometry: depends on CoM (i.e. CoM + FK)
+ * - Dynamics: depends on FA + normalAcceleration (i.e. everything)
+ *
  */
-struct MC_RBDYN_DLLAPI Robot
+struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::enable_shared_from_this<Robot>
 {
+  SET_OUTPUTS(Robot, FK, FV, FA, NormalAcceleration, tau, CoM, H, C, Geometry, Dynamics)
+  SET_UPDATES(Robot, Time, FK, FV, FA, NormalAcceleration, CoM, H, C)
+
   friend struct Robots;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-public:
-  using S_ObjectPtr = std::shared_ptr<sch::S_Object>;
-  using convex_pair_t = std::pair<std::string, S_ObjectPtr>;
 
-public:
+  using S_ObjectPtr = std::shared_ptr<sch::S_Object>;
+
   Robot(Robot &&) = default;
   Robot & operator=(Robot &&) = default;
 
-  /** Returns the name of the robot
-   *
-   * \note To rename a robot, use
-   * Robots::rename(const std::string &, const std::string &)
-   **/
-  const std::string & name() const;
+  /** Returns the name of the robot */
+  std::string_view name() const;
 
   /** Retrieve the associated RobotModule */
   const RobotModule & module() const;
@@ -82,14 +106,14 @@ public:
    * @param name Name of the body sensor
    *
    */
-  bool hasBodySensor(const std::string & name) const;
+  bool hasBodySensor(std::string_view name) const;
 
   /** Return true if the specified body has a body sensor attached to it
    *
    * @param body Body to query
    *
    */
-  bool bodyHasBodySensor(const std::string & body) const;
+  bool bodyHasBodySensor(std::string_view body) const;
 
   /** Return a specific BobySensor by name
    *
@@ -98,10 +122,10 @@ public:
    * @throws If the sensor does not exist
    *
    */
-  BodySensor & bodySensor(const std::string & name);
+  BodySensor & bodySensor(std::string_view name);
 
   /** Return a specific BodySensor by name (const) */
-  const BodySensor & bodySensor(const std::string & name) const;
+  const BodySensor & bodySensor(std::string_view name) const;
 
   /** Return a specific BodySensor by body name
    *
@@ -110,10 +134,10 @@ public:
    * @throws If there is no sensor attached to the body
    *
    */
-  BodySensor & bodyBodySensor(const std::string & name);
+  BodySensor & bodyBodySensor(std::string_view name);
 
   /** Return a specific BodySensor by body name (const) */
-  const BodySensor & bodyBodySensor(const std::string & name) const;
+  const BodySensor & bodyBodySensor(std::string_view name) const;
 
   /** Return all body sensors */
   BodySensorVector & bodySensors();
@@ -125,16 +149,16 @@ public:
   /* End of Body sensors group */
 
   /** Returns true if the robot has a joint named \p name */
-  bool hasJoint(const std::string & name) const;
+  bool hasJoint(std::string_view name) const;
 
   /** Returns true if the robot has a body named \p name */
-  bool hasBody(const std::string & name) const;
+  bool hasBody(std::string_view name) const;
 
   /** Returns the joint index of joint named \name
    *
    * \throws If the joint does not exist within the robot.
    */
-  unsigned int jointIndexByName(const std::string & name) const;
+  unsigned int jointIndexByName(std::string_view name) const;
 
   /** Returns the joint index in the mbc of the joint with index jointIndex in
    * refJointOrder
@@ -154,7 +178,7 @@ public:
    *
    * \throws If the body does not exist within the robot.
    */
-  unsigned int bodyIndexByName(const std::string & name) const;
+  unsigned int bodyIndexByName(std::string_view name) const;
 
   /** Access MultiBody representation of the robot */
   rbd::MultiBody & mb();
@@ -187,6 +211,8 @@ public:
   const std::vector<sva::MotionVecd> & bodyVelB() const;
   /** Equivalent to robot.mbc().bodyAccB (const) */
   const std::vector<sva::MotionVecd> & bodyAccB() const;
+  /** Vector of normal acceleration in body coordinates */
+  const std::vector<sva::MotionVecd> & normalAccB() const;
   /** Equivalent to robot.mbc().q */
   std::vector<std::vector<double>> & q();
   /** Equivalent to robot.mbc().alpha */
@@ -203,93 +229,79 @@ public:
   std::vector<sva::MotionVecd> & bodyVelB();
   /** Equivalent to robot.mbc().bodyAccB */
   std::vector<sva::MotionVecd> & bodyAccB();
+  /** Vector of normal acceleration in body coordinates */
+  std::vector<sva::MotionVecd> & normalAccB();
 
   /** Access the position of body \p name in world coordinates
    *
    * \throws If the body does not exist within the robot
    */
-  const sva::PTransformd & bodyPosW(const std::string & name) const;
+  const sva::PTransformd & bodyPosW(std::string_view name) const;
 
-  /** Relative transformation X_b1_b2 from body b1 to body b2
+  /** Relative transformation X_f1_f2 from frame f1 to frame f2
    *
-   * \param b1 name of first body
-   * \param b2 name of second body
-   * \throws If b1 or b2 does not exist within the robot
+   * \param f1 name of first frame
+   * \param f2 name of second frame
+   * \throws If f1 or f2 does not exist within the robot
    */
-  sva::PTransformd X_b1_b2(const std::string & b1, const std::string & b2) const;
+  sva::PTransformd X_f1_f2(std::string_view f1, std::string_view f2) const;
 
-  /** Access the velocity of body \p name in world coordinates
+  /** Access the velocity of frame \p name in world coordinates
    *
-   * \throws If the body doest not exist within the robot
+   * \throws If the frame does not exist within the robot
    */
-  const sva::MotionVecd & bodyVelW(const std::string & name) const;
+  const sva::MotionVecd & frameVelW(std::string_view name) const;
 
-  /** Access the velocity of body \p name in body coordinates
+  /** Access the velocity of frame \p name in frame coordinates
    *
-   * \throws If the body doest not exist within the robot
+   * \throws If the frame does not exist within the robot
    */
-  const sva::MotionVecd & bodyVelB(const std::string & name) const;
+  const sva::MotionVecd & frameVelB(std::string_view name) const;
 
-  /** Access the acceleration of body \p name in body coordinates
+  /** Access the acceleration of frame \p name in frame coordinates
    *
-   * \throws If the body doest not exist within the robot
+   * \throws If the frame does not exist within the robot
    */
-  const sva::MotionVecd & bodyAccB(const std::string & name) const;
+  const sva::MotionVecd & frameAccB(std::string_view name) const;
 
-  /** Compute and returns the current robot's CoM */
-  Eigen::Vector3d com() const;
-  /** Compute and returns the current robot's CoM velocity */
-  Eigen::Vector3d comVelocity() const;
-  /** Compute and returns the current robot's CoM acceleration */
-  Eigen::Vector3d comAcceleration() const;
+  /** Returns the current's robot CoM */
+  const Eigen::Vector3d & com() const;
+  /** Returns the current robot's CoM velocity */
+  const Eigen::Vector3d & comVelocity() const;
+  /** Returns the current robot's CoM acceleration */
+  const Eigen::Vector3d & comAcceleration() const;
 
-  /** Compute the gravity-free wrench in surface frame
+  /** Compute the gravity-free wrench in a given frame
    *
-   * @note If the surface is indirectly attached to the sensor (i.e there are
+   * @note If the frame is indirectly attached to the sensor (i.e there are
    * joints in-between), then the kinematic transformation will be taken into
    * account but the effect of bodies in-between is not accounted for in the
    * returned wrench.
    *
-   * @param surfaceName A surface attached to a force sensor
+   * @param frameName A frame of this robot
    *
-   * @return Measured wrench in surface frame
+   * @return Measured wrench in the frame
    *
-   * @throws If no sensor is attached to this surface
+   * @throws If no sensor is attached to this frame or the frame does not exist
    */
-  sva::ForceVecd surfaceWrench(const std::string & surfaceName) const;
+  sva::ForceVecd frameWrench(std::string_view frameName) const;
 
-  /** Compute the gravity-free wrench in body frame
+  /** Compute the cop in the given frame computed from gravity-free force measurements
    *
-   * @note If the body is indirectly attached to the sensor (i.e there are
-   * joints in-between), then the kinematic transformation will be taken into
-   * account but the effect of bodies in-between is not accounted for in the
-   * returned wrench.
-   *
-   * @param bodyName A body attached to a force sensor
-   *
-   * @return Measured wrench in body frame
-   *
-   * @throws If no sensor is attached to this surface
-   */
-  sva::ForceVecd bodyWrench(const std::string & bodyName) const;
-
-  /** Compute the cop in surface frame computed from gravity-free force
-   * measurements
-   *
-   * @param surfaceName A surface attached to a force sensor
+   * @param frameName A frame attached to a force sensor
    * @param min_pressure Minimum pressure in N (default 0.5N).
    *
    * @return Measured cop in surface frame
    *  - CoP if pressure >= min_pressure
    *  - Zero otherwise
    *
-   * @throws If no sensor is attached to this surface
+   * @throws If no sensor is attached to this frame or the frame does not exist
    */
-  Eigen::Vector2d cop(const std::string & surfaceName, double min_pressure = 0.5) const;
-  /** Compute the cop in inertial frame compute from gravity-free force
-   * measurements
+  Eigen::Vector2d cop(std::string_view surfaceName, double min_pressure = 0.5) const;
+
+  /** Compute the cop in inertial frame compute from gravity-free force measurements
    *
-   * @param surfaceName A surface attached to a force sensor
+   * @param frameName A frame attached to a force sensor
    * @param min_pressure Minimum pressure in N (default 0.5N).
    *
    * @return Measured cop in inertial frame
@@ -298,7 +310,7 @@ public:
    *
    * @throws If no sensor is attached to this surface
    */
-  Eigen::Vector3d copW(const std::string & surfaceName, double min_pressure = 0.5) const;
+  Eigen::Vector3d copW(std::string_view frameName, double min_pressure = 0.5) const;
 
   /**
    * @brief Computes net total wrench from a list of sensors
@@ -375,47 +387,6 @@ public:
                       const sva::PTransformd & zmpFrame,
                       double minimalNetNormalForce = 1.) const;
 
-  /** Access the robot's angular lower limits (const) */
-  const std::vector<std::vector<double>> & ql() const;
-  /** Access the robot's angular upper limits (const) */
-  const std::vector<std::vector<double>> & qu() const;
-  /** Access the robot's angular lower velocity limits (const) */
-  const std::vector<std::vector<double>> & vl() const;
-  /** Access the robot's angular upper velocity limits (const) */
-  const std::vector<std::vector<double>> & vu() const;
-  /** Access the robot's angular lower acceleration limits (const) */
-  const std::vector<std::vector<double>> & al() const;
-  /** Access the robot's angular upper acceleration limits (const) */
-  const std::vector<std::vector<double>> & au() const;
-  /** Access the robot's angular lower torque limits (const) */
-  const std::vector<std::vector<double>> & tl() const;
-  /** Access the robot's angular upper torque limits (const) */
-  const std::vector<std::vector<double>> & tu() const;
-  /** Access the robot's angular lower torque-derivative limits (const) */
-  const std::vector<std::vector<double>> & tdl() const;
-  /** Access the robot's angular upper torque-derivative limits (const) */
-  const std::vector<std::vector<double>> & tdu() const;
-  /** Access the robot's angular lower limits */
-  std::vector<std::vector<double>> & ql();
-  /** Access the robot's angular upper limits */
-  std::vector<std::vector<double>> & qu();
-  /** Access the robot's angular lower velocity limits */
-  std::vector<std::vector<double>> & vl();
-  /** Access the robot's angular upper velocity limits */
-  std::vector<std::vector<double>> & vu();
-  /** Access the robot's angular lower acceleration limits */
-  std::vector<std::vector<double>> & al();
-  /** Access the robot's angular upper acceleration limits */
-  std::vector<std::vector<double>> & au();
-  /** Access the robot's angular lower torque limits */
-  std::vector<std::vector<double>> & tl();
-  /** Access the robot's angular upper torque limits */
-  std::vector<std::vector<double>> & tu();
-  /** Access the robot's angular lower torque-derivative limits */
-  std::vector<std::vector<double>> & tdl();
-  /** Access the robot's angular upper torque-derivative limits */
-  std::vector<std::vector<double>> & tdu();
-
   /** Return the flexibilities of the robot (const) */
   const std::vector<Flexibility> & flexibility() const;
   /** Return the flexibilities of the robot */
@@ -436,7 +407,7 @@ public:
    */
   const Eigen::Vector3d & zmpTarget() const;
 
-  /** Compute and returns the mass of the robot */
+  /** Returns the mass of the robot */
   double mass() const;
 
   /** @name Joint sensors
@@ -489,7 +460,7 @@ public:
    *
    * @returns True if the sensor exists, false otherwise
    */
-  bool hasForceSensor(const std::string & name) const;
+  bool hasForceSensor(std::string_view name) const;
 
   /** Check if the body has a force sensor directly attached to it
    *
@@ -501,7 +472,7 @@ public:
    * @returns True if the body has a force sensor attached to it, false
    * otherwise
    */
-  bool bodyHasForceSensor(const std::string & body) const;
+  bool bodyHasForceSensor(std::string_view body) const;
 
   /**
    * @brief Checks if the surface has a force sensor directly attached to it
@@ -546,73 +517,39 @@ public:
    * @throws If no sensor with this name exists
    *
    */
-  ForceSensor & forceSensor(const std::string & name);
+  ForceSensor & forceSensor(std::string_view name);
 
   /** Const variant */
-  const ForceSensor & forceSensor(const std::string & name) const;
+  const ForceSensor & forceSensor(std::string_view name) const;
 
-  /** Return a force sensor attached to the provided body
+  /** Return a force sensor attached to the provided frame
    *
-   * @param body Name of the body to which the sensor is attached
+   * @param frame Name of the frame to which the sensor is attached
    *
    * @return The attached sensor
    *
-   * @throws If no sensor is directly attached to this body
+   * @throws If no sensor is directly attached to this frame's parent body
    *
-   * @see ForceSensor & indirectBodyForceSensor(const std::string & body);
-   * To get a sensor directly or indirectly attached to the body.
+   * @note if a sensor in indirectly attached to a frame, use findFrameForceSensor() instead
    */
-  ForceSensor & bodyForceSensor(const std::string & body);
+  ForceSensor & frameForceSensor(std::string_view frame);
 
   /** Const variant */
-  const ForceSensor & bodyForceSensor(const std::string & body) const;
-
-  /** Return a force sensor attached to the provided surface
-   *
-   * @param surface Name of the surface to which the sensor is attached
-   *
-   * @return The attached sensor
-   *
-   * @throws If no sensor is directly attached to this surface
-   *
-   * @see ForceSensor & indirectBodyForceSensor(const std::string & surface);
-   * To get a sensor directly or indirectly attached to the surface.
-   */
-  ForceSensor & surfaceForceSensor(const std::string & surfaceName);
-  /** Const variant */
-  const ForceSensor & surfaceForceSensor(const std::string & surfaceName) const;
+  const ForceSensor & frameForceSensor(std::string_view frame) const;
 
   /**
-   * @brief Return a force sensor directly or indirectly attached to a body
+   * @brief Looks for a force sensor up the kinematic chain from the frame to the root.
    *
-   * When the sensor is not directly attached to the body, look up the kinematic chain until the root until a sensor is
-   * found.
+   * @param frame Name of the frame
    *
-   * @return The sensor to which the body is indirectly attached
+   * @return The sensor to which the frame is indirectly attached
    *
-   * @throws If no sensor is found between the body and the root
+   * @throws If no sensor is found between the frame and the root
    */
-  ForceSensor & indirectBodyForceSensor(const std::string & body);
+  ForceSensor & findFrameForceSensor(std::string_view frame);
 
   /** Const variant */
-  const ForceSensor & indirectBodyForceSensor(const std::string & body) const;
-
-  /**
-   * @brief Return a force sensor directly or indirectly attached to a surface
-   *
-   * When the sensor is not directly attached to the surface, look up the kinematic chain until the root until a sensor
-   * is found.
-   *
-   * @param surface Name of surface indirectly attached to the sensor
-   *
-   * @return The sensor to which the surface is indirectly attached
-   *
-   * @throws If no sensor is found between the surface and the root
-   */
-  ForceSensor & indirectSurfaceForceSensor(const std::string & surface);
-
-  /** Const variant */
-  const ForceSensor & indirectSurfaceForceSensor(const std::string & surface) const;
+  const ForceSensor & findFrameForceSensor(std::string_view frame) const;
 
   /** Returns all force sensors */
   std::vector<ForceSensor> & forceSensors();
@@ -638,11 +575,11 @@ public:
    *
    */
   template<typename T>
-  bool hasDevice(const std::string & name) const;
+  bool hasDevice(std::string_view name) const;
 
   /** Alias for \see hasDevice */
   template<typename T>
-  inline bool hasSensor(const std::string & name) const
+  inline bool hasSensor(std::string_view name) const
   {
     return hasDevice<T>(name);
   }
@@ -659,25 +596,25 @@ public:
    *
    */
   template<typename T>
-  const T & device(const std::string & name) const;
+  const T & device(std::string_view name) const;
 
   /** Non-const variant */
   template<typename T>
-  T & device(const std::string & name)
+  T & device(std::string_view name)
   {
     return const_cast<T &>(const_cast<const Robot *>(this)->device<T>(name));
   }
 
   /** Alias for \see device */
   template<typename T>
-  inline const T & sensor(const std::string & name) const
+  inline const T & sensor(std::string_view name) const
   {
     return device<T>(name);
   }
 
   /** Alias for \see device */
   template<typename T>
-  inline T & sensor(const std::string & name)
+  inline T & sensor(std::string_view name)
   {
     return device<T>(name);
   }
@@ -698,28 +635,28 @@ public:
    *
    * \returns True if the surface exists, false otherwise
    */
-  bool hasSurface(const std::string & surface) const;
+  bool hasSurface(std::string_view surface) const;
 
   /** Access a surface by its name \p sName */
-  mc_rbdyn::Surface & surface(const std::string & sName);
+  mc_rbdyn::Surface & surface(std::string_view sName);
   /** Access a surface by its name \p sName (const) */
-  const mc_rbdyn::Surface & surface(const std::string & sName) const;
+  const mc_rbdyn::Surface & surface(std::string_view sName) const;
 
   /** Get the pose of a surface frame with respect to the inertial frame.
    *
    * \param sName Name of surface frame.
    *
    */
-  sva::PTransformd surfacePose(const std::string & sName) const;
+  const sva::PTransformd & surfacePose(std::string_view sName) const;
 
   /** Copy an existing surface with a new name */
-  mc_rbdyn::Surface & copySurface(const std::string & sName, const std::string & name);
+  mc_rbdyn::Surface & copySurface(std::string_view oldName, std::string_view newName);
 
-  /** Adds a surface with a new name */
-  void addSurface(mc_rbdyn::SurfacePtr surface, bool doNotReplace = true);
+  /** Adds a surface */
+  void addSurface(mc_rbdyn::SurfacePtr surface);
 
   /** Returns all available surfaces */
-  const std::map<std::string, mc_rbdyn::SurfacePtr> & surfaces() const;
+  const mc_rtc::map<std::string, mc_rbdyn::SurfacePtr> & surfaces() const;
 
   /** Returns a list of available surfaces */
   std::vector<std::string> availableSurfaces() const;
@@ -728,16 +665,16 @@ public:
    *
    * \returns True if the convex exists, false otherwise
    */
-  bool hasConvex(const std::string & name) const;
+  bool hasConvex(std::string_view name) const;
 
   /** Access a convex named \p cName
    *
    * \returns a pair giving the convex's parent body and the sch::Object
    * object
    */
-  convex_pair_t & convex(const std::string & cName);
+  Convex & convex(std::string_view cName);
   /** Access a convex named \p cName (const) */
-  const convex_pair_t & convex(const std::string & cName) const;
+  const Convex & convex(std::string_view cName) const;
 
   /** Access all convexes available in this robot
    *
@@ -751,17 +688,12 @@ public:
    *
    * \param name Name of the convex
    *
-   * \param body Name of the convex's parent body
+   * \param convex Convex that will be added to the robot
    *
-   * \param convex sch::Object object representing the convex
-   *
-   * \param X_b_c Transformation fro the convex's parent body to the convex
+   * \throws If such a convex already exists within the robot
    *
    */
-  void addConvex(const std::string & name,
-                 const std::string & body,
-                 S_ObjectPtr convex,
-                 const sva::PTransformd & X_b_c = sva::PTransformd::Identity());
+  void addConvex(std::string_view name, ConvexPtr convex);
 
   /** Remove a given convex
    *
@@ -773,7 +705,7 @@ public:
    * \param name Name of the convex
    *
    */
-  void removeConvex(const std::string & name);
+  void removeConvex(std::string_view name);
 
   /** Access transformation from body \p bName to original base.
    *
@@ -781,7 +713,7 @@ public:
    * original base. Usually the robot's base is the original base so these
    * transforms are identity.
    */
-  const sva::PTransformd & bodyTransform(const std::string & bName) const;
+  const sva::PTransformd & bodyTransform(std::string_view bName) const;
 
   /** Access body transform by index */
   const sva::PTransformd & bodyTransform(int bodyIndex) const;
@@ -789,41 +721,18 @@ public:
   /** Access body transform vector */
   const std::vector<sva::PTransformd> & bodyTransforms() const;
 
-  /** Access transformation between the collision mesh and the body */
-  const sva::PTransformd & collisionTransform(const std::string & cName) const;
-
   /** Load surfaces from the directory \p surfaceDir */
-  void loadRSDFFromDir(const std::string & surfaceDir);
+  void loadRSDFFromDir(std::string_view surfaceDir);
 
   /** Return the robot's default stance (e.g. half-sitting for humanoid) */
-  std::map<std::string, std::vector<double>> stance() const;
-
-  /** Access the robot's index in robots() */
-  unsigned int robotIndex() const;
-
-  /** Apply forward kinematics to the robot */
-  void forwardKinematics();
-  /** Apply forward kinematics to \p mbc using the robot's mb() */
-  void forwardKinematics(rbd::MultiBodyConfig & mbc) const;
-
-  /** Apply forward velocity to the robot */
-  void forwardVelocity();
-  /** Apply forward velocity to \p mbc using the robot's mb() */
-  void forwardVelocity(rbd::MultiBodyConfig & mbc) const;
-
-  /** Apply forward acceleration to the robot */
-  void forwardAcceleration(const sva::MotionVecd & A_0 = sva::MotionVecd(Eigen::Vector6d::Zero()));
-  /** Apply forward acceleration to \p mbc using the robot's mb() */
-  void forwardAcceleration(rbd::MultiBodyConfig & mbc,
-                           const sva::MotionVecd & A_0 = sva::MotionVecd(Eigen::Vector6d::Zero())) const;
+  mc_rtc::map<std::string, std::vector<double>> stance() const;
 
   /** Apply Euler integration to the robot using \p step timestep */
   void eulerIntegration(double step);
-  /** Apply Euler integration to \p mbc using the robot's mb() and \p step timestep */
-  void eulerIntegration(rbd::MultiBodyConfig & mbc, double step) const;
 
   /** Return the robot's global pose */
   const sva::PTransformd & posW() const;
+
   /** Set the robot's global pose.
    * This is mostly meant for initialization purposes.
    * In other scenarios there might be more things to do
@@ -867,12 +776,12 @@ public:
    *
    * \throws If the gripper does not exist within this robot
    */
-  mc_control::Gripper & gripper(const std::string & gripper);
+  mc_control::Gripper & gripper(std::string_view gripper);
 
   /** Checks whether a gripper is part of this robot */
   bool hasGripper(const std::string & gripper) const;
 
-  inline const std::unordered_map<std::string, mc_control::GripperPtr> & grippersByName() const
+  inline const mc_rtc::map<std::string, mc_control::GripperPtr> & grippersByName() const
   {
     return grippers_;
   }
@@ -887,27 +796,28 @@ private:
   struct make_shared_token
   {
   };
-  unsigned int robots_idx_;
+  /** Name of the robot */
   std::string name_;
-  Eigen::Vector3d zmp_;
+  /** RobotModule that was used to create this robot */
+  RobotModule module_;
+  /** Robot's mass */
+  double mass_;
+  /** Normal accelerations of the bodies */
+  std::vector<sva::MotionVecd> normalAccB_;
+  /** Forward dynamics algorithm associated to this robot */
+  rbd::ForwardDynamics fd_;
+  /** CoM of this robot */
+  Eigen::Vector3d com_;
+  /** CoM jacobian algorithm associated to this robot */
+  rbd::CoMJacobian comJac_;
+  /** List of body transformations */
   std::vector<sva::PTransformd> bodyTransforms_;
-  std::vector<std::vector<double>> ql_;
-  std::vector<std::vector<double>> qu_;
-  std::vector<std::vector<double>> vl_;
-  std::vector<std::vector<double>> vu_;
-  std::vector<std::vector<double>> al_;
-  std::vector<std::vector<double>> au_;
-  std::vector<std::vector<double>> tl_;
-  std::vector<std::vector<double>> tu_;
-  std::vector<std::vector<double>> tdl_;
-  std::vector<std::vector<double>> tdu_;
-  std::map<std::string, convex_pair_t> convexes_;
-  std::map<std::string, sva::PTransformd> collisionTransforms_;
-  std::map<std::string, mc_rbdyn::SurfacePtr> surfaces_;
-  std::vector<ForceSensor> forceSensors_;
-  std::map<std::string, std::vector<double>> stance_;
-  /** Reference joint order see mc_rbdyn::RobotModule */
-  std::vector<std::string> refJointOrder_;
+  /** List of frames available in this robot */
+  mc_rtc::map<std::string, FramePtr> frames_;
+  /** List of convex available in this robot */
+  mc_rtc::map<std::string, ConvexPtr> convexes_;
+  /** List of surfaces available in this robot */
+  mc_rtc::map<std::string, SurfacePtr> surfaces_;
   /** Correspondance between refJointOrder (actuated joints) index and
    * mbc index. **/
   std::vector<int> refJointIndexToMBCIndex_;
@@ -918,29 +828,32 @@ private:
   std::vector<double> encoderVelocities_;
   /** Joint torques provided by the low-level controller */
   std::vector<double> jointTorques_;
-  std::vector<double> flexibilityValues_;
   /** Hold all body sensors */
   BodySensorVector bodySensors_;
   /** Correspondance between body sensor's name and body sensor index*/
-  std::unordered_map<std::string, size_t> bodySensorsIndex_;
+  mc_rtc::map<std::string, size_t> bodySensorsIndex_;
   /** Correspondance between bodies' names and attached body sensors */
-  std::unordered_map<std::string, size_t> bodyBodySensors_;
+  mc_rtc::map<std::string, size_t> bodyBodySensors_;
+  /** List of springs in a Robot */
   Springs springs_;
-  std::vector<std::vector<Eigen::VectorXd>> tlPoly_;
-  std::vector<std::vector<Eigen::VectorXd>> tuPoly_;
+  /** List of flexibility in a Robot */
   std::vector<Flexibility> flexibility_;
+  /** Flexibility estimation from an estimator */
+  std::vector<double> flexibilityValues_;
+  /** List of force sensors attached to the robot */
+  std::vector<ForceSensor> forceSensors_;
   /** Correspondance between force sensor's name and force sensor index */
-  std::unordered_map<std::string, size_t> forceSensorsIndex_;
+  mc_rtc::map<std::string, size_t> forceSensorsIndex_;
   /** Correspondance between bodies' names and attached force sensors */
-  std::map<std::string, size_t> bodyForceSensors_;
+  mc_rtc::map<std::string, size_t> bodyForceSensors_;
   /** Grippers attached to this robot */
-  std::unordered_map<std::string, mc_control::GripperPtr> grippers_;
+  mc_rtc::map<std::string, mc_control::GripperPtr> grippers_;
   /** Grippers reference for this robot */
   std::vector<mc_control::GripperRef> grippersRef_;
   /** Hold all devices that are neither force sensors nor body sensors */
   DevicePtrVector devices_;
   /** Correspondance between a device's name and a device index */
-  std::unordered_map<std::string, size_t> devicesIndex_;
+  mc_rtc::map<std::string, size_t> devicesIndex_;
 
 protected:
   /** Invoked by Robots parent instance after mb/mbc/mbg/RobotModule are stored
@@ -950,16 +863,16 @@ protected:
    *
    */
   Robot(make_shared_token,
-        const RobotModule & module,
+        RobotModule module,
         std::string_view name,
         bool loadFiles,
         const std::optional<sva::PTransformd> & base = std::nullopt,
         const std::optional<std::string_view> & baseName = std::nullopt);
 
   /** Copy existing Robot with a new base */
-  RobotPtr copy(const RobotModule & module, std::string_view name, const Base & base) const;
+  RobotPtr copy(RobotModule module, std::string_view name, const Base & base) const;
   /** Copy existing Robot */
-  RobotPtr copy(const RobotModule & module, std::string_view name) const;
+  RobotPtr copy(RobotModule module, std::string_view name) const;
 
   /** Used to set the surfaces' X_b_s correctly */
   void fixSurfaces();
@@ -988,85 +901,6 @@ private:
    */
   void name(const std::string & n);
 };
-
-/** @defgroup robotFromConfig Helpers to obtain robot index/name from configuration
- *  The intent of these functions is:
- *  - to facilitate supporting managing robots by name in the FSM, while maintaining compatibility with the existing
- * FSMs using robotIndex.
- *  - to facilitate the upcoming transition from Tasks (requires robotIndex) to TVM (using only robotName).
- *    When the transition occurs, robotIndexFromConfig can be deprecated, and its uses be replaced with
- * robotNameFromConfig instead.
- *  @{
- */
-
-/**
- * @brief Obtains a reference to a loaded robot from configuration (using robotName or robotIndex)
- *
- * - If robotName is present, it is used to find the robot
- * - Otherwise, it'll attempt to use robotIndex and inform the user that its use
- *   is deprecated in favor of robotName
- *
- * @param config Configuration from which to look for robotName/robotIndex
- * @param robots Loaded robots
- * @param prefix Prefix used for printint outputs to the user (deprecation
- * warning, non-existing robot, etc).
- * @param required
- * - When true, throws if the robotName/robotIndex is invalid or missing.
- * - When false, returns the main robot if the robotName/robotIndex is invalid or missing.
- *
- * @param robotIndexKey Configuration key for robotIndex
- * @param robotNameKey Configuration key for robotName
- * @param defaultRobotName When empty, return the main robot name, otherwise use
- * the specified name
- *
- * @return Robot as configured by the robotName or robotIndex configuration
- * entry.
- */
-MC_RBDYN_DLLAPI const mc_rbdyn::Robot & robotFromConfig(const mc_rtc::Configuration & config,
-                                                        const mc_rbdyn::Robots & robots,
-                                                        const std::string & prefix,
-                                                        bool required = false,
-                                                        const std::string & robotIndexKey = "robotIndex",
-                                                        const std::string & robotNameKey = "robot",
-                                                        const std::string & defaultRobotName = "");
-
-/**
- * @brief Helper to obtain the robot name from configuration
- *
- * @see const mc_rbdyn::Robot & robotFromConfig(const mc_rtc::Configuration & config, const mc_rbdyn::Robots & robots,
- * const std::string & prefix, bool required);
- */
-std::string MC_RBDYN_DLLAPI robotNameFromConfig(const mc_rtc::Configuration & config,
-                                                const mc_rbdyn::Robots & robots,
-                                                const std::string & prefix = "",
-                                                bool required = false,
-                                                const std::string & robotIndexKey = "robotIndex",
-                                                const std::string & robotNameKey = "robot",
-                                                const std::string & defaultRobotName = "");
-
-/**
- * @brief Helper to obtain the robot index from configuration
- *
- * @note This function will be removed when transitioning to TVM. To facilitate
- * the transition from index-based to named-based robots, this function can be
- * deprecated to help with the transition.
- *
- * @see const mc_rbdyn::Robot & robotFromConfig(const mc_rtc::Configuration & config, const mc_rbdyn::Robots & robots,
- * const std::string & prefix, bool required);
- */
-unsigned int MC_RBDYN_DLLAPI robotIndexFromConfig(const mc_rtc::Configuration & config,
-                                                  const mc_rbdyn::Robots & robots,
-                                                  const std::string & prefix = "",
-                                                  bool required = false,
-                                                  const std::string & robotIndexKey = "robotIndex",
-                                                  const std::string & robotNameKey = "robot",
-                                                  const std::string & defaultRobotName = "");
-
-/** @} */
-
-/*FIXME Not implemetend for now, only used for ATLAS
-void loadPolyTorqueBoundsData(const std::string & file, Robot & robot);
-*/
 
 } // namespace mc_rbdyn
 
