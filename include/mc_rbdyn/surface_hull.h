@@ -25,11 +25,6 @@ class S_Object;
 namespace mc_rbdyn
 {
 
-struct Surface;
-struct PlanarSurface;
-struct CylindricalSurface;
-struct GripperSurface;
-
 MC_RBDYN_DLLAPI sch::S_Object * surface_to_sch(const mc_rbdyn::Surface & surface,
                                                const double & depth = 0.01,
                                                const unsigned int & slice = 8);

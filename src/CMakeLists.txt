@@ -173,6 +173,7 @@ mc_rbdyn/Frame.cpp
 
 set(mc_rbdyn_HDR
 ../include/mc_rbdyn/api.h
+../include/mc_rbdyn/fwd.h
 ../include/mc_rbdyn/Contact.h
 ../include/mc_rbdyn/contact_transform.h
 ../include/mc_rbdyn/CylindricalSurface.h

@@ -9,8 +9,6 @@
 namespace mc_rbdyn
 {
 
-struct Robot;
-
 namespace detail
 {
 struct ForceSensorCalibData;

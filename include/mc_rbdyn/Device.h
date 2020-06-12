@@ -14,13 +14,6 @@
 namespace mc_rbdyn
 {
 
-struct Robot;
-
-struct Device;
-using DevicePtr = std::unique_ptr<Device>;
-using Sensor = Device;
-using SensorPtr = DevicePtr;
-
 /** This struct represents a generic device attached to a robot
  *
  * This is a barebone interface meant to be derived by a concrete device implementation

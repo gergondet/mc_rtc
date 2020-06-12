@@ -35,10 +35,6 @@ struct MC_RBDYN_DLLAPI QPContactPtrWPoints
 namespace mc_rbdyn
 {
 
-struct Robot;
-struct Robots;
-struct Surface;
-
 MC_RBDYN_DLLAPI std::vector<sva::PTransformd> computePoints(const mc_rbdyn::Surface & robotSurface,
                                                             const mc_rbdyn::Surface & envSurface,
                                                             const sva::PTransformd & X_es_rs);

@@ -14,8 +14,6 @@
 namespace mc_rbdyn
 {
 
-struct Surface;
-
 MC_RBDYN_DLLAPI sva::PTransformd planar(const double & T, const double & B, const double & N_rot);
 
 MC_RBDYN_DLLAPI sva::PTransformd cylindrical(const double & T, const double & T_rot);
