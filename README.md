@@ -39,3 +39,4 @@ mc\_rtc also uses the following great 3rd party libraries but does not require y
  * [Qhull 2020.2](http://www.qhull.org/) under the [Qhull license](http://www.qhull.org/COPYING.txt)
  * [RapidJSON](http://rapidjson.org/) under the [MIT license](https://github.com/Tencent/rapidjson/blob/master/license.txt)
  * [mpack](https://github.com/ludocode/mpack) under the [MIT license](https://github.com/ludocode/mpack/blob/develop/LICENSE)
+ * [robin-hood-hashing](https://github.com/martinus/robin-hood-hashing) under the [MIT license](https://github.com/martinus/robin-hood-hashing/blob/master/LICENSE)
