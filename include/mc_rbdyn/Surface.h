@@ -17,8 +17,6 @@
 namespace mc_rbdyn
 {
 
-struct Robot;
-
 struct SurfaceImpl;
 
 struct MC_RBDYN_DLLAPI Surface

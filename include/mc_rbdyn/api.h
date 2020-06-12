@@ -51,3 +51,5 @@
 #  endif // MC_RBDYN_EXPORTS
 #  define MC_RBDYN_LOCAL MC_RBDYN_DLLLOCAL
 #endif // MC_RBDYN_STATIC
+
+#include <mc_rbdyn/fwd.h>

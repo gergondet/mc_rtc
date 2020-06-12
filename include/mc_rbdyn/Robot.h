@@ -28,12 +28,6 @@
 namespace mc_rbdyn
 {
 
-struct Robots;
-
-struct Robot;
-using RobotPtr = std::shared_ptr<Robot>;
-using ConstRobotPtr = std::shared_ptr<const Robot>;
-
 /** Represent a robot managed by the optimization problem
  *
  * A Robot is created through a Robots container.

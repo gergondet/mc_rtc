@@ -14,9 +14,7 @@
 namespace mc_rbdyn
 {
 
-struct Surface;
-
-MC_RBDYN_DLLAPI std::vector<std::shared_ptr<Surface>> readRSDFFromDir(const std::string & dirname);
+MC_RBDYN_DLLAPI std::vector<SurfacePtr> readRSDFFromDir(const std::string & dirname);
 
 } // namespace mc_rbdyn
 

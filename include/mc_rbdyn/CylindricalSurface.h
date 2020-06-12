@@ -9,8 +9,6 @@
 namespace mc_rbdyn
 {
 
-struct Robot;
-
 struct CylindricalSurfaceImpl;
 
 struct MC_RBDYN_DLLAPI CylindricalSurface : public Surface
