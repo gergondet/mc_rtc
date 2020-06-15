@@ -6,7 +6,7 @@
 
 #include <mc_rbdyn/api.h>
 
-#include <SpaceVecAlg/SpaceVecAlg>
+#include <RBDyn/CoM.h>
 
 #include <tvm/graph/abstract/Node.h>
 
@@ -23,13 +23,14 @@ namespace mc_rbdyn
  * - Jacobian: jacobian of the CoM in world coordinates
  * - Velocity: velocity of the CoM in world coordinates
  * - NormalAcceleration: normal acceleration of the CoM in world coordinates
+ * - Acceleration: acceleration of the CoM in world coordinates
  * - JDot: derivative of the jacobian of the CoM in world coordinates
  *
  */
 struct MC_RBDYN_DLLAPI CoM : public tvm::graph::abstract::Node<CoM>
 {
-  SET_OUTPUTS(CoM, Position, Jacobian, Velocity, NormalAcceleration, JDot)
-  SET_UPDATES(CoM, Position, Jacobian, Velocity, NormalAcceleration, JDot)
+  SET_OUTPUTS(CoM, CoM, Jacobian, Velocity, NormalAcceleration, Acceleration, JDot)
+  SET_UPDATES(CoM, CoM, Jacobian, Velocity, NormalAcceleration, Acceleration, JDot)
 
   friend struct Robot;
 
@@ -41,17 +42,62 @@ private:
 public:
   /** Constructor
    *
-   * Creates a frame belonging to a robot
-   *
-   * \param name Name of the frame
+   * Creates the CoM algorithm for a robot
    *
    * \param robot Robot to which the frame is attached
    *
-   * \param body Parent body of the frame
-   *
-   * \param X_b_f Static transformation from the body to the frame
    */
-  CoM(ctor_token, std::string_view name, RobotPtr robot, std::string_view body, sva::PTransformd X_b_f);
+  CoM(ctor_token, RobotPtr robot);
+
+  inline const Eigen::Vector3d & com() const noexcept
+  {
+    return com_;
+  }
+
+  inline const Eigen::Vector3d & velocity() const noexcept
+  {
+    return velocity_;
+  }
+
+  inline const Eigen::Vector3d & normalAcceleration() const noexcept
+  {
+    return normalAcceleration_;
+  }
+
+  inline const Eigen::Vector3d & acceleration() const noexcept
+  {
+    return acceleration_;
+  }
+
+  inline const Eigen::MatrixXd & jacobian() const noexcept
+  {
+    return jac_.jacobian();
+  }
+
+  inline const Eigen::MatrixXd & JDot() const noexcept
+  {
+    return jac_.jacobianDot();
+  }
+
+private:
+  RobotPtr robot_;
+  rbd::CoMJacobian jac_;
+
+  Eigen::Vector3d com_;
+  void updateCoM();
+
+  Eigen::Vector3d velocity_;
+  void updateVelocity();
+
+  Eigen::Vector3d normalAcceleration_;
+  void updateNormalAcceleration();
+
+  Eigen::Vector3d acceleration_;
+  void updateAcceleration();
+
+  void updateJacobian();
+
+  void updateJDot();
 };
 
 } // namespace mc_rbdyn
