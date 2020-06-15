@@ -169,6 +169,7 @@ mc_control/generic_gripper.cpp
 mc_rbdyn/Device.cpp
 mc_rbdyn/BodySensor.cpp
 mc_rbdyn/Frame.cpp
+mc_rbdyn/CoM.cpp
 )
 
 set(mc_rbdyn_HDR
@@ -206,6 +207,7 @@ set(mc_rbdyn_HDR
 ../include/mc_control/generic_gripper.h
 ../include/mc_rbdyn/Device.h
 ../include/mc_rbdyn/Frame.h
+../include/mc_rbdyn/CoM.h
 )
 
 add_library(mc_rbdyn SHARED ${mc_rbdyn_SRC} ${mc_rbdyn_HDR})
