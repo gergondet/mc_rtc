@@ -64,7 +64,7 @@ Frame::Frame(ctor_token, std::string_view name, RobotPtr robot, std::string_view
   updateJDot();
 }
 
-Frame::Frame(ctor_token tkn, std::string_view name, FramePtr frame, sva::PTransformd X_f1_f2)
+Frame::Frame(ctor_token tkn, std::string_view name, ConstFramePtr frame, sva::PTransformd X_f1_f2)
 : Frame(tkn, name, frame->robot_, frame->body(), X_f1_f2 * frame->X_b_f_)
 {
 }

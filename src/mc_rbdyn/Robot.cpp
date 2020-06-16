@@ -376,7 +376,27 @@ Robot::Robot(make_shared_token,
   {
     const auto & fs = forceSensors_[i];
     forceSensorsIndex_[fs.name()] = i;
-    bodyForceSensors_[fs.parentBody()] = i;
+    frameForceSensors_[fs.parentBody()] = i;
+  }
+
+  // For each body in the robot find the closest force sensor attached to it (if any)
+  for(const auto & body : mb().bodies())
+  {
+    if(frameForceSensors_.contains(body.name()))
+    {
+      continue;
+    }
+    int parentIndex = mb().parent(mb().bodyIndexByName().at(body.name()));
+    while(parentIndex >= 0)
+    {
+      const auto & parent = mb().body(parentIndex);
+      if(frameForceSensors_.contains(parent.name()))
+      {
+        frameIndirectForceSensors_[body.name()] = frameForceSensors_.at(parent.name());
+        break;
+      }
+      parentIndex = mb().parent(parentIndex);
+    }
   }
 
   bodySensors_ = module_.bodySensors();
@@ -389,7 +409,7 @@ Robot::Robot(make_shared_token,
   {
     const auto & bS = bodySensors_[i];
     bodySensorsIndex_[bS.name()] = i;
-    bodyBodySensors_[bS.parentBody()] = i;
+    frameBodySensors_[bS.parentBody()] = i;
   }
 
   devices_ = module_.devices();
@@ -423,7 +443,7 @@ Robot::Robot(make_shared_token,
   flexibility_ = module_.flexibility();
 
   std::string urdf;
-  auto loadUrdf = [&module_, &urdf]() -> const std::string & {
+  auto loadUrdf = [this, &urdf]() -> const std::string & {
     if(urdf.size())
     {
       return urdf;
@@ -475,6 +495,81 @@ const RobotModule & Robot::module() const
   return module_;
 }
 
+bool Robot::hasFrame(std::string_view frame) const
+{
+  return frames_.contains(frame);
+}
+
+ConstFramePtr Robot::frame(std::string_view frame) const
+{
+  auto it = frames_.find(frame);
+  if(it == frames_.cend())
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("No frame named {} in {}", frame, name());
+  }
+  return it->second;
+}
+
+FramePtr Robot::frame(std::string_view frame)
+{
+  auto it = frames_.find(frame);
+  if(it == frames_.end())
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("No frame named {} in {}", frame, name());
+  }
+  return it->second;
+}
+
+FramePtr Robot::makeFrame(std::string_view name, std::string_view body, sva::PTransformd X_b_f)
+{
+  if(hasFrame(name))
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("A frame named {} already exists in {}", name, this->name());
+  }
+  auto out = frames_.emplace(name, std::make_shared<Frame>(Frame::ctor_token{}, name, shared_from_this(), body, std::move(X_b_f)));
+  auto direct_fs_it = frameForceSensors_.find(body);
+  if(direct_fs_it != frameForceSensors_.end())
+  {
+    frameForceSensors_.emplace(name, direct_fs_it->second);
+  }
+  else
+  {
+    auto indirect_fs_it = frameIndirectForceSensors_.find(body);
+    if(indirect_fs_it != frameIndirectForceSensors_.end())
+    {
+      frameIndirectForceSensors_.emplace(name, indirect_fs_it->second);
+    }
+  }
+  return out.first->second;
+}
+
+FramePtr Robot::makeFrame(std::string_view name, ConstFramePtr parent, sva::PTransformd X_p_f)
+{
+  if(hasFrame(name))
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("A frame named {} already exists in {}", name, this->name());
+  }
+  if(parent->robot_.get() != this)
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("Parent frame {} provided to build frame {} in {} belong to a different robot {}", parent->name(), name, this->name(), parent->robot().name());
+  }
+  auto out = frames_.emplace(name, std::make_shared<Frame>(Frame::ctor_token{}, name, parent, std::move(X_p_f)));
+  auto direct_fs_it = frameForceSensors_.find(parent->name());
+  if(direct_fs_it != frameForceSensors_.end())
+  {
+    frameForceSensors_.emplace(name, direct_fs_it->second);
+  }
+  else
+  {
+    auto indirect_fs_it = frameIndirectForceSensors_.find(parent->name());
+    if(indirect_fs_it != frameIndirectForceSensors_.end())
+    {
+      frameIndirectForceSensors_.emplace(name, indirect_fs_it->second);
+    }
+  }
+  return out.first->second;
+}
+
 BodySensor & Robot::bodySensor()
 {
   return bodySensors_[0];
@@ -487,32 +582,42 @@ const BodySensor & Robot::bodySensor() const
 
 bool Robot::hasBodySensor(std::string_view name) const
 {
-  return bodySensorsIndex_.count(name) != 0;
+  return bodySensorsIndex_.contains(name);
 }
 
-bool Robot::bodyHasBodySensor(const std::string & body) const
+bool Robot::frameHasBodySensor(std::string_view frame) const
 {
-  return bodyBodySensors_.count(body) != 0;
+  return frameBodySensors_.contains(frame);
 }
 
-BodySensor & Robot::bodySensor(const std::string & name)
+BodySensor & Robot::bodySensor(std::string_view name)
 {
   return const_cast<BodySensor &>(static_cast<const Robot *>(this)->bodySensor(name));
 }
 
-const BodySensor & Robot::bodySensor(const std::string & name) const
+const BodySensor & Robot::bodySensor(std::string_view name) const
 {
-  return bodySensors_[bodySensorsIndex_.at(name)];
+  auto sensorIdx = bodySensorsIndex_.find(name);
+  if(sensorIdx == bodySensorsIndex_.cend())
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("No body sensor named {} in {}", name, this->name());
+  }
+  return bodySensors_[sensorIdx->second];
 }
 
-BodySensor & Robot::bodyBodySensor(const std::string & body)
+BodySensor & Robot::frameBodySensor(std::string_view name)
 {
-  return const_cast<BodySensor &>(static_cast<const Robot *>(this)->bodyBodySensor(body));
+  return const_cast<BodySensor &>(static_cast<const Robot *>(this)->frameBodySensor(name));
 }
 
-const BodySensor & Robot::bodyBodySensor(const std::string & body) const
+const BodySensor & Robot::frameBodySensor(std::string_view name) const
 {
-  return bodySensors_[bodyBodySensors_.at(body)];
+  auto sensorIdx = frameBodySensors_.find(name);
+  if(sensorIdx == bodySensorsIndex_.cend())
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("No body sensor attached to {} in {}", name, this->name());
+  }
+  return bodySensors_[sensorIdx->second];
 }
 
 BodySensorVector & Robot::bodySensors()
@@ -525,19 +630,19 @@ const BodySensorVector & Robot::bodySensors() const
   return bodySensors_;
 }
 
-bool Robot::hasJoint(const std::string & name) const
+bool Robot::hasJoint(std::string_view name) const
 {
-  return mb().jointIndexByName().count(name) != 0;
+  return mb().jointIndexByName().count(std::string(name)) != 0;
 }
 
-bool Robot::hasBody(const std::string & name) const
+bool Robot::hasBody(std::string_view name) const
 {
-  return mb().bodyIndexByName().count(name) != 0;
+  return mb().bodyIndexByName().count(std::string(name)) != 0;
 }
 
-unsigned int Robot::jointIndexByName(const std::string & name) const
+unsigned int Robot::jointIndexByName(std::string_view name) const
 {
-  return mb().jointIndexByName().at(name);
+  return mb().jointIndexByName().at(std::string(name));
 }
 
 int Robot::jointIndexInMBC(size_t jointIndex) const
@@ -545,36 +650,36 @@ int Robot::jointIndexInMBC(size_t jointIndex) const
   return refJointIndexToMBCIndex_.at(jointIndex);
 }
 
-unsigned int Robot::bodyIndexByName(const std::string & name) const
+unsigned int Robot::bodyIndexByName(std::string_view name) const
 {
-  return mb().bodyIndexByName().at(name);
+  return mb().bodyIndexByName().at(std::string(name));
 }
 
 rbd::MultiBody & Robot::mb()
 {
-  return robots_->mbs_[robots_idx_];
+  return module_.mb;
 }
 const rbd::MultiBody & Robot::mb() const
 {
-  return robots_->mbs_[robots_idx_];
+  return module_.mb;
 }
 
 rbd::MultiBodyConfig & Robot::mbc()
 {
-  return robots_->mbcs_[robots_idx_];
+  return module_.mbc;
 }
 const rbd::MultiBodyConfig & Robot::mbc() const
 {
-  return robots_->mbcs_[robots_idx_];
+  return module_.mbc;
 }
 
 rbd::MultiBodyGraph & Robot::mbg()
 {
-  return robots_->mbgs_[robots_idx_];
+  return module_.mbg;
 }
 const rbd::MultiBodyGraph & Robot::mbg() const
 {
-  return robots_->mbgs_[robots_idx_];
+  return module_.mbg;
 }
 
 const std::vector<std::vector<double>> & Robot::q() const
@@ -642,63 +747,33 @@ std::vector<sva::MotionVecd> & Robot::bodyAccB()
   return mbc().bodyAccB;
 }
 
-const sva::PTransformd & Robot::bodyPosW(const std::string & name) const
+sva::ForceVecd Robot::frameWrench(std::string_view frameName) const
 {
-  return bodyPosW()[bodyIndexByName(name)];
-}
-
-sva::PTransformd Robot::X_b1_b2(const std::string & b1, const std::string & b2) const
-{
-  return bodyPosW()[bodyIndexByName(b2)] * bodyPosW()[bodyIndexByName(b1)].inv();
-}
-
-const sva::MotionVecd & Robot::bodyVelW(const std::string & name) const
-{
-  return bodyVelW()[bodyIndexByName(name)];
-}
-
-const sva::MotionVecd & Robot::bodyVelB(const std::string & name) const
-{
-  return bodyVelB()[bodyIndexByName(name)];
-}
-
-const sva::MotionVecd & Robot::bodyAccB(const std::string & name) const
-{
-  return bodyAccB()[bodyIndexByName(name)];
-}
-
-sva::ForceVecd Robot::bodyWrench(const std::string & bodyName) const
-{
-  if(bodyHasForceSensor(bodyName))
-  { // Faster computation when there is a force sensor directly attached to the body
-    const auto & fs = bodyForceSensor(bodyName);
+  if(frameHasForceSensor(frameName))
+  {
+    const auto & fs = frameForceSensor(frameName);
+    const auto & frame = frames_.find(frameName)->second;
     sva::ForceVecd w_fsactual = fs.wrenchWithoutGravity(*this);
-    sva::PTransformd X_fsactual_body = fs.X_fsactual_parent();
-    return X_fsactual_body.dualMul(w_fsactual);
+    sva::PTransformd X_fsactual_frame = frame->X_b_f() * fs.X_fsactual_parent();
+    return X_fsactual_frame.dualMul(w_fsactual);
   }
   else
   { /* If a force sensor is not directly attached to the body,
        attempt to find it up the kinematic tree */
-    const auto & fs = indirectBodyForceSensor(bodyName);
+    const auto & fs = findFrameForceSensor(frameName);
+    const auto & frame = frames_.find(frameName)->second;
     sva::ForceVecd w_fsactual = fs.wrenchWithoutGravity(*this);
-    const auto & X_0_body = bodyPosW(bodyName);
-    const auto & X_0_parent = bodyPosW(fs.parentBody());
-    const auto X_parent_body = X_0_body * X_0_parent.inv();
-    sva::PTransformd X_fsactual_body = X_parent_body * fs.X_fsactual_parent();
-    return X_fsactual_body.dualMul(w_fsactual);
+    const auto & X_0_frame = frame->position();
+    const auto & X_0_parent = bodyPosW()[mb().bodyIndexByName(fs.parentBody())];
+    const auto X_parent_frame = X_0_frame * X_0_parent.inv();
+    sva::PTransformd X_fsactual_surf = X_parent_frame * fs.X_fsactual_parent();
+    return X_fsactual_surf.dualMul(w_fsactual);
   }
 }
 
-sva::ForceVecd Robot::surfaceWrench(const std::string & surfaceName) const
+Eigen::Vector2d Robot::cop(std::string_view frameName, double min_pressure) const
 {
-  const auto & surface = this->surface(surfaceName);
-  const auto & bodyName = surface.bodyName();
-  return surface.X_b_s().dualMul(bodyWrench(bodyName));
-}
-
-Eigen::Vector2d Robot::cop(const std::string & surfaceName, double min_pressure) const
-{
-  const sva::ForceVecd w_surf = surfaceWrench(surfaceName);
+  const sva::ForceVecd w_surf = frameWrench(frameName);
   const double pressure = w_surf.force()(2);
   if(pressure < min_pressure)
   {
@@ -708,11 +783,11 @@ Eigen::Vector2d Robot::cop(const std::string & surfaceName, double min_pressure)
   return Eigen::Vector2d(-tau_surf(1) / pressure, +tau_surf(0) / pressure);
 }
 
-Eigen::Vector3d Robot::copW(const std::string & surfaceName, double min_pressure) const
+Eigen::Vector3d Robot::copW(std::string_view frameName, double min_pressure) const
 {
   Eigen::Vector3d cop_s;
-  cop_s << cop(surfaceName, min_pressure), 0.;
-  const sva::PTransformd X_0_s = surfacePose(surfaceName);
+  cop_s << cop(frameName, min_pressure), 0.;
+  const sva::PTransformd X_0_s = frames_.find(frameName)->second->position();
   return X_0_s.translation() + X_0_s.rotation().transpose() * cop_s;
 }
 
@@ -758,87 +833,6 @@ Eigen::Vector3d Robot::zmp(const std::vector<std::string> & sensorNames,
   Eigen::Vector3d n = zmpFrame.rotation().row(2);
   Eigen::Vector3d p = zmpFrame.translation();
   return zmp(sensorNames, p, n, minimalNetNormalForce);
-}
-
-const std::vector<std::vector<double>> & Robot::ql() const
-{
-  return ql_;
-}
-const std::vector<std::vector<double>> & Robot::qu() const
-{
-  return qu_;
-}
-const std::vector<std::vector<double>> & Robot::vl() const
-{
-  return vl_;
-}
-const std::vector<std::vector<double>> & Robot::vu() const
-{
-  return vu_;
-}
-const std::vector<std::vector<double>> & Robot::al() const
-{
-  return al_;
-}
-const std::vector<std::vector<double>> & Robot::au() const
-{
-  return au_;
-}
-const std::vector<std::vector<double>> & Robot::tl() const
-{
-  return tl_;
-}
-const std::vector<std::vector<double>> & Robot::tu() const
-{
-  return tu_;
-}
-const std::vector<std::vector<double>> & Robot::tdl() const
-{
-  return tdl_;
-}
-const std::vector<std::vector<double>> & Robot::tdu() const
-{
-  return tdu_;
-}
-std::vector<std::vector<double>> & Robot::ql()
-{
-  return ql_;
-}
-std::vector<std::vector<double>> & Robot::qu()
-{
-  return qu_;
-}
-std::vector<std::vector<double>> & Robot::vl()
-{
-  return vl_;
-}
-std::vector<std::vector<double>> & Robot::vu()
-{
-  return vu_;
-}
-std::vector<std::vector<double>> & Robot::al()
-{
-  return al_;
-}
-std::vector<std::vector<double>> & Robot::au()
-{
-  return au_;
-}
-std::vector<std::vector<double>> & Robot::tl()
-{
-  return tl_;
-}
-std::vector<std::vector<double>> & Robot::tu()
-{
-  return tu_;
-}
-std::vector<std::vector<double>> & Robot::tdl()
-{
-  return tdl_;
-}
-std::vector<std::vector<double>> & Robot::tdu()
-{
-  return tdu_;
 }
 
 const std::vector<Flexibility> & Robot::flexibility() const
@@ -891,110 +885,69 @@ void Robot::jointTorques(const std::vector<double> & jointTorques)
   jointTorques_ = jointTorques;
 }
 
-const std::vector<std::string> & Robot::refJointOrder() const
+bool Robot::hasForceSensor(std::string_view name) const
 {
-  return refJointOrder_;
+  return forceSensorsIndex_.contains(name);
 }
 
-bool Robot::hasForceSensor(const std::string & name) const
+bool Robot::frameHasForceSensor(std::string_view frame) const
 {
-  return forceSensorsIndex_.count(name) != 0;
+  return frameForceSensors_.contains(frame);
 }
 
-bool Robot::bodyHasForceSensor(const std::string & body) const
+bool Robot::frameHasIndirectForceSensor(std::string_view frame) const
 {
-  return bodyForceSensors_.count(body) != 0;
+  return frameIndirectForceSensors_.contains(frame);
 }
 
-bool Robot::bodyHasIndirectForceSensor(const std::string & body) const
-{
-  return bodyHasForceSensor(body) || findIndirectForceSensorBodyName(body).size();
-}
-
-bool Robot::surfaceHasForceSensor(const std::string & surfaceName) const
-{
-  return bodyHasForceSensor(surface(surfaceName).bodyName());
-}
-
-bool Robot::surfaceHasIndirectForceSensor(const std::string & surfaceName) const
-{
-  return bodyHasIndirectForceSensor(surface(surfaceName).bodyName());
-}
-
-ForceSensor & Robot::forceSensor(const std::string & name)
+ForceSensor & Robot::forceSensor(std::string_view name)
 {
   return const_cast<ForceSensor &>(static_cast<const Robot *>(this)->forceSensor(name));
 }
 
-const ForceSensor & Robot::forceSensor(const std::string & name) const
+const ForceSensor & Robot::forceSensor(std::string_view name) const
 {
-  return forceSensors_[forceSensorsIndex_.at(name)];
-}
-
-ForceSensor & Robot::bodyForceSensor(const std::string & body)
-{
-  return const_cast<ForceSensor &>(static_cast<const Robot *>(this)->bodyForceSensor(body));
-}
-
-const ForceSensor & Robot::bodyForceSensor(const std::string & body) const
-{
-  return forceSensors_.at(bodyForceSensors_.at(body));
-}
-
-ForceSensor & Robot::surfaceForceSensor(const std::string & surfaceName)
-{
-  return bodyForceSensor(surface(surfaceName).bodyName());
-}
-
-const ForceSensor & Robot::surfaceForceSensor(const std::string & surfaceName) const
-{
-  return bodyForceSensor(surface(surfaceName).bodyName());
-}
-
-std::string Robot::findIndirectForceSensorBodyName(const std::string & body) const
-{
-  int nextIndex = mb().bodyIndexByName().at(body);
-  while(nextIndex >= 0)
+  auto it = forceSensorsIndex_.find(name);
+  if(it == forceSensorsIndex_.cend())
   {
-    const auto & b = mb().body(nextIndex);
-    if(bodyHasForceSensor(b.name()))
-    {
-      return b.name();
-    }
-    nextIndex = mb().parent(nextIndex);
+    mc_rtc::log::error_and_throw<std::runtime_error>("No force sensor named {} in {}", name, this->name());
   }
-  return std::string{};
+  return forceSensors_[it->second];
 }
 
-const ForceSensor & Robot::indirectBodyForceSensor(const std::string & body) const
+ForceSensor & Robot::frameForceSensor(std::string_view frame)
 {
-  const auto bodyName = findIndirectForceSensorBodyName(body);
-  if(bodyName.empty())
+  return const_cast<ForceSensor &>(static_cast<const Robot *>(this)->frameForceSensor(frame));
+}
+
+const ForceSensor & Robot::frameForceSensor(std::string_view frame) const
+{
+  auto it = frameForceSensors_.find(frame);
+  if(it == frameForceSensors_.cend())
   {
-    mc_rtc::log::error_and_throw<std::runtime_error>("No force sensor (directly or indirectly) attached to body {}",
-                                                     body);
+    mc_rtc::log::error_and_throw<std::runtime_error>("No force sensor directly attached to frame {} in {}", frame, name());
   }
-  return bodyForceSensor(bodyName);
+  return forceSensors_.at(it->second);
 }
 
-ForceSensor & Robot::indirectBodyForceSensor(const std::string & body)
+const ForceSensor & Robot::findFrameForceSensor(std::string_view frame) const
 {
-  return const_cast<ForceSensor &>(static_cast<const Robot *>(this)->indirectBodyForceSensor(body));
+  auto it = frameIndirectForceSensors_.find(frame);
+  if(it == frameIndirectForceSensors_.cend())
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("No force sensor indirectly attached to frame {} in {}", frame, name());
+  }
+  return forceSensors_.at(it->second);
 }
 
-const ForceSensor & Robot::indirectSurfaceForceSensor(const std::string & surfaceName) const
+ForceSensor & Robot::findFrameForceSensor(std::string_view frame)
 {
-  return indirectBodyForceSensor(surface(surfaceName).bodyName());
+  return const_cast<ForceSensor &>(static_cast<const Robot *>(this)->frameForceSensor(frame));
 }
 
-ForceSensor & Robot::indirectSurfaceForceSensor(const std::string & surface)
+bool Robot::hasSurface(std::string_view surface) const
 {
-  return const_cast<ForceSensor &>(static_cast<const Robot *>(this)->indirectSurfaceForceSensor(surface));
-}
-
-bool Robot::hasSurface(const std::string & surface) const
-{
-  return surfaces_.count(surface) != 0;
+  return surfaces_.contains(surface);
 }
 
 std::vector<ForceSensor> & Robot::forceSensors()
@@ -1007,26 +960,28 @@ const std::vector<ForceSensor> & Robot::forceSensors() const
   return forceSensors_;
 }
 
-mc_rbdyn::Surface & Robot::surface(const std::string & sName)
+mc_rbdyn::Surface & Robot::surface(std::string_view sName)
 {
   return const_cast<mc_rbdyn::Surface &>(static_cast<const Robot *>(this)->surface(sName));
 }
 
-sva::PTransformd Robot::surfacePose(const std::string & sName) const
+const sva::PTransformd & Robot::surfacePose(std::string_view sName) const
 {
+  //FIXME Follow up after surface API change
   return surface(sName).X_0_s(*this);
 }
 
-const mc_rbdyn::Surface & Robot::surface(const std::string & sName) const
+const mc_rbdyn::Surface & Robot::surface(std::string_view sName) const
 {
-  if(!hasSurface(sName))
+  auto it = surfaces_.find(sName);
+  if(it == surfaces_.cend())
   {
-    mc_rtc::log::error_and_throw<std::runtime_error>("No surface named {} found in robot {}", sName, this->name());
+    mc_rtc::log::error_and_throw<std::runtime_error>("No surface named {} in {}", sName, this->name());
   }
-  return *(surfaces_.at(sName));
+  return *it->second;
 }
 
-const std::map<std::string, SurfacePtr> & Robot::surfaces() const
+const mc_rtc::map<std::string, SurfacePtr> & Robot::surfaces() const
 {
   return surfaces_;
 }
@@ -1042,54 +997,48 @@ std::vector<std::string> Robot::availableSurfaces() const
   return ret;
 }
 
-bool Robot::hasConvex(const std::string & name) const
+bool Robot::hasConvex(std::string_view name) const
 {
-  return convexes_.count(name);
+  return convexes_.contains(name);
 }
 
-Robot::convex_pair_t & Robot::convex(const std::string & cName)
+Convex & Robot::convex(std::string_view cName)
 {
-  return const_cast<Robot::convex_pair_t &>(static_cast<const Robot *>(this)->convex(cName));
+  return const_cast<Convex &>(static_cast<const Robot *>(this)->convex(cName));
 }
-const Robot::convex_pair_t & Robot::convex(const std::string & cName) const
+const Convex & Robot::convex(std::string_view cName) const
 {
-  if(convexes_.count(cName) == 0)
+  auto it = convexes_.find(cName);
+  if(it == convexes_.cend())
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("No convex named {} found in robot {}", cName, this->name_);
   }
-  return convexes_.at(cName);
+  return *it->second;
 }
 
-const std::map<std::string, Robot::convex_pair_t> & Robot::convexes() const
-{
-  return convexes_;
-}
-
-void Robot::addConvex(const std::string & cName,
-                      const std::string & body,
-                      Robot::S_ObjectPtr convex,
-                      const sva::PTransformd & X_b_c)
+void Robot::addConvex(std::string_view cName, Convex convex)
 {
   if(convexes_.count(cName))
   {
     mc_rtc::log::error("Attempted to add a convex named {} that already exists in {}", cName, name());
     return;
   }
-  convexes_[cName] = {body, convex};
-  collisionTransforms_[cName] = X_b_c;
+  auto it = convexes_.emplace(cName, convex);
+  auto & nconvex = it.first.second;
+  // FIXME After writing Convex class
   sch::mc_rbdyn::transform(*convex, X_b_c * bodyPosW(body));
 }
 
-void Robot::removeConvex(const std::string & cName)
+void Robot::removeConvex(std::string_view cName)
 {
-  if(convexes_.count(cName))
+  auto it = convexes_.find(cName);
+  if(it != convexes_.end())
   {
-    convexes_.erase(cName);
-    collisionTransforms_.erase(cName);
+    convexes_.erase(it);
   }
 }
 
-const sva::PTransformd & Robot::bodyTransform(const std::string & bName) const
+const sva::PTransformd & Robot::bodyTransform(std::string_view bName) const
 {
   if(!hasBody(bName))
   {
@@ -1108,15 +1057,6 @@ const std::vector<sva::PTransformd> & Robot::bodyTransforms() const
   return bodyTransforms_;
 }
 
-const sva::PTransformd & Robot::collisionTransform(const std::string & cName) const
-{
-  if(collisionTransforms_.count(cName) == 0)
-  {
-    mc_rtc::log::error_and_throw<std::runtime_error>("No collision transform with name {} found in this robot", cName);
-  }
-  return collisionTransforms_.at(cName);
-}
-
 void Robot::fixSurfaces()
 {
   for(auto & s : surfaces_)
@@ -1128,6 +1068,7 @@ void Robot::fixSurfaces()
 
 void Robot::fixCollisionTransforms()
 {
+  // FIXME After writing Convex API
   for(auto & ct : collisionTransforms_)
   {
     if(convexes_.count(ct.first))
@@ -1163,51 +1104,9 @@ void Robot::loadRSDFFromDir(const std::string & surfaceDir)
   fixSurfaces();
 }
 
-std::map<std::string, std::vector<double>> Robot::stance() const
-{
-  return stance_;
-}
-
-unsigned int mc_rbdyn::Robot::robotIndex() const
-{
-  return robots_idx_;
-}
-
-void Robot::forwardKinematics()
-{
-  rbd::forwardKinematics(mb(), mbc());
-}
-void Robot::forwardKinematics(rbd::MultiBodyConfig & mbc) const
-{
-  rbd::forwardKinematics(mb(), mbc);
-}
-
-void Robot::forwardVelocity()
-{
-  rbd::forwardVelocity(mb(), mbc());
-}
-void Robot::forwardVelocity(rbd::MultiBodyConfig & mbc) const
-{
-  rbd::forwardVelocity(mb(), mbc);
-}
-
-void Robot::forwardAcceleration(const sva::MotionVecd & A_0)
-{
-  rbd::forwardAcceleration(mb(), mbc(), A_0);
-}
-void Robot::forwardAcceleration(rbd::MultiBodyConfig & mbc, const sva::MotionVecd & A_0) const
-{
-  rbd::forwardAcceleration(mb(), mbc, A_0);
-}
-
 void mc_rbdyn::Robot::eulerIntegration(double step)
 {
   rbd::eulerIntegration(mb(), mbc(), step);
-}
-
-void mc_rbdyn::Robot::eulerIntegration(rbd::MultiBodyConfig & mbc, double step) const
-{
-  rbd::eulerIntegration(mb(), mbc, step);
 }
 
 const sva::PTransformd & Robot::posW() const
@@ -1223,12 +1122,12 @@ void Robot::posW(const sva::PTransformd & pt)
     rotation.normalize();
     q()[0] = {rotation.w(),         rotation.x(),         rotation.y(),        rotation.z(),
               pt.translation().x(), pt.translation().y(), pt.translation().z()};
-    forwardKinematics();
+    rbd::forwardKinematics(mb(), mbc());
   }
   else if(mb().joint(0).type() == rbd::Joint::Type::Fixed)
   {
     mb().transform(0, pt);
-    forwardKinematics();
+    rbd::forwardKinematics(mb(), mbc());
     fixSCH(*this, this->convexes_, this->collisionTransforms_);
   }
   else
@@ -1249,7 +1148,7 @@ void Robot::velW(const sva::MotionVecd & vel)
     alpha()[0][3] = vB.linear().x();
     alpha()[0][4] = vB.linear().y();
     alpha()[0][5] = vB.linear().z();
-    forwardVelocity();
+    rbd::forwardVelocity(mb(), mbc());
   }
   else
   {
@@ -1287,44 +1186,42 @@ const sva::MotionVecd Robot::accW() const
   return sva::PTransformd{rot} * mbc().bodyAccB[0];
 }
 
-void Robot::copy(Robots & robots, const std::string & copyName, unsigned int robots_idx, const Base & base) const
+RobotPtr Robot::copy(RobotModule module, std::string_view name, const Base & base) const
 {
-  robots.robots_.emplace_back(Robot(copyName, robots, robots_idx, false, &base.X_0_s, base.baseName));
-  auto & robot = robots.robots_.back();
+  auto robot_ptr = std::allocate_shared<Robot>(Eigen::aligned_allocator<Robot>{}, std::move(module), name, false, base.X_0_s, base.baseName);
+  auto & robot = *robot_ptr;
   for(const auto & s : surfaces_)
   {
     robot.surfaces_[s.first] = s.second->copy();
   }
   robot.fixSurfaces();
-  for(const auto & cH : convexes_)
+  for(const auto & f_it : frames_)
   {
-    // FIXME Should implement sch::S_Object::clone in sch-core but this should be good enough for now
-    sch::S_Polyhedron * poly = dynamic_cast<sch::S_Polyhedron *>(cH.second.second.get());
-    if(poly)
-    {
-      robot.convexes_[cH.first] = {cH.second.first, std::make_shared<sch::S_Polyhedron>(*poly)};
-    }
-    else
-    {
-      mc_rtc::log::warning("Could not copy the convex {} as it's not an sch::S_Polyhedron object, send complaint to "
-                           "mc_rtc maintainers...",
-                           cH.first);
-    }
+    const auto & f = *f_it.second;
+    robot.makeFrame(f.name(), f.body(), f.X_b_f());
   }
+  robot.convexes_ = convexes_;
   fixSCH(robot, robot.convexes_, robot.collisionTransforms_);
+  return robot_ptr;
 }
 
-void Robot::copy(Robots & robots, const std::string & copyName, unsigned int robots_idx) const
+RobotPtr Robot::copy(RobotModule module, std::string_view name) const
 {
-  robots.robots_.emplace_back(Robot(copyName, robots, robots_idx, false));
-  auto & robot = robots.robots_.back();
+  auto robot_ptr = std::allocate_shared<Robot>(Eigen::aligned_allocator<Robot>{}, std::move(module), name, false);
+  auto & robot = *robot_ptr;
   for(const auto & s : surfaces_)
   {
     robot.surfaces_[s.first] = s.second->copy();
   }
+  for(const auto & f_it : frames_)
+  {
+    const auto & f = *f_it.second;
+    robot.makeFrame(f.name(), f.body(), f.X_b_f());
+  }
+  return robot_ptr;
 }
 
-mc_rbdyn::Surface & Robot::copySurface(const std::string & sName, const std::string & name)
+mc_rbdyn::Surface & Robot::copySurface(std::string_view sName, std::string_view name)
 {
   if(hasSurface(name))
   {
@@ -1334,11 +1231,11 @@ mc_rbdyn::Surface & Robot::copySurface(const std::string & sName, const std::str
   const Surface & surf = surface(sName);
   SurfacePtr nSurf = surf.copy();
   nSurf->name(name);
-  surfaces_[name] = nSurf;
+  surfaces_.emplace(name, nSurf);
   return *nSurf;
 }
 
-void mc_rbdyn::Robot::addSurface(SurfacePtr surface, bool doNotReplace)
+void mc_rbdyn::Robot::addSurface(SurfacePtr surface, bool overwrite)
 {
   if(!hasBody(surface->bodyName()))
   {
@@ -1346,7 +1243,7 @@ void mc_rbdyn::Robot::addSurface(SurfacePtr surface, bool doNotReplace)
                          surface->bodyName(), name());
     return;
   }
-  if(hasSurface(surface->name()) && doNotReplace)
+  if(hasSurface(surface->name()) && !overwrite)
   {
     mc_rtc::log::warning("Surface {} already exists for the robot {}.", surface->name(), name());
     return;
@@ -1356,116 +1253,19 @@ void mc_rbdyn::Robot::addSurface(SurfacePtr surface, bool doNotReplace)
 
 MC_RTC_diagnostic_pop;
 
-double mc_rbdyn::Robot::mass() const
-{
-  double mass = 0.;
-  for(const auto & b : mb().bodies())
-  {
-    mass += b.inertia().mass();
-  }
-  return mass;
-}
-
-void mc_rbdyn::Robot::zmpTarget(const Eigen::Vector3d & zmp)
-{
-  zmp_ = zmp;
-}
-
-const Eigen::Vector3d & mc_rbdyn::Robot::zmpTarget() const
-{
-  return zmp_;
-}
-
-mc_control::Gripper & Robot::gripper(const std::string & gripper)
-{
-  if(!grippers_.count(gripper))
-  {
-    mc_rtc::log::error_and_throw<std::runtime_error>("No gripper named {} in robot {}", gripper, name());
-  }
-  return *grippers_.at(gripper);
-}
-
 bool Robot::hasGripper(const std::string & gripper) const
 {
   return grippers_.count(gripper);
 }
 
-unsigned int robotIndexFromConfig(const mc_rtc::Configuration & config,
-                                  const mc_rbdyn::Robots & robots,
-                                  const std::string & prefix,
-                                  bool required,
-                                  const std::string & robotIndexKey,
-                                  const std::string & robotNameKey,
-                                  const std::string & defaultRobotName)
+mc_control::Gripper & Robot::gripper(std::string_view gripper)
 {
-  const auto & robot = robotFromConfig(config, robots, prefix, required, robotIndexKey, robotNameKey, defaultRobotName);
-  return robot.robotIndex();
-}
-
-std::string robotNameFromConfig(const mc_rtc::Configuration & config,
-                                const mc_rbdyn::Robots & robots,
-                                const std::string & prefix,
-                                bool required,
-                                const std::string & robotIndexKey,
-                                const std::string & robotNameKey,
-                                const std::string & defaultRobotName)
-{
-  const auto & robot = robotFromConfig(config, robots, prefix, required, robotIndexKey, robotNameKey, defaultRobotName);
-  return robot.name();
-}
-
-const mc_rbdyn::Robot & robotFromConfig(const mc_rtc::Configuration & config,
-                                        const mc_rbdyn::Robots & robots,
-                                        const std::string & prefix,
-                                        bool required,
-                                        const std::string & robotIndexKey,
-                                        const std::string & robotNameKey,
-                                        const std::string & defaultRobotName)
-{
-  auto p = std::string{""};
-  if(prefix.size())
+  auto it = grippers_.find(gripper);
+  if(it == grippers_.end())
   {
-    p = "[" + prefix + "] ";
+    mc_rtc::log::error_and_throw<std::runtime_error>("No gripper named {} in robot {}", gripper, name());
   }
-  if(config.has(robotNameKey))
-  {
-    const std::string & robotName = config(robotNameKey);
-    if(robots.hasRobot(robotName))
-    {
-      return robots.robot(robotName);
-    }
-    else
-    {
-      mc_rtc::log::error_and_throw<std::runtime_error>("{} No robot named {} in this controller", p, robotName);
-    }
-  }
-  else if(config.has(robotIndexKey))
-  {
-    mc_rtc::log::warning("[MC_RTC_DEPRECATED]{} \"robotIndex\" will be deprecated in future versions, use \"robot: "
-                         "<robot name>\" instead",
-                         p);
-    const unsigned int robotIndex = config(robotIndexKey);
-    if(robotIndex < robots.size())
-    {
-      return robots.robot(robotIndex);
-    }
-    else
-    {
-      mc_rtc::log::error_and_throw<std::runtime_error>("{}No robot with index {} in this controller ({} robots loaded)",
-                                                       p, robotIndex, robots.size());
-    }
-  }
-  else
-  {
-    if(!required)
-    {
-      return defaultRobotName.size() ? robots.robot(defaultRobotName) : robots.robot();
-    }
-    else
-    {
-      mc_rtc::log::error_and_throw<std::runtime_error>("{} \"robotName\" is required.", p);
-    }
-  }
+  return *it->second;
 }
 
 void Robot::addDevice(DevicePtr device)
