@@ -5,6 +5,8 @@
 #pragma once
 
 #include <mc_rbdyn/Base.h>
+#include <mc_rbdyn/CoM.h>
+#include <mc_rbdyn/Frame.h>
 #include <mc_rbdyn/RobotModule.h>
 #include <mc_rbdyn/Surface.h>
 
@@ -51,10 +53,6 @@ namespace mc_rbdyn
  * - FA: forward acceleration (computed by RBDyn::FA), depends on FV
  * - NormalAcceleration: update bodies' normal acceleration, depends on FV
  * - tau: generalized torque vector
- * - CoM: center of mass signal, depends on FK
- * - CoMJacobian: center of mass jacobian signal, depends on FV
- * - CoMVelocity: center of mass velocity signal, depends on FV
- * - CoMNormalAcceleration: center of mass normal acceleration, depends on NormalAcceleration
  * - H: inertia matrix signal, depends on FV
  * - C: non-linear effect vector signal (Coriolis, gravity, external forces), depends on FV
  *
@@ -66,8 +64,8 @@ namespace mc_rbdyn
  */
 struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::enable_shared_from_this<Robot>
 {
-  SET_OUTPUTS(Robot, FK, FV, FA, NormalAcceleration, tau, CoM, H, C, Geometry, Dynamics)
-  SET_UPDATES(Robot, Time, FK, FV, FA, NormalAcceleration, CoM, H, C)
+  SET_OUTPUTS(Robot, FK, FV, FA, NormalAcceleration, tau, H, C, Geometry, Dynamics)
+  SET_UPDATES(Robot, Time, FK, FV, FA, NormalAcceleration, H, C)
 
   friend struct Robots;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -78,7 +76,7 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::en
   Robot & operator=(Robot &&) = default;
 
   /** Returns the name of the robot */
-  std::string_view name() const;
+  const std::string & name() const;
 
   /** Retrieve the associated RobotModule */
   const RobotModule & module() const;
@@ -264,12 +262,11 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::en
    */
   const sva::MotionVecd & frameAccB(std::string_view name) const;
 
-  /** Returns the current's robot CoM */
-  const Eigen::Vector3d & com() const;
-  /** Returns the current robot's CoM velocity */
-  const Eigen::Vector3d & comVelocity() const;
-  /** Returns the current robot's CoM acceleration */
-  const Eigen::Vector3d & comAcceleration() const;
+  /** Returns the CoM algorithm associated to this robot */
+  inline const CoMPtr & com() const noexcept
+  {
+    return com_;
+  }
 
   /** Compute the gravity-free wrench in a given frame
    *
@@ -391,21 +388,6 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::en
   const std::vector<Flexibility> & flexibility() const;
   /** Return the flexibilities of the robot */
   std::vector<Flexibility> & flexibility();
-
-  /** Set the target zmp defined with respect to base-link. This target is intended to be used by an external stabilizer
-   * such as Kawada's
-   *
-   * @param zmp Note that usually the ZMP is a 2-vector assuming a perfectly
-   * flat ground. The convention here is that the ground is at (tz=0). Therefore
-   * the target zmp should be defined as (ZMPx, ZMPy, -zbaselink)
-   */
-  void zmpTarget(const Eigen::Vector3d & zmp);
-
-  /** Returns the target zmp
-   *
-   * @return Target ZMP. See zmpTarget(Eigen::Vector3d) for details.
-   */
-  const Eigen::Vector3d & zmpTarget() const;
 
   /** Returns the mass of the robot */
   double mass() const;
@@ -807,9 +789,7 @@ private:
   /** Forward dynamics algorithm associated to this robot */
   rbd::ForwardDynamics fd_;
   /** CoM of this robot */
-  Eigen::Vector3d com_;
-  /** CoM jacobian algorithm associated to this robot */
-  rbd::CoMJacobian comJac_;
+  CoMPtr com_;
   /** List of body transformations */
   std::vector<sva::PTransformd> bodyTransforms_;
   /** List of frames available in this robot */
