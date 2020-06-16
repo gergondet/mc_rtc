@@ -66,7 +66,7 @@ public:
    *
    * \param X_f1_f2 Static transformation from the original frame to the new one
    */
-  Frame(ctor_token, std::string_view name, FramePtr frame, sva::PTransformd X_f1_f2);
+  Frame(ctor_token, std::string_view name, ConstFramePtr frame, sva::PTransformd X_f1_f2);
 
   /** Get a copy of the internal RBDyn Jacobian object
    *
@@ -74,50 +74,56 @@ public:
    * - the body jacobian
    * - the jacobian translated at varying position
    */
-  inline rbd::Jacobian rbdJacobian() const
+  inline rbd::Jacobian rbdJacobian() const noexcept
   {
     return jac_;
   }
 
   /** The frame's name */
-  inline std::string_view name() const
+  inline std::string_view name() const noexcept
   {
     return name_;
   }
 
+  /** Frame static transformation from its parent body to the frame */
+  inline const sva::PTransformd & X_b_f() const noexcept
+  {
+    return X_b_f_;
+  }
+
   /** The robot to which this frame belongs */
-  inline const Robot & robot() const
+  inline const Robot & robot() const noexcept
   {
     return *robot_;
   }
 
   /** The frame's position in world coordinates */
-  inline const sva::PTransformd & position()
+  inline const sva::PTransformd & position() const noexcept
   {
     return position_;
   }
 
-  inline const tvm::internal::MatrixWithProperties & jacobian() const
+  inline const tvm::internal::MatrixWithProperties & jacobian() const noexcept
   {
     return jacobian_;
   }
 
-  inline const sva::MotionVecd & velocity() const
+  inline const sva::MotionVecd & velocity() const noexcept
   {
     return velocity_;
   }
 
-  inline const sva::MotionVecd & normalAcceleration() const
+  inline const sva::MotionVecd & normalAcceleration() const noexcept
   {
     return normalAcceleration_;
   }
 
-  inline const tvm::internal::MatrixWithProperties & JDot()
+  inline const tvm::internal::MatrixWithProperties & JDot() const noexcept
   {
     return jacDot_;
   }
 
-  const std::string & body() const;
+  const std::string & body() const noexcept;
 
 private:
   std::string name_;
