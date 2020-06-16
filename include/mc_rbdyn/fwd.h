@@ -34,4 +34,7 @@ using ConvexPtr = std::shared_ptr<Convex>;
 struct Frame;
 using FramePtr = std::shared_ptr<Frame>;
 
+struct CoM;
+using CoMPtr = std::shared_ptr<CoM>;
+
 } // namespace mc_rbdyn
