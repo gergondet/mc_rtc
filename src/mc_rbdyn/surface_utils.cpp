@@ -5,6 +5,7 @@
 #include <mc_rbdyn/CylindricalSurface.h>
 #include <mc_rbdyn/GripperSurface.h>
 #include <mc_rbdyn/PlanarSurface.h>
+#include <mc_rbdyn/Robot.h>
 #include <mc_rbdyn/rpy_utils.h>
 #include <mc_rbdyn/surface_utils.h>
 
@@ -28,7 +29,31 @@ inline sva::PTransformd tfFromOriginDom(const tinyxml2::XMLElement & dom)
   return sva::PTransformd(rpyToMat(rpy), xyz);
 }
 
-inline void readRSDF(const std::string & rsdf_string, std::vector<std::shared_ptr<Surface>> & surfaces)
+template<typename SurfT, typename... Args>
+void try_push_surface(Robot & robot,
+                      std::vector<SurfacePtr> & surfaces,
+                      std::string_view name,
+                      std::string_view body,
+                      const sva::PTransformd & X_b_s,
+                      Args &&... args)
+{
+  if(robot.hasFrame(name))
+  {
+    mc_rtc::log::error("Robot {} already has a frame named {}, discarding this surface loading");
+    return;
+  }
+  if(robot.hasSurface(name))
+  {
+    mc_rtc::log::error("Robot {} already has a surface named {}, discarding this surface loading");
+    return;
+  }
+  auto frame = robot.makeFrame(name, body, X_b_s * robot.bodyTransform(body));
+  surfaces.push_back(std::make_shared<SurfT>(name, frame, std::forward<Args>(args)...));
+}
+
+inline std::shared_ptr<Surface> readRSDF(Robot & robot,
+                                         const std::string & rsdf_string,
+                                         std::vector<SurfacePtr> & surfaces)
 {
   tinyxml2::XMLDocument doc;
   doc.Parse(rsdf_string.c_str());
@@ -48,7 +73,6 @@ inline void readRSDF(const std::string & rsdf_string, std::vector<std::shared_pt
     std::string name = pdom->Attribute("name");
     std::string bodyName = pdom->Attribute("link");
     sva::PTransformd X_b_s = tfFromOriginDom(*(pdom->FirstChildElement("origin")));
-    std::string materialName = pdom->FirstChildElement("material")->Attribute("name");
     std::vector<std::pair<double, double>> points;
     tinyxml2::XMLElement * pointdom = pdom->FirstChildElement("points")->FirstChildElement("point");
     while(pointdom)
@@ -57,7 +81,7 @@ inline void readRSDF(const std::string & rsdf_string, std::vector<std::shared_pt
       points.push_back(std::pair<double, double>(pdata[0], pdata[1]));
       pointdom = pointdom->NextSiblingElement("point");
     }
-    surfaces.push_back(std::shared_ptr<Surface>(new PlanarSurface(name, bodyName, X_b_s, materialName, points)));
+    try_push_surface<PlanarSurface>(robot, surfaces, name, bodyName, X_b_s, points);
   }
 
   std::vector<tinyxml2::XMLElement *> csurfaces;
@@ -76,9 +100,7 @@ inline void readRSDF(const std::string & rsdf_string, std::vector<std::shared_pt
     double width = cdom->DoubleAttribute("width");
     double radius = cdom->DoubleAttribute("radius");
     sva::PTransformd X_b_s = tfFromOriginDom(*(cdom->FirstChildElement("origin")));
-    std::string materialName = cdom->FirstChildElement("material")->Attribute("name");
-    surfaces.push_back(
-        std::shared_ptr<Surface>(new CylindricalSurface(name, bodyName, X_b_s, materialName, radius, width)));
+    try_push_surface<CylindricalSurface>(robot, surfaces, name, bodyName, X_b_s, radius, width);
   }
 
   std::vector<tinyxml2::XMLElement *> gsurfaces;
@@ -95,7 +117,6 @@ inline void readRSDF(const std::string & rsdf_string, std::vector<std::shared_pt
     std::string name = gdom->Attribute("name");
     std::string bodyName = gdom->Attribute("link");
     sva::PTransformd X_b_s = tfFromOriginDom(*(gdom->FirstChildElement("origin")));
-    std::string materialName = gdom->FirstChildElement("material")->Attribute("name");
     tinyxml2::XMLElement * motorDom = gdom->FirstChildElement("motor");
     sva::PTransformd X_b_motor = tfFromOriginDom(*motorDom);
     double motorMaxTorque = motorDom->DoubleAttribute("max_torque");
@@ -106,16 +127,15 @@ inline void readRSDF(const std::string & rsdf_string, std::vector<std::shared_pt
       points.push_back(tfFromOriginDom(*pointdom));
       pointdom = pointdom->NextSiblingElement("origin");
     }
-    surfaces.push_back(std::shared_ptr<Surface>(
-        new GripperSurface(name, bodyName, X_b_s, materialName, points, X_b_motor, motorMaxTorque)));
+    try_push_surface<GripperSurface>(robot, surfaces, name, bodyName, X_b_s, points, X_b_motor, motorMaxTorque);
   }
 }
 
-std::vector<std::shared_ptr<Surface>> readRSDFFromDir(const std::string & dirname)
+std::vector<std::shared_ptr<Surface>> readRSDFFromDir(Robot & robot, std::string_view dirname)
 {
   std::vector<std::shared_ptr<Surface>> res;
 
-  bfs::path p(dirname);
+  bfs::path p{std::string{dirname}};
 
   if(bfs::exists(p) && bfs::is_directory(p))
   {
@@ -128,7 +148,7 @@ std::vector<std::shared_ptr<Surface>> readRSDFFromDir(const std::string & dirnam
         std::ifstream ifs(file.string());
         std::stringstream ss;
         ss << ifs.rdbuf();
-        readRSDF(ss.str(), res);
+        readRSDF(robot, ss.str(), res);
       }
     }
   }

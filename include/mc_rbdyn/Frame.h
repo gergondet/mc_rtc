@@ -36,7 +36,7 @@ struct MC_RBDYN_DLLAPI Frame : public tvm::graph::abstract::Node<Frame>
 
   friend struct Robot;
 
-private:
+protected:
   struct ctor_token
   {
   };
@@ -89,12 +89,6 @@ public:
   inline const sva::PTransformd & X_b_f() const noexcept
   {
     return X_b_f_;
-  }
-
-  /** Update the frame static transformation */
-  inline void X_b_f(sva::PTransformd X_b_f) noexcept
-  {
-    X_b_f_ = std::move(X_b_f);
   }
 
   /** The robot to which this frame belongs */

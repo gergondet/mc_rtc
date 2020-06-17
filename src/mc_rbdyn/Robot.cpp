@@ -914,25 +914,24 @@ const std::vector<ForceSensor> & Robot::forceSensors() const
   return forceSensors_;
 }
 
-mc_rbdyn::Surface & Robot::surface(std::string_view sName)
+SurfacePtr Robot::surface(std::string_view sName)
 {
-  return const_cast<mc_rbdyn::Surface &>(static_cast<const Robot *>(this)->surface(sName));
+  auto it = surfaces_.find(sName);
+  if(it == surfaces_.end())
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("No surface named {} in {}", sName, name_);
+  }
+  return it->second;
 }
 
-const sva::PTransformd & Robot::surfacePose(std::string_view sName) const
-{
-  // FIXME Follow up after surface API change
-  return surface(sName).X_0_s(*this);
-}
-
-const mc_rbdyn::Surface & Robot::surface(std::string_view sName) const
+ConstSurfacePtr Robot::surface(std::string_view sName) const
 {
   auto it = surfaces_.find(sName);
   if(it == surfaces_.cend())
   {
-    mc_rtc::log::error_and_throw<std::runtime_error>("No surface named {} in {}", sName, this->name());
+    mc_rtc::log::error_and_throw<std::runtime_error>("No surface named {} in {}", sName, name_);
   }
-  return *it->second;
+  return it->second;
 }
 
 const mc_rtc::map<std::string, SurfacePtr> & Robot::surfaces() const
@@ -1024,17 +1023,7 @@ void Robot::loadRSDFFromDir(std::string_view surfaceDir)
   std::vector<SurfacePtr> surfacesIn = readRSDFFromDir(*this, surfaceDir);
   for(const auto & sp : surfacesIn)
   {
-    /* Check coherence of surface with mb */
-    if(hasBody(sp->bodyName()))
-    {
-      surfaces_[sp->name()] = sp;
-    }
-    else
-    {
-      mc_rtc::log::warning("Loaded surface {} attached to body {} from RSDF but the robot {} has no such body, discard "
-                           "this surface to avoid future problems...",
-                           sp->name(), sp->bodyName(), name());
-    }
+    surfaces_[sp->name()] = sp;
   }
 }
 
@@ -1062,7 +1051,6 @@ void Robot::posW(const sva::PTransformd & pt)
   {
     mb().transform(0, pt);
     rbd::forwardKinematics(mb(), mbc());
-    fixSCH(*this, this->convexes_, this->collisionTransforms_);
   }
   else
   {
@@ -1134,15 +1122,17 @@ RobotPtr Robot::copy(std::string_view name, const std::optional<Base> & base) co
     robot_ptr = std::allocate_shared<Robot>(Eigen::aligned_allocator<Robot>{}, module_, name, false);
   }
   auto & robot = *robot_ptr;
-  for(const auto & s : surfaces_)
-  {
-    robot.surfaces_[s.first] = s.second->copy();
-  }
-  robot.fixSurfaces();
   for(const auto & f_it : frames_)
   {
     const auto & f = *f_it.second;
-    robot.makeFrame(f.name(), f.body(), f.X_b_f());
+    if(!robot.hasFrame(f.name()))
+    {
+      robot.makeFrame(f.name(), f.body(), f.X_b_f());
+    }
+  }
+  for(const auto & s : surfaces_)
+  {
+    robot.surfaces_[s.first] = s.second->copy(robot);
   }
   for(const auto & c : convexes_)
   {
@@ -1157,30 +1147,15 @@ RobotPtr Robot::copy(std::string_view name, const std::optional<Base> & base) co
     }
     robot.addConvex(c.first, std::make_shared<sch::S_Polyhedron>(*poly), convex->frame()->name(), convex->X_f_c());
   }
-  robot.fixCollisionTransforms();
   return robot_ptr;
-}
-
-mc_rbdyn::Surface & Robot::copySurface(std::string_view sName, std::string_view name)
-{
-  if(hasSurface(name))
-  {
-    mc_rtc::log::error_and_throw<std::runtime_error>(
-        "{} already exists within robot {}. Cannot overwrite an existing surface", name, this->name_);
-  }
-  const Surface & surf = surface(sName);
-  SurfacePtr nSurf = surf.copy();
-  nSurf->name(name);
-  surfaces_.emplace(name, nSurf);
-  return *nSurf;
 }
 
 void mc_rbdyn::Robot::addSurface(SurfacePtr surface, bool overwrite)
 {
-  if(!hasBody(surface->bodyName()))
+  if(&surface->frame()->robot() != this)
   {
-    mc_rtc::log::warning("Surface {} attached to body {} but robot {} has no such body.", surface->name(),
-                         surface->bodyName(), name());
+    mc_rtc::log::warning("Trying to add surface {} to {} but this surface is attached to {}", surface->name(),
+                         this->name(), surface->frame()->robot().name());
     return;
   }
   if(hasSurface(surface->name()) && !overwrite)
