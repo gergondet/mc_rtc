@@ -14,31 +14,6 @@
 #include <boost/filesystem.hpp>
 namespace bfs = boost::filesystem;
 
-namespace
-{
-template<typename sch_T>
-void applyTransformToSchById(const rbd::MultiBody & mb,
-                             const rbd::MultiBodyConfig & mbc,
-                             std::map<std::string, std::pair<std::string, std::shared_ptr<sch_T>>> & schByName)
-{
-  for(auto & p : schByName)
-  {
-    unsigned int index = static_cast<unsigned int>(mb.bodyIndexByName(p.second.first));
-    sch::mc_rbdyn::transform(*(p.second.second.get()), mbc.bodyPosW[index]);
-  }
-}
-
-template<typename X, typename Y>
-inline void update(std::map<X, Y> & oldData, const std::map<X, Y> & nData)
-{
-  for(const auto & p : nData)
-  {
-    oldData[p.first] = p.second;
-  }
-}
-
-} // namespace
-
 namespace mc_rbdyn
 {
 
@@ -131,7 +106,7 @@ RobotPtr Robots::addRobot(RobotPtr robot)
 
 RobotPtr Robots::robotCopy(const Robot & robot, std::string_view name)
 {
-  return addRobot(robot.copy(robot.module(), name));
+  return addRobot(robot.copy(name));
 }
 
 RobotPtr Robots::load(const RobotModule & module,

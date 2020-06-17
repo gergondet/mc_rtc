@@ -31,16 +31,9 @@ void transform(S_Object & obj, const sva::PTransformd & t)
   obj.setTransformation(m);
 }
 
-STP_BV * STPBV(const std::string & filename)
+::mc_rbdyn::S_ObjectPtr make_polyhedron(const std::string & filename)
 {
-  STP_BV * s = new STP_BV;
-  s->constructFromFile(filename);
-  return s;
-}
-
-S_Polyhedron * Polyhedron(const std::string & filename)
-{
-  S_Polyhedron * s = new S_Polyhedron;
+  auto s = std::make_shared<sch::S_Polyhedron>();
   s->constructFromFile(filename);
   return s;
 }

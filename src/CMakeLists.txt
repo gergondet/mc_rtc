@@ -170,6 +170,8 @@ mc_rbdyn/Device.cpp
 mc_rbdyn/BodySensor.cpp
 mc_rbdyn/Frame.cpp
 mc_rbdyn/CoM.cpp
+mc_rbdyn/Convex.cpp
+mc_rbdyn/CollisionPair.cpp
 )
 
 set(mc_rbdyn_HDR
@@ -208,6 +210,8 @@ set(mc_rbdyn_HDR
 ../include/mc_rbdyn/Device.h
 ../include/mc_rbdyn/Frame.h
 ../include/mc_rbdyn/CoM.h
+../include/mc_rbdyn/Convex.h
+../include/mc_rbdyn/CollisionPair.h
 )
 
 add_library(mc_rbdyn SHARED ${mc_rbdyn_SRC} ${mc_rbdyn_HDR})

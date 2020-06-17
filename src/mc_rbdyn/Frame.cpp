@@ -57,11 +57,7 @@ Frame::Frame(ctor_token, std::string_view name, RobotPtr robot, std::string_view
   addInternalDependency(Update::JDot, Update::Jacobian);
 
   /** Initialize all data */
-  updatePosition();
-  updateJacobian();
-  updateVelocity();
-  updateNormalAcceleration();
-  updateJDot();
+  updateAll();
 }
 
 Frame::Frame(ctor_token tkn, std::string_view name, ConstFramePtr frame, sva::PTransformd X_f1_f2)
@@ -69,7 +65,7 @@ Frame::Frame(ctor_token tkn, std::string_view name, ConstFramePtr frame, sva::PT
 {
 }
 
-const std::string & Frame::body() const
+const std::string & Frame::body() const noexcept
 {
   return robot_->mb().body(static_cast<int>(bodyId_)).name();
 }
@@ -110,6 +106,15 @@ void Frame::updateJDot()
   jacTmp_.block(3, 0, 3, jac_.dof()).noalias() += h_ * partialJac.block(3, 0, 3, jac_.dof());
   jac_.fullJacobian(robot_->mb(), jacTmp_, jacDot_);
 
+}
+
+void Frame::updateAll()
+{
+  updatePosition();
+  updateJacobian();
+  updateVelocity();
+  updateNormalAcceleration();
+  updateJDot();
 }
 
 } // namespace mc_rbdyn

@@ -91,6 +91,12 @@ public:
     return X_b_f_;
   }
 
+  /** Update the frame static transformation */
+  inline void X_b_f(sva::PTransformd X_b_f) noexcept
+  {
+    X_b_f_ = std::move(X_b_f);
+  }
+
   /** The robot to which this frame belongs */
   inline const Robot & robot() const noexcept
   {
@@ -149,6 +155,8 @@ private:
 
   tvm::internal::MatrixWithProperties jacDot_;
   void updateJDot();
+
+  void updateAll();
 };
 
 } // namespace mc_rbdyn
