@@ -651,25 +651,15 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::en
   bool hasSurface(std::string_view surface) const;
 
   /** Access a surface by its name \p sName */
-  mc_rbdyn::Surface & surface(std::string_view sName);
+  SurfacePtr surface(std::string_view sName);
   /** Access a surface by its name \p sName (const) */
-  const mc_rbdyn::Surface & surface(std::string_view sName) const;
-
-  /** Get the pose of a surface frame with respect to the inertial frame.
-   *
-   * \param sName Name of surface frame.
-   *
-   */
-  const sva::PTransformd & surfacePose(std::string_view sName) const;
-
-  /** Copy an existing surface with a new name */
-  mc_rbdyn::Surface & copySurface(std::string_view oldName, std::string_view newName);
+  ConstSurfacePtr surface(std::string_view sName) const;
 
   /** Adds a surface */
-  void addSurface(mc_rbdyn::SurfacePtr surface, bool overwrite = false);
+  void addSurface(SurfacePtr surface, bool overwrite = false);
 
   /** Returns all available surfaces */
-  const mc_rtc::map<std::string, mc_rbdyn::SurfacePtr> & surfaces() const;
+  const mc_rtc::map<std::string, SurfacePtr> & surfaces() const;
 
   /** Returns a list of available surfaces */
   std::vector<std::string> availableSurfaces() const;
@@ -903,16 +893,6 @@ protected:
 
   /** Copy existing Robot with a new base */
   RobotPtr copy(std::string_view name, const std::optional<Base> & base = std::nullopt) const;
-
-  /**
-   * @brief Finds the name of the body to which a force sensor is attached,
-   * starting from the provided body and going up the kinematic tree.
-   *
-   * @param bodyName Name of the body to which the sensor is attached
-   *
-   * @return Body name to which the sensor is attached when found. Empty string otherwise
-   */
-  std::string findIndirectForceSensorBodyName(const std::string & bodyName) const;
 
 private:
   Robot(const Robot &) = delete;

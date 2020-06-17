@@ -17,63 +17,50 @@ public:
   double motorMaxTorque;
 };
 
-GripperSurface::GripperSurface(const std::string & name,
-                               const std::string & bodyName,
-                               const sva::PTransformd & X_b_s,
-                               const std::string & materialName,
+GripperSurface::GripperSurface(std::string_view name,
+                               FramePtr frame,
                                const std::vector<sva::PTransformd> & pointsFromOrigin,
                                const sva::PTransformd & X_b_motor,
-                               const double & motorMaxTorque)
-: Surface(name, bodyName, X_b_s, materialName),
-  impl(new GripperSurfaceImpl({pointsFromOrigin, X_b_motor, motorMaxTorque}))
-{
-  computePoints();
-}
-
-GripperSurface::~GripperSurface() {}
-
-void GripperSurface::computePoints()
+                               double motorMaxTorque)
+: Surface(name, frame), impl(new GripperSurfaceImpl({pointsFromOrigin, X_b_motor, motorMaxTorque}))
 {
   points().clear();
   for(sva::PTransformd & p : impl->pointsFromOrigin)
   {
-    points().push_back(p * X_b_s());
+    points().push_back(p * frame->X_b_f());
   }
 }
 
-void GripperSurface::originTransform(const sva::PTransformd & X_s_sp)
-{
-  for(sva::PTransformd & p : impl->pointsFromOrigin)
-  {
-    p = p * X_s_sp.inv();
-  }
-  X_b_s(X_s_sp * X_b_s());
-}
+GripperSurface::~GripperSurface() noexcept {}
 
-std::shared_ptr<Surface> GripperSurface::copy() const
-{
-  return std::shared_ptr<Surface>(new GripperSurface(name(), bodyName(), X_b_s(), materialName(),
-                                                     impl->pointsFromOrigin, impl->X_b_motor, impl->motorMaxTorque));
-}
-
-std::string GripperSurface::type() const
+std::string GripperSurface::type() const noexcept
 {
   return "gripper";
 }
 
-const std::vector<sva::PTransformd> & GripperSurface::pointsFromOrigin() const
+const std::vector<sva::PTransformd> & GripperSurface::pointsFromOrigin() const noexcept
 {
   return impl->pointsFromOrigin;
 }
 
-const sva::PTransformd & GripperSurface::X_b_motor() const
+const sva::PTransformd & GripperSurface::X_b_motor() const noexcept
 {
   return impl->X_b_motor;
 }
 
-const double & GripperSurface::motorMaxTorque() const
+double GripperSurface::motorMaxTorque() const noexcept
 {
   return impl->motorMaxTorque;
+}
+
+std::shared_ptr<Surface> GripperSurface::copy(Robot & to) const
+{
+  if(!to.hasFrame(name()))
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("No frame {} in destination robot {}", name(), to.name());
+  }
+  return std::make_shared<GripperSurface>(name(), to.frame(name()), impl->pointsFromOrigin, impl->X_b_motor,
+                                          impl->motorMaxTorque);
 }
 
 } // namespace mc_rbdyn

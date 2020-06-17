@@ -14,29 +14,23 @@ struct GripperSurfaceImpl;
 struct MC_RBDYN_DLLAPI GripperSurface : public Surface
 {
 public:
-  GripperSurface(const std::string & name,
-                 const std::string & bodyName,
-                 const sva::PTransformd & X_b_s,
-                 const std::string & materialName,
+  GripperSurface(std::string_view name,
+                 FramePtr frame,
                  const std::vector<sva::PTransformd> & pointsFromOrigin,
                  const sva::PTransformd & X_b_motor,
-                 const double & motorMaxTorque);
+                 double motorMaxTorque);
 
-  ~GripperSurface() override;
+  ~GripperSurface() noexcept override;
 
-  void computePoints() override;
+  std::string type() const noexcept override;
 
-  void originTransform(const sva::PTransformd & X_s_sp);
+  const std::vector<sva::PTransformd> & pointsFromOrigin() const noexcept;
 
-  std::shared_ptr<Surface> copy() const override;
+  const sva::PTransformd & X_b_motor() const noexcept;
 
-  std::string type() const override;
+  double motorMaxTorque() const noexcept;
 
-  const std::vector<sva::PTransformd> & pointsFromOrigin() const;
-
-  const sva::PTransformd & X_b_motor() const;
-
-  const double & motorMaxTorque() const;
+  std::shared_ptr<Surface> copy(Robot & to) const override;
 
 private:
   std::unique_ptr<GripperSurfaceImpl> impl;

@@ -4,64 +4,40 @@
 
 #pragma once
 
-#include <mc_rbdyn/api.h>
-
-#include <RBDyn/MultiBodyConfig.h>
-
-#include <SpaceVecAlg/SpaceVecAlg>
-
-#include <memory>
-#include <string>
-#include <vector>
+#include <mc_rbdyn/Frame.h>
 
 namespace mc_rbdyn
 {
 
 struct SurfaceImpl;
 
+/** A surface is attached to a frame and provides a list of points in the surface frame */
 struct MC_RBDYN_DLLAPI Surface
 {
-public:
-  Surface(const std::string & name,
-          const std::string & bodyName,
-          const sva::PTransformd & X_b_s,
-          const std::string & materialName);
+  Surface(std::string_view name, FramePtr frame);
 
-  virtual ~Surface();
+  virtual ~Surface() noexcept;
 
-  const std::string & name() const;
+  /** Name of the surface */
+  const std::string & name() const noexcept;
 
-  void name(const std::string & name);
+  /** Frame to which this surface is attached */
+  ConstFramePtr frame() const noexcept;
 
-  const std::string & bodyName() const;
+  /** Frame to which this surface is attached */
+  FramePtr frame() noexcept;
 
-  const std::string & materialName() const;
+  /** Points in the surface frame */
+  const std::vector<sva::PTransformd> & points() const noexcept;
 
-  const std::vector<sva::PTransformd> & points() const;
+  /** Type of surface */
+  virtual std::string type() const noexcept = 0;
 
-  unsigned int bodyIndex(const mc_rbdyn::Robot & robot) const;
-
-  sva::PTransformd X_0_s(const mc_rbdyn::Robot & robot) const;
-
-  sva::PTransformd X_0_s(const mc_rbdyn::Robot & robot, const rbd::MultiBodyConfig & mbc) const;
-
-  const sva::PTransformd & X_b_s() const;
-
-  void X_b_s(const sva::PTransformd & X_b_s);
-
-  virtual void computePoints() = 0;
-
-  std::string toStr();
-
-  virtual std::shared_ptr<Surface> copy() const = 0;
-
-  virtual std::string type() const = 0;
-
-  bool operator==(const Surface & rhs);
-  bool operator!=(const Surface & rhs);
+  /** Copy a surface from one robot to another */
+  virtual std::shared_ptr<Surface> copy(Robot & to) const = 0;
 
 protected:
-  std::vector<sva::PTransformd> & points();
+  std::vector<sva::PTransformd> & points() noexcept;
 
 private:
   std::unique_ptr<SurfaceImpl> impl;

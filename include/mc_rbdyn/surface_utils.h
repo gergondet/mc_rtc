@@ -14,7 +14,7 @@
 namespace mc_rbdyn
 {
 
-MC_RBDYN_DLLAPI std::vector<SurfacePtr> readRSDFFromDir(const std::string & dirname);
+MC_RBDYN_DLLAPI std::vector<SurfacePtr> readRSDFFromDir(Robot & robot, std::string_view dirname);
 
 } // namespace mc_rbdyn
 

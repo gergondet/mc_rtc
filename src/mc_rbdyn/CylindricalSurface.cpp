@@ -16,51 +16,38 @@ public:
   double width;
 };
 
-CylindricalSurface::CylindricalSurface(const std::string & name,
-                                       const std::string & bodyName,
-                                       const sva::PTransformd & X_b_s,
-                                       const std::string & materialName,
-                                       const double & radius,
-                                       const double & width)
-: Surface(name, bodyName, X_b_s, materialName), impl(new CylindricalSurfaceImpl({radius, width}))
-{
-  computePoints();
-}
-
-CylindricalSurface::~CylindricalSurface() {}
-
-void CylindricalSurface::computePoints()
+CylindricalSurface::CylindricalSurface(std::string_view name, FramePtr frame, double radius, double width)
+: Surface(name, frame), impl(new CylindricalSurfaceImpl({radius, width}))
 {
   points().clear();
-  points().push_back(sva::PTransformd(Eigen::Vector3d(-impl->width / 2, 0, 0)) * X_b_s());
-  points().push_back(sva::PTransformd(Eigen::Vector3d(impl->width / 2, 0, 0)) * X_b_s());
+  points().push_back(sva::PTransformd(Eigen::Vector3d(-impl->width / 2, 0, 0)) * frame->X_b_f());
+  points().push_back(sva::PTransformd(Eigen::Vector3d(impl->width / 2, 0, 0)) * frame->X_b_f());
 }
 
-const double & CylindricalSurface::radius() const
+CylindricalSurface::~CylindricalSurface() noexcept {}
+
+double CylindricalSurface::radius() const noexcept
 {
   return impl->radius;
 }
 
-const double & CylindricalSurface::width() const
+double CylindricalSurface::width() const noexcept
 {
   return impl->width;
 }
 
-void CylindricalSurface::width(const double & width)
-{
-  impl->width = width;
-  computePoints();
-}
-
-std::shared_ptr<Surface> CylindricalSurface::copy() const
-{
-  return std::shared_ptr<Surface>(
-      new CylindricalSurface(name(), bodyName(), X_b_s(), materialName(), impl->radius, impl->width));
-}
-
-std::string CylindricalSurface::type() const
+std::string CylindricalSurface::type() const noexcept
 {
   return "cylindrical";
+}
+
+std::shared_ptr<Surface> CylindricalSurface::copy(Robot & to) const
+{
+  if(!to.hasFrame(name()))
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("No frame {} in destination robot {}", name(), to.name());
+  }
+  return std::make_shared<CylindricalSurface>(name(), to.frame(name()), impl->radius, impl->width);
 }
 
 } // namespace mc_rbdyn

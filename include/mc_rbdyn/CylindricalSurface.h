@@ -13,26 +13,17 @@ struct CylindricalSurfaceImpl;
 
 struct MC_RBDYN_DLLAPI CylindricalSurface : public Surface
 {
-  CylindricalSurface(const std::string & name,
-                     const std::string & bodyName,
-                     const sva::PTransformd & X_b_s,
-                     const std::string & materialName,
-                     const double & radius,
-                     const double & width);
+  CylindricalSurface(std::string_view name, FramePtr frame, double radius, double width);
 
-  ~CylindricalSurface() override;
+  ~CylindricalSurface() noexcept override;
 
-  void computePoints() override;
+  double radius() const noexcept;
 
-  const double & radius() const;
+  double width() const noexcept;
 
-  const double & width() const;
+  std::string type() const noexcept override;
 
-  void width(const double & width);
-
-  std::shared_ptr<Surface> copy() const override;
-
-  std::string type() const override;
+  std::shared_ptr<Surface> copy(Robot & to) const override;
 
 private:
   std::unique_ptr<CylindricalSurfaceImpl> impl;
