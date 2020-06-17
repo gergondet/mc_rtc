@@ -8,6 +8,15 @@
 
 #include <memory>
 
+namespace sch
+{
+
+class CD_Pair;
+
+class S_Object;
+
+} // namespace sch
+
 namespace mc_rbdyn
 {
 
@@ -41,5 +50,8 @@ using ConstFramePtr = std::shared_ptr<const Frame>;
 struct CoM;
 using CoMPtr = std::shared_ptr<CoM>;
 using ConstCoMPtr = std::shared_ptr<const CoM>;
+
+using S_ObjectPtr = std::shared_ptr<sch::S_Object>;
+using ConstS_ObjectPtr = std::shared_ptr<const sch::S_Object>;
 
 } // namespace mc_rbdyn
