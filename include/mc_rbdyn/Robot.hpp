@@ -12,25 +12,25 @@ namespace mc_rbdyn
 {
 
 template<typename T>
-bool Robot::hasDevice(const std::string & name) const
+bool Robot::hasDevice(std::string_view name) const
 {
-  return devicesIndex_.count(name) != 0;
+  return devicesIndex_.contains(name);
 }
 
 template<>
-inline bool Robot::hasDevice<ForceSensor>(const std::string & name) const
+inline bool Robot::hasDevice<ForceSensor>(std::string_view name) const
 {
   return hasForceSensor(name);
 }
 
 template<>
-inline bool Robot::hasDevice<BodySensor>(const std::string & name) const
+inline bool Robot::hasDevice<BodySensor>(std::string_view name) const
 {
   return hasBodySensor(name);
 }
 
 template<typename T>
-const T & Robot::device(const std::string & name) const
+const T & Robot::device(std::string_view name) const
 {
   auto it = devicesIndex_.find(name);
   if(it == devicesIndex_.end())
@@ -47,13 +47,13 @@ const T & Robot::device(const std::string & name) const
 }
 
 template<>
-inline const ForceSensor & Robot::device<ForceSensor>(const std::string & name) const
+inline const ForceSensor & Robot::device<ForceSensor>(std::string_view name) const
 {
   return forceSensor(name);
 }
 
 template<>
-inline const BodySensor & Robot::device<BodySensor>(const std::string & name) const
+inline const BodySensor & Robot::device<BodySensor>(std::string_view name) const
 {
   return bodySensor(name);
 }
