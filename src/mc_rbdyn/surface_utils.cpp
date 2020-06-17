@@ -51,9 +51,7 @@ void try_push_surface(Robot & robot,
   surfaces.push_back(std::make_shared<SurfT>(name, frame, std::forward<Args>(args)...));
 }
 
-inline std::shared_ptr<Surface> readRSDF(Robot & robot,
-                                         const std::string & rsdf_string,
-                                         std::vector<SurfacePtr> & surfaces)
+inline void readRSDF(Robot & robot, const std::string & rsdf_string, std::vector<SurfacePtr> & surfaces)
 {
   tinyxml2::XMLDocument doc;
   doc.Parse(rsdf_string.c_str());
