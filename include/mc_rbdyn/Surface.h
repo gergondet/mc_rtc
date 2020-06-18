@@ -5,6 +5,9 @@
 #pragma once
 
 #include <mc_rbdyn/Frame.h>
+#include <mc_rbdyn/Robot.h>
+
+#include <spdlog/fmt/fmt.h>
 
 namespace mc_rbdyn
 {
@@ -34,7 +37,7 @@ struct MC_RBDYN_DLLAPI Surface : public mc_rtc::shared<Surface>
     return *frame_;
   }
 
-  /** Points in the surface frame */
+  /** Points in the surface frame's parent body frame */
   inline const std::vector<sva::PTransformd> & points() const noexcept
   {
     return points_;
@@ -60,3 +63,18 @@ protected:
 };
 
 } // namespace mc_rbdyn
+
+namespace fmt
+{
+
+template<>
+struct formatter<mc_rbdyn::Surface> : public formatter<string_view>
+{
+  template<typename FormatContext>
+  auto format(const mc_rbdyn::Surface & s, FormatContext & ctx)
+  {
+    return format_to(ctx.out(), "{}::{}", s.frame().robot().name(), s.name());
+  }
+};
+
+} // namespace fmt
