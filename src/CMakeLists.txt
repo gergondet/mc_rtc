@@ -154,7 +154,6 @@ mc_rbdyn/CylindricalSurface.cpp
 mc_rbdyn/GripperSurface.cpp
 mc_rbdyn/surface_utils.cpp
 mc_rbdyn/surface_hull.cpp
-mc_rbdyn/Contact.cpp
 mc_rbdyn/Robot.cpp
 mc_rbdyn/Robots.cpp
 mc_rbdyn/PolygonInterpolator.cpp
@@ -177,7 +176,6 @@ mc_rbdyn/CollisionPair.cpp
 set(mc_rbdyn_HDR
 ../include/mc_rbdyn/api.h
 ../include/mc_rbdyn/fwd.h
-../include/mc_rbdyn/Contact.h
 ../include/mc_rbdyn/CylindricalSurface.h
 ../include/mc_rbdyn/GripperSurface.h
 ../include/mc_rbdyn/Mimic.h

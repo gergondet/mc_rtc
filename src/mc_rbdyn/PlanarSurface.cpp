@@ -18,6 +18,11 @@ PlanarSurface::PlanarSurface(std::string_view name,
   {
     points_.push_back(sva::PTransformd(Eigen::Vector3d(p.first, p.second, 0)) * frame->X_b_f());
   }
+  if(points_.size() == 0)
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("Cannot create planar surface {} for {} as it would have 0 points",
+                                                     name, frame->robot().name());
+  }
 }
 
 std::string PlanarSurface::type() const noexcept

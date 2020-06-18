@@ -21,6 +21,11 @@ GripperSurface::GripperSurface(std::string_view name,
   {
     points_.push_back(p * frame->X_b_f());
   }
+  if(points_.size() == 0)
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>(
+        "Cannot create gripper surface {} for {} as it would have 0 points", name, frame->robot().name());
+  }
 }
 
 std::string GripperSurface::type() const noexcept
