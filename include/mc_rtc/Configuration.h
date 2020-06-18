@@ -5,6 +5,7 @@
 #pragma once
 
 #include <mc_rtc/MessagePackBuilder.h>
+#include <mc_rtc/map.h>
 
 #include <SpaceVecAlg/SpaceVecAlg>
 
@@ -416,7 +417,7 @@ public:
   /*! \brief Retrieve a string-indexed map instance
    *
    * \throws If the underlying value is not an object or if the member
-   * of the object do not meet the requiremenent of the value type.
+   * of the object do not meet the requirements of the value type.
    */
   template<typename T, class C, class A>
   operator std::map<std::string, T, C, A>() const
@@ -436,6 +437,31 @@ public:
     else
     {
       throw Configuration::Exception("Stored Json value is not an object", v);
+    }
+  }
+
+  /*! \brief Retrieve a string-indexed mc_rtc::map instance
+   *
+   * \throws If the underlying value is not an object or if the member of the object do not meet the requirements of the
+   * value type
+   */
+  template<typename T, typename Hash, typename KeyEqual, size_t S>
+  operator mc_rtc::map<std::string, T, Hash, KeyEqual, S>() const
+  {
+    if(v.isObject())
+    {
+      mc_rtc::map<std::string, T, Hash, KeyEqual, S> ret;
+      auto keys = v.keys();
+      assert(std::set<std::string>(keys.begin(), keys.end()).size() == keys.size());
+      for(const auto & k : keys)
+      {
+        ret.emplace(k, Configuration(v[k]));
+      }
+      return ret;
+    }
+    else
+    {
+      throw Configuration::Exception("Stored Json value is not an object");
     }
   }
 
@@ -1160,6 +1186,24 @@ public:
     }
   }
 
+  /*! \brief Add string-indexed mc_rtc::map into the JSON document
+   *
+   * Overwrites existing content if any.
+   *
+   * \param key Key of the element
+   *
+   * \param value Map of elements to add
+   */
+  template<typename T, typename Hash, typename KeyEqual, size_t S, typename... Args>
+  void add(const std::string & key, const mc_rtc::map<std::string, T, Hash, KeyEqual, S> & value, Args &&... args)
+  {
+    Configuration v = add(key);
+    for(const auto & el : value)
+    {
+      v.add(el.first, el.second, std::forward<Args>(args)...);
+    }
+  }
+
   /*! \brief Add a set into the JSON document
    *
    * Overwrites existing content if any.
@@ -1266,6 +1310,20 @@ public:
            class A = std::allocator<std::pair<const std::string, T>>,
            typename... Args>
   void push(const std::map<std::string, T, C, A> & value, Args &&... args)
+  {
+    Configuration v = object();
+    for(const auto & el : value)
+    {
+      v.add(el.first, el.second, std::forward<Args>(args)...);
+    }
+  }
+
+  /*! \brief Push a string-indexed mc_rtc::map into the JSON document
+   *
+   * \param value Map of elements to add
+   */
+  template<typename T, typename H, typename K, size_t S, typename... Args>
+  void push(const mc_rtc::map<std::string, T, H, K, S> & value, Args &&... args)
   {
     Configuration v = object();
     for(const auto & el : value)

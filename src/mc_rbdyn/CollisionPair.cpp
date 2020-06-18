@@ -1,6 +1,7 @@
 #include <mc_rbdyn/CollisionPair.h>
 
 #include <mc_rbdyn/Convex.h>
+#include <mc_rbdyn/Frame.h>
 #include <mc_rbdyn/SCHAddon.h>
 
 namespace mc_rbdyn
@@ -11,7 +12,8 @@ CollisionPair::CollisionPair(ConvexPtr c1, ConvexPtr c2)
 {
   registerUpdates(Update::Distance, &CollisionPair::updateDistance);
   addOutputDependency(Output::Distance, Update::Distance);
-  addInputDependency(Update::Distance, c1->frame(), Convex::Output::Position, c2->frame(), Convex::Output::Position);
+  addInputDependency(Update::Distance, c1->frame(), Frame::Output::Position);
+  addInputDependency(Update::Distance, c2->frame(), Frame::Output::Position);
 
   updateDistance();
 }

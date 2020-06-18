@@ -115,7 +115,7 @@ Robot & Robots::load(const RobotModule & module,
                      const std::optional<std::string_view> & bName)
 {
   return addRobot(std::allocate_shared<Robot>(Eigen::aligned_allocator_indirection<Robot>{}, Robot::make_shared_token{},
-                                              module, name, base, bName));
+                                              module, name, true, base, bName));
 }
 
 Robot & Robots::loadFromUrdf(std::string_view name,
@@ -170,7 +170,7 @@ Robots::reverse_iterator Robots::rbegin() noexcept
 
 Robots::const_reverse_iterator Robots::rbegin() const noexcept
 {
-  return robots_.rbegin();
+  return const_robots_.rbegin();
 }
 
 Robots::const_reverse_iterator Robots::crbegin() const noexcept

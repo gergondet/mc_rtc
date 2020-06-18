@@ -37,7 +37,7 @@ using bounds_t = std::tuple<bound_t, bound_t, bound_t, bound_t, bound_t, bound_t
 using accelerationBounds_t = std::tuple<bound_t, bound_t>;
 using torqueDerivativeBounds_t = std::tuple<bound_t, bound_t>;
 using rm_bounds_t = mc_rbdyn::RobotModule::bounds_t;
-using rm_bound_t = rm_bounds_t::value_type;
+using rm_bound_t = mc_rbdyn::RobotModule::bound_t;;
 
 using jt_method = int (rbd::Joint::*)() const;
 
@@ -93,7 +93,7 @@ bounds_t bounds(const rbd::MultiBody & mb, const rm_bounds_t & bounds)
  */
 accelerationBounds_t acceleration_bounds(const rbd::MultiBody & mb, const rm_bounds_t & bounds)
 {
-  rm_bound_t default_bound = {};
+  rm_bound_t default_bound;
   auto safe_bounds = [&bounds, &default_bound](size_t idx) -> const rm_bound_t & {
     if(idx < bounds.size())
     {
@@ -113,7 +113,7 @@ accelerationBounds_t acceleration_bounds(const rbd::MultiBody & mb, const rm_bou
  */
 torqueDerivativeBounds_t torqueDerivative_bounds(const rbd::MultiBody & mb, const rm_bounds_t & bounds)
 {
-  rm_bound_t default_bound = {};
+  rm_bound_t default_bound;
   auto safe_bounds = [&bounds, &default_bound](size_t idx) -> const rm_bound_t & {
     if(idx < bounds.size())
     {
@@ -1079,12 +1079,13 @@ RobotPtr Robot::copy(std::string_view name, const std::optional<Base> & base) co
   std::shared_ptr<Robot> robot_ptr;
   if(base)
   {
-    robot_ptr = std::allocate_shared<Robot>(Eigen::aligned_allocator<Robot>{}, module_, name, false, base.value().X_0_s,
-                                            base.value().baseName);
+    robot_ptr = std::allocate_shared<Robot>(Eigen::aligned_allocator<Robot>{}, make_shared_token{}, module_, name,
+                                            false, base.value().X_0_s, base.value().baseName);
   }
   else
   {
-    robot_ptr = std::allocate_shared<Robot>(Eigen::aligned_allocator<Robot>{}, module_, name, false);
+    robot_ptr =
+        std::allocate_shared<Robot>(Eigen::aligned_allocator<Robot>{}, make_shared_token{}, module_, name, false);
   }
   auto & robot = *robot_ptr;
   for(const auto & f_it : frames_)

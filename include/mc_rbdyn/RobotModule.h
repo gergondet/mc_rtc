@@ -72,7 +72,10 @@ struct MC_RBDYN_DLLAPI RobotModule
 {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  /*! Holds information regarding the bounds (specified in the urdf)
+  /** Representation of bounds, associate a joint name with the relevant bound value */
+  using bound_t = mc_rtc::map<std::string, std::vector<double>>;
+
+  /*! Holds information regarding the bound (specified in the urdf)
    *
    * The vector should have 6 entries:
    * - lower/upper position bounds
@@ -81,7 +84,7 @@ struct MC_RBDYN_DLLAPI RobotModule
    *
    * Each entry is a map joint name <-> bound
    */
-  using bounds_t = std::vector<mc_rtc::map<std::string, std::vector<double>>>;
+  using bounds_t = std::vector<bound_t>;
 
   /*! Holds information regarding the additional acceleration bounds (specified in addition to urdf limits)
    *
@@ -262,7 +265,7 @@ struct MC_RBDYN_DLLAPI RobotModule
    * - velocity limits (lower/upper)
    * - torque limits (lower/upper)
    */
-  const std::vector<mc_rtc::map<std::string, std::vector<double>>> & bounds() const
+  const bounds_t & bounds() const
   {
     return _bounds;
   }
@@ -293,6 +296,42 @@ struct MC_RBDYN_DLLAPI RobotModule
   const std::vector<std::map<std::string, std::vector<double>>> & torqueDerivativeBounds() const
   {
     return _torqueDerivativeBounds;
+  }
+
+  /** Returns the robot's lower joint position limits */
+  const bound_t & ql() const
+  {
+    return _bounds[0];
+  }
+
+  /** Returns the robot's upper joint position limits */
+  const bound_t & qu() const
+  {
+    return _bounds[1];
+  }
+
+  /** Returns the robot's lower joint velocity limits */
+  const bound_t & vl() const
+  {
+    return _bounds[2];
+  }
+
+  /** Returns the robot's upper joint velocity limits */
+  const bound_t & vu() const
+  {
+    return _bounds[3];
+  }
+
+  /** Returns the robot's lower joint torque limits */
+  const bound_t & tl() const
+  {
+    return _bounds[4];
+  }
+
+  /** Returns the robot's upper joint torque limits */
+  const bound_t & tu() const
+  {
+    return _bounds[5];
   }
 
   /** Returns a default configuration for the robot

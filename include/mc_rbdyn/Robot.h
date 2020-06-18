@@ -9,7 +9,6 @@
 #include <mc_rbdyn/Convex.h>
 #include <mc_rbdyn/Frame.h>
 #include <mc_rbdyn/RobotModule.h>
-#include <mc_rbdyn/Surface.h>
 
 #include <mc_control/generic_gripper.h>
 
@@ -71,6 +70,25 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, mc_rtc:
 
   friend struct Robots;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+private:
+  struct make_shared_token
+  {
+  };
+
+public:
+  /** Invoked by Robots parent instance after mb/mbc/mbg/RobotModule are stored
+   *
+   * When loadFiles is set to false, the convex and surfaces files are not
+   * loaded. This is used when copying one robot into another.
+   *
+   */
+  Robot(make_shared_token,
+        RobotModule module,
+        std::string_view name,
+        bool loadFiles,
+        const std::optional<sva::PTransformd> & base = std::nullopt,
+        const std::optional<std::string_view> & baseName = std::nullopt);
 
   Robot(Robot &&) = default;
   Robot & operator=(Robot &&) = default;
@@ -804,9 +822,6 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, mc_rtc:
   }
 
 private:
-  struct make_shared_token
-  {
-  };
   /** Name of the robot */
   std::string name_;
   /** RobotModule that was used to create this robot */
@@ -879,19 +894,6 @@ private:
   mc_rtc::map<std::string, size_t> devicesIndex_;
 
 protected:
-  /** Invoked by Robots parent instance after mb/mbc/mbg/RobotModule are stored
-   *
-   * When loadFiles is set to false, the convex and surfaces files are not
-   * loaded. This is used when copying one robot into another.
-   *
-   */
-  Robot(make_shared_token,
-        RobotModule module,
-        std::string_view name,
-        bool loadFiles,
-        const std::optional<sva::PTransformd> & base = std::nullopt,
-        const std::optional<std::string_view> & baseName = std::nullopt);
-
   /** Copy existing Robot with a new base */
   RobotPtr copy(std::string_view name, const std::optional<Base> & base = std::nullopt) const;
 

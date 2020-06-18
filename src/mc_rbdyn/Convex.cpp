@@ -10,7 +10,7 @@ Convex::Convex(ctor_token, S_ObjectPtr object, FramePtr frame, sva::PTransformd 
 : object_(object), frame_(frame), X_f_c_(std::move(X_f_c))
 {
   registerUpdates(Update::Position, &Convex::updatePosition);
-  addInputDependency(Update::Position, frame, Frame::Update::Position);
+  addInputDependency(Update::Position, frame, Frame::Output::Position);
   addOutputDependency(Output::Position, Update::Position);
 
   updatePosition();
