@@ -155,119 +155,6 @@ mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::Collision>::save(const mc_rb
   return config;
 }
 
-std::shared_ptr<mc_rbdyn::Surface> ConfigurationLoader<std::shared_ptr<mc_rbdyn::Surface>>::load(
-    const mc_rtc::Configuration & config)
-{
-  std::string type = config("type");
-  if(type == "planar")
-  {
-    return std::make_shared<mc_rbdyn::PlanarSurface>(config("name"), config("bodyName"), config("X_b_s"),
-                                                     config("materialName"), config("planarPoints"));
-  }
-  else if(type == "cylindrical")
-  {
-    return std::make_shared<mc_rbdyn::CylindricalSurface>(config("name"), config("bodyName"), config("X_b_s"),
-                                                          config("materialName"), config("radius"), config("width"));
-  }
-  else if(type == "gripper")
-  {
-    return std::make_shared<mc_rbdyn::GripperSurface>(config("name"), config("bodyName"), config("X_b_s"),
-                                                      config("materialName"), config("pointsFromOrigin"),
-                                                      config("X_b_motor"), config("motorMaxTorque"));
-  }
-  mc_rtc::log::error_and_throw<std::runtime_error>("Unknown surface type stored {}", type);
-}
-
-mc_rtc::Configuration ConfigurationLoader<std::shared_ptr<mc_rbdyn::Surface>>::save(
-    const std::shared_ptr<mc_rbdyn::Surface> & s)
-{
-  mc_rtc::Configuration config;
-  config.add("type", s->type());
-  config.add("name", s->name());
-  config.add("bodyName", s->bodyName());
-  config.add("X_b_s", s->X_b_s());
-  config.add("materialName", s->materialName());
-  if(s->type() == "planar")
-  {
-    auto ps = static_cast<mc_rbdyn::PlanarSurface *>(s.get());
-    config.add("planarPoints", ps->planarPoints());
-  }
-  else if(s->type() == "cylindrical")
-  {
-    auto cs = static_cast<mc_rbdyn::CylindricalSurface *>(s.get());
-    config.add("radius", cs->radius());
-    config.add("width", cs->width());
-  }
-  else if(s->type() == "gripper")
-  {
-    auto gs = static_cast<mc_rbdyn::GripperSurface *>(s.get());
-    config.add("pointsFromOrigin", gs->pointsFromOrigin());
-    config.add("X_b_motor", gs->X_b_motor());
-    config.add("motorMaxTorque", gs->motorMaxTorque());
-  }
-  else
-  {
-    mc_rtc::log::error_and_throw<std::runtime_error>("Cannot serialize a surface of type {}", s->type());
-  }
-  return config;
-}
-
-std::shared_ptr<mc_rbdyn::PlanarSurface> ConfigurationLoader<std::shared_ptr<mc_rbdyn::PlanarSurface>>::load(
-    const mc_rtc::Configuration & config)
-{
-  std::string type = config("type");
-  if(type != "planar")
-  {
-    mc_rtc::log::error_and_throw<std::runtime_error>("Tried to deserialize a non-planar surface into a planar surface");
-  }
-  return std::static_pointer_cast<mc_rbdyn::PlanarSurface>(
-      ConfigurationLoader<std::shared_ptr<mc_rbdyn::Surface>>::load(config));
-}
-
-mc_rtc::Configuration ConfigurationLoader<std::shared_ptr<mc_rbdyn::PlanarSurface>>::save(
-    const std::shared_ptr<mc_rbdyn::PlanarSurface> & s)
-{
-  return ConfigurationLoader<std::shared_ptr<mc_rbdyn::Surface>>::save(s);
-}
-
-std::shared_ptr<mc_rbdyn::CylindricalSurface> ConfigurationLoader<std::shared_ptr<mc_rbdyn::CylindricalSurface>>::load(
-    const mc_rtc::Configuration & config)
-{
-  std::string type = config("type");
-  if(type != "cylindrical")
-  {
-    mc_rtc::log::error_and_throw<std::runtime_error>(
-        "Tried to deserialize a non-cylindrical surface into a cylindrical surface");
-  }
-  return std::static_pointer_cast<mc_rbdyn::CylindricalSurface>(
-      ConfigurationLoader<std::shared_ptr<mc_rbdyn::Surface>>::load(config));
-}
-
-mc_rtc::Configuration ConfigurationLoader<std::shared_ptr<mc_rbdyn::CylindricalSurface>>::save(
-    const std::shared_ptr<mc_rbdyn::CylindricalSurface> & s)
-{
-  return ConfigurationLoader<std::shared_ptr<mc_rbdyn::Surface>>::save(s);
-}
-
-std::shared_ptr<mc_rbdyn::GripperSurface> ConfigurationLoader<std::shared_ptr<mc_rbdyn::GripperSurface>>::load(
-    const mc_rtc::Configuration & config)
-{
-  std::string type = config("type");
-  if(type != "gripper")
-  {
-    mc_rtc::log::error_and_throw<std::runtime_error>(
-        "Tried to deserialize a non-gripper surface into a gripper surface");
-  }
-  return std::static_pointer_cast<mc_rbdyn::GripperSurface>(
-      ConfigurationLoader<std::shared_ptr<mc_rbdyn::Surface>>::load(config));
-}
-
-mc_rtc::Configuration ConfigurationLoader<std::shared_ptr<mc_rbdyn::GripperSurface>>::save(
-    const std::shared_ptr<mc_rbdyn::GripperSurface> & s)
-{
-  return ConfigurationLoader<std::shared_ptr<mc_rbdyn::Surface>>::save(s);
-}
-
 mc_rbdyn::Flexibility ConfigurationLoader<mc_rbdyn::Flexibility>::load(const mc_rtc::Configuration & config)
 {
   return {config("jointName"), config("K"), config("C"), config("O")};
@@ -756,13 +643,13 @@ mc_rbdyn::RobotModule ConfigurationLoader<mc_rbdyn::RobotModule>::load(const mc_
   {
     urdf_path = path / urdf_path;
   }
-  mc_rbdyn::RobotModule rm(path.string(), config("name"), urdf_path.string());
+  mc_rbdyn::RobotModule rm(path.string(), std::string(config("name")), urdf_path.string());
   if(config.has("mb"))
   {
     rm.mb = config("mb");
     rm.mbc = config("mbc");
     rm._bounds = config("bounds");
-    rm._visual = static_cast<std::map<std::string, std::vector<rbd::parsers::Visual>>>(config("visuals"));
+    rm._visual = static_cast<mc_rtc::map<std::string, std::vector<rbd::parsers::Visual>>>(config("visuals"));
     rm._collisionTransforms = config("collisionTransforms");
   }
   else
@@ -814,15 +701,6 @@ mc_rbdyn::RobotModule ConfigurationLoader<mc_rbdyn::RobotModule>::load(const mc_
     if(!chPath.is_absolute())
     {
       cH.second.second = (path / chPath).string();
-    }
-  }
-  config("stpbvHulls", rm._stpbvHull);
-  for(auto & sH : rm._stpbvHull)
-  {
-    bfs::path stPath(sH.second.second);
-    if(!stPath.is_absolute())
-    {
-      sH.second.second = (path / stPath).string();
     }
   }
   config("flexibilities", rm._flexibility);
@@ -923,7 +801,6 @@ mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::RobotModule>::save(const mc_
   {
     sH.second.second = relative(sH.second.second, rm.path).string();
   }
-  config.add("stpbvHulls", rm._stpbvHull);
   config.add("flexibilities", rm._flexibility);
   config.add("forceSensors", rm._forceSensors);
   config.add("bodySensors", rm._bodySensors);
@@ -950,65 +827,6 @@ mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::RobotModulePtr>::save(const 
                                                                           bool fixed)
 {
   return ConfigurationLoader<mc_rbdyn::RobotModule>::save(*rm, save_mbc, filteredLinks, fixed);
-}
-
-mc_rbdyn::Contact ConfigurationLoader<mc_rbdyn::Contact>::load(const mc_rtc::Configuration & config,
-                                                               const mc_rbdyn::Robots & robots)
-{
-  const auto r1Index = robotIndexFromConfig(config, robots, "contact", false, "r1Index", "r1");
-  const auto r2Index = robotIndexFromConfig(config, robots, "contact", false, "r2Index", "r2", robots.robot(1).name());
-  sva::PTransformd X_r2s_r1s = sva::PTransformd::Identity();
-  bool isFixed = config("isFixed");
-  if(isFixed)
-  {
-    X_r2s_r1s = config("X_r2s_r1s");
-  }
-  std::string r1Surface = config("r1Surface");
-  sva::PTransformd X_b_s = robots.robot(r1Index).surface(r1Surface).X_b_s();
-  config("X_b_s", X_b_s);
-  double friction = config("friction", mc_rbdyn::Contact::defaultFriction);
-  int ambiguityId = config("ambiguityId", -1);
-  return mc_rbdyn::Contact(robots, r1Index, r2Index, config("r1Surface"), config("r2Surface"), X_r2s_r1s, X_b_s,
-                           friction, ambiguityId);
-}
-
-mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::Contact>::save(const mc_rbdyn::Contact & c)
-{
-  mc_rtc::Configuration config;
-  // FIXME saves by index even if the configuration was created by name
-  config.add("r1Index", c.r1Index());
-  config.add("r2Index", c.r2Index());
-  config.add("r1Surface", c.r1Surface()->name());
-  config.add("r2Surface", c.r2Surface()->name());
-  config.add("X_b_s", c.X_b_s());
-  config.add("ambiguityId", c.ambiguityId());
-  config.add("isFixed", c.isFixed());
-  if(c.isFixed())
-  {
-    config.add("X_r2s_r1s", c.X_r2s_r1s());
-  }
-  return config;
-}
-
-tasks::qp::JointGains ConfigurationLoader<tasks::qp::JointGains>::load(const mc_rtc::Configuration & config)
-{
-  if(config.has("damping"))
-  {
-    return tasks::qp::JointGains(config("jointName"), config("stiffness"), config("damping"));
-  }
-  else
-  {
-    return tasks::qp::JointGains(config("jointName"), config("stiffness"));
-  }
-}
-
-mc_rtc::Configuration ConfigurationLoader<tasks::qp::JointGains>::save(const tasks::qp::JointGains & jg)
-{
-  mc_rtc::Configuration config;
-  config.add("jointName", jg.jointName);
-  config.add("stiffness", jg.stiffness);
-  config.add("damping", jg.damping);
-  return config;
 }
 
 } // namespace mc_rtc

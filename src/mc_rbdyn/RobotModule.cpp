@@ -116,7 +116,7 @@ static inline rbd::parsers::Limits from_mc_rbdyn_urdf(const mc_rbdyn_urdf::Limit
   return l;
 }
 
-RobotModule::RobotModule(const std::string & name, const rbd::parsers::ParserResult & res)
+RobotModule::RobotModule(std::string_view name, const rbd::parsers::ParserResult & res)
 : RobotModule("/CREATED/BY/MC/RTC/", name)
 {
   rsdf_dir = "";
@@ -130,7 +130,10 @@ RobotModule::RobotModule(const std::string & name, const mc_rbdyn_urdf::URDFPars
   mb = res.mb;
   mbc = res.mbc;
   mbg = res.mbg;
-  _collisionTransforms = res.collision_tf;
+  for(const auto & tf : res.collision_tf)
+  {
+    _collisionTransforms.emplace(tf.first, tf.second);
+  }
   boundsFromURDF(res.limits);
   _visual = res.visual;
   make_default_ref_joint_order();
@@ -152,8 +155,14 @@ void RobotModule::init(const rbd::parsers::ParserResult & res)
     }
   }
   boundsFromURDF(res.limits);
-  _visual = res.visual;
-  _collision = res.collision;
+  for(const auto & v : res.visual)
+  {
+    _visual.emplace(v.first, v.second);
+  }
+  for(const auto & c : res.collision)
+  {
+    _collision.emplace(c.first, c.second);
+  }
   make_default_ref_joint_order();
   expand_stance();
 }
@@ -292,26 +301,24 @@ void RobotModule::make_default_ref_joint_order()
 
 RobotModule::bounds_t urdf_limits_to_bounds(const rbd::parsers::Limits & limits)
 {
-  RobotModule::bounds_t ret = {};
-  ret.reserve(6);
-  ret.push_back(limits.lower);
-  ret.push_back(limits.upper);
-  auto convert = [](const std::map<std::string, std::vector<double>> & l) {
-    auto ret = l;
-    for(auto & el : ret)
+  auto transform = [](const std::map<std::string, std::vector<double>> & v, bool neg = false) {
+    RobotModule::bound_t res;
+    res.reserve(v.size());
+    for(const auto & vi : v)
     {
-      for(auto & e : el.second)
+      res.emplace(vi.first, vi.second);
+      if(neg)
       {
-        e = -e;
+        for(auto & vj : res[vi.first])
+        {
+          vj = -vj;
+        }
       }
     }
-    return ret;
+    return res;
   };
-  ret.push_back(convert(limits.velocity));
-  ret.push_back(limits.velocity);
-  ret.push_back(convert(limits.torque));
-  ret.push_back(limits.torque);
-  return ret;
+  return {transform(limits.lower),    transform(limits.upper),        transform(limits.velocity, true),
+          transform(limits.velocity), transform(limits.torque, true), transform(limits.torque)};
 }
 
 RobotModule::bounds_t urdf_limits_to_bounds(const mc_rbdyn_urdf::Limits & limits)

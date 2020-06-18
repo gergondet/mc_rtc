@@ -108,7 +108,7 @@ Gripper::Gripper(const mc_rbdyn::Robot & robot,
   mult.resize(0);
   _q.resize(0);
   auto getReferenceIdx = [&](const std::string & joint) {
-    const auto & rjo = robot.refJointOrder();
+    const auto & rjo = robot.module().ref_joint_order();
     for(size_t i = 0; i < rjo.size(); ++i)
     {
       const auto & rji = rjo[i];
@@ -125,18 +125,17 @@ Gripper::Gripper(const mc_rbdyn::Robot & robot,
     const auto & name = jointNames[i];
     if(robot.hasJoint(name))
     {
-      unsigned int jointIndex = robot.jointIndexByName(name);
       if(!reverseLimits)
       {
-        closeP.push_back(robot.ql()[jointIndex][0]);
-        openP.push_back(robot.qu()[jointIndex][0]);
+        closeP.push_back(robot.module().ql().at(name)[0]);
+        openP.push_back(robot.module().qu().at(name)[0]);
       }
       else
       {
-        closeP.push_back(robot.qu()[jointIndex][0]);
-        openP.push_back(robot.ql()[jointIndex][0]);
+        closeP.push_back(robot.module().qu().at(name)[0]);
+        openP.push_back(robot.module().ql().at(name)[0]);
       }
-      vmax.push_back(std::min(std::abs(robot.vl()[jointIndex][0]), robot.vu()[jointIndex][0]));
+      vmax.push_back(std::min(std::abs(robot.module().vl().at(name)[0]), robot.module().vu().at(name)[0]));
       _q.push_back(actualQ[i]);
     }
     else
