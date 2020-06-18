@@ -8,29 +8,16 @@
 namespace mc_rbdyn
 {
 
-struct PlanarSurfaceImpl
-{
-public:
-  std::vector<std::pair<double, double>> planarPoints;
-};
-
 PlanarSurface::PlanarSurface(std::string_view name,
                              FramePtr frame,
                              const std::vector<std::pair<double, double>> & planarPoints)
-: Surface(name, frame), impl(new PlanarSurfaceImpl({planarPoints}))
+: Surface(name, frame), planarPoints_(planarPoints)
 {
-  points().clear();
-  for(std::pair<double, double> & p : impl->planarPoints)
+  points_.clear();
+  for(std::pair<double, double> & p : planarPoints_)
   {
-    points().push_back(sva::PTransformd(Eigen::Vector3d(p.first, p.second, 0)) * frame->X_b_f());
+    points_.push_back(sva::PTransformd(Eigen::Vector3d(p.first, p.second, 0)) * frame->X_b_f());
   }
-}
-
-PlanarSurface::~PlanarSurface() noexcept {}
-
-const std::vector<std::pair<double, double>> & PlanarSurface::planarPoints() const
-{
-  return impl->planarPoints;
 }
 
 std::string PlanarSurface::type() const noexcept
@@ -44,7 +31,7 @@ std::shared_ptr<Surface> PlanarSurface::copy(Robot & to) const
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("No frame {} in destination robot {}", name(), to.name());
   }
-  return std::make_shared<PlanarSurface>(name(), to.frame(name()), impl->planarPoints);
+  return std::make_shared<PlanarSurface>(name(), to.frame(name()), planarPoints_);
 }
 
 } // namespace mc_rbdyn

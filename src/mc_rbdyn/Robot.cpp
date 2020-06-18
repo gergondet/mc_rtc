@@ -514,17 +514,17 @@ bool Robot::hasFrame(std::string_view frame) const
   return frames_.contains(frame);
 }
 
-ConstFramePtr Robot::frame(std::string_view frame) const
+const Frame & Robot::frame(std::string_view frame) const
 {
   return this->frame(frame, "Robot::frame");
 }
 
-FramePtr Robot::frame(std::string_view frame)
+Frame & Robot::frame(std::string_view frame)
 {
   return this->frame(frame, "Robot::frame");
 }
 
-FramePtr Robot::makeFrame(std::string_view name, std::string_view body, sva::PTransformd X_b_f)
+Frame & Robot::makeFrame(std::string_view name, std::string_view body, sva::PTransformd X_b_f)
 {
   if(hasFrame(name))
   {
@@ -532,49 +532,23 @@ FramePtr Robot::makeFrame(std::string_view name, std::string_view body, sva::PTr
   }
   auto out = frames_.emplace(
       name, std::make_shared<Frame>(Frame::ctor_token{}, name, shared_from_this(), body, std::move(X_b_f)));
-  auto direct_fs_it = frameForceSensors_.find(body);
-  if(direct_fs_it != frameForceSensors_.end())
-  {
-    frameForceSensors_.emplace(name, direct_fs_it->second);
-  }
-  else
-  {
-    auto indirect_fs_it = frameIndirectForceSensors_.find(body);
-    if(indirect_fs_it != frameIndirectForceSensors_.end())
-    {
-      frameIndirectForceSensors_.emplace(name, indirect_fs_it->second);
-    }
-  }
-  return out.first->second;
+  return updateFrameForceSensors(*out.first->second);
 }
 
-FramePtr Robot::makeFrame(std::string_view name, ConstFramePtr parent, sva::PTransformd X_p_f)
+Frame & Robot::makeFrame(std::string_view name, const Frame & parent, sva::PTransformd X_p_f)
 {
   if(hasFrame(name))
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("A frame named {} already exists in {}", name, this->name());
   }
-  if(parent->robot_.get() != this)
+  if(parent.robot_.get() != this)
   {
     mc_rtc::log::error_and_throw<std::runtime_error>(
-        "Parent frame {} provided to build frame {} in {} belong to a different robot {}", parent->name(), name,
-        this->name(), parent->robot().name());
+        "Parent frame {} provided to build frame {} in {} belong to a different robot {}", parent.name(), name,
+        this->name(), parent.robot().name());
   }
   auto out = frames_.emplace(name, std::make_shared<Frame>(Frame::ctor_token{}, name, parent, std::move(X_p_f)));
-  auto direct_fs_it = frameForceSensors_.find(parent->name());
-  if(direct_fs_it != frameForceSensors_.end())
-  {
-    frameForceSensors_.emplace(name, direct_fs_it->second);
-  }
-  else
-  {
-    auto indirect_fs_it = frameIndirectForceSensors_.find(parent->name());
-    if(indirect_fs_it != frameIndirectForceSensors_.end())
-    {
-      frameIndirectForceSensors_.emplace(name, indirect_fs_it->second);
-    }
-  }
-  return out.first->second;
+  return updateFrameForceSensors(*out.first->second);
 }
 
 BodySensor & Robot::bodySensor()
@@ -914,24 +888,19 @@ const std::vector<ForceSensor> & Robot::forceSensors() const
   return forceSensors_;
 }
 
-SurfacePtr Robot::surface(std::string_view sName)
+Surface & Robot::surface(std::string_view sName)
 {
-  auto it = surfaces_.find(sName);
-  if(it == surfaces_.end())
-  {
-    mc_rtc::log::error_and_throw<std::runtime_error>("No surface named {} in {}", sName, name_);
-  }
-  return it->second;
+  return const_cast<Surface &>(const_cast<const Robot *>(this)->surface(sName));
 }
 
-ConstSurfacePtr Robot::surface(std::string_view sName) const
+const Surface & Robot::surface(std::string_view sName) const
 {
   auto it = surfaces_.find(sName);
   if(it == surfaces_.cend())
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("No surface named {} in {}", sName, name_);
   }
-  return it->second;
+  return *it->second;
 }
 
 const mc_rtc::map<std::string, SurfacePtr> & Robot::surfaces() const
@@ -955,26 +924,22 @@ bool Robot::hasConvex(std::string_view name) const
   return convexes_.contains(name);
 }
 
-ConvexPtr Robot::convex(std::string_view cName)
+Convex & Robot::convex(std::string_view cName)
 {
-  auto it = convexes_.find(cName);
-  if(it == convexes_.end())
-  {
-    mc_rtc::log::error_and_throw<std::runtime_error>("No convex named {} found in robot {}", cName, this->name_);
-  }
-  return it->second;
+  return const_cast<Convex &>(const_cast<const Robot *>(this)->convex(cName));
 }
-ConstConvexPtr Robot::convex(std::string_view cName) const
+
+const Convex & Robot::convex(std::string_view cName) const
 {
   auto it = convexes_.find(cName);
   if(it == convexes_.cend())
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("No convex named {} found in robot {}", cName, this->name_);
   }
-  return it->second;
+  return *it->second;
 }
 
-ConvexPtr Robot::addConvex(std::string_view cName, S_ObjectPtr object, std::string_view parent, sva::PTransformd X_f_c)
+Convex & Robot::addConvex(std::string_view cName, S_ObjectPtr object, std::string_view parent, sva::PTransformd X_f_c)
 {
   if(convexes_.count(cName))
   {
@@ -987,7 +952,7 @@ ConvexPtr Robot::addConvex(std::string_view cName, S_ObjectPtr object, std::stri
   {
     module_._collisionTransforms.emplace(cName, X_f_c);
   }
-  return it.first->second;
+  return *it.first->second;
 }
 
 void Robot::removeConvex(std::string_view cName)
@@ -1152,10 +1117,10 @@ RobotPtr Robot::copy(std::string_view name, const std::optional<Base> & base) co
 
 void mc_rbdyn::Robot::addSurface(SurfacePtr surface, bool overwrite)
 {
-  if(&surface->frame()->robot() != this)
+  if(surface->frame().robot_.get() != this)
   {
     mc_rtc::log::warning("Trying to add surface {} to {} but this surface is attached to {}", surface->name(),
-                         this->name(), surface->frame()->robot().name());
+                         this->name(), surface->frame().robot().name());
     return;
   }
   if(hasSurface(surface->name()) && !overwrite)
@@ -1257,24 +1222,39 @@ void Robot::updateAll()
   updateC();
 }
 
-FramePtr Robot::frame(std::string_view frame, std::string_view context)
+Frame & Robot::frame(std::string_view frame, std::string_view context)
 {
-  auto it = frames_.find(frame);
-  if(it == frames_.end())
-  {
-    mc_rtc::log::error_and_throw<std::runtime_error>("No frame named {} in {} (from: {})", frame, name(), context);
-  }
-  return it->second;
+  return const_cast<Frame &>(const_cast<const Robot *>(this)->frame(frame, context));
 }
 
-ConstFramePtr Robot::frame(std::string_view frame, std::string_view context) const
+const Frame & Robot::frame(std::string_view frame, std::string_view context) const
 {
   auto it = frames_.find(frame);
   if(it == frames_.cend())
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("No frame named {} in {} (from: {})", frame, name(), context);
   }
-  return it->second;
+  return *it->second;
+}
+
+Frame & Robot::updateFrameForceSensors(Frame & frame)
+{
+  const auto & body = frame.body();
+  const auto & name = frame.name();
+  auto direct_fs_it = frameForceSensors_.find(body);
+  if(direct_fs_it != frameForceSensors_.end())
+  {
+    frameForceSensors_.emplace(name, direct_fs_it->second);
+  }
+  else
+  {
+    auto indirect_fs_it = frameIndirectForceSensors_.find(body);
+    if(indirect_fs_it != frameIndirectForceSensors_.end())
+    {
+      frameIndirectForceSensors_.emplace(name, indirect_fs_it->second);
+    }
+  }
+  return frame;
 }
 
 } // namespace mc_rbdyn

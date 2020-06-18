@@ -9,24 +9,29 @@
 namespace mc_rbdyn
 {
 
-struct CylindricalSurfaceImpl;
-
 struct MC_RBDYN_DLLAPI CylindricalSurface : public Surface
 {
   CylindricalSurface(std::string_view name, FramePtr frame, double radius, double width);
 
-  ~CylindricalSurface() noexcept override;
+  ~CylindricalSurface() noexcept override = default;
 
-  double radius() const noexcept;
+  inline double radius() const noexcept
+  {
+    return radius_;
+  }
 
-  double width() const noexcept;
+  inline double width() const noexcept
+  {
+    return width_;
+  }
 
   std::string type() const noexcept override;
 
   std::shared_ptr<Surface> copy(Robot & to) const override;
 
 private:
-  std::unique_ptr<CylindricalSurfaceImpl> impl;
+  double radius_;
+  double width_;
 };
 
 } // namespace mc_rbdyn

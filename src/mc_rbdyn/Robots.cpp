@@ -66,17 +66,17 @@ bool Robots::hasRobot(std::string_view name) const
   return it != const_robots_.end();
 }
 
-RobotPtr Robots::robot(std::string_view name)
+Robot & Robots::robot(std::string_view name)
 {
-  return std::const_pointer_cast<Robot>(static_cast<const Robots *>(this)->robot(name));
+  return const_cast<Robot &>(static_cast<const Robots *>(this)->robot(name));
 }
 
-ConstRobotPtr Robots::robot(std::string_view name) const
+const Robot & Robots::robot(std::string_view name) const
 {
   auto it = getRobot(name);
   if(it != const_robots_.end())
   {
-    return *it;
+    return *it->get();
   }
   else
   {
@@ -97,34 +97,34 @@ void Robots::removeRobot(std::string_view name)
   }
 }
 
-RobotPtr Robots::addRobot(RobotPtr robot)
+Robot & Robots::addRobot(RobotPtr robot)
 {
   robots_.push_back(robot);
   const_robots_.push_back(robot);
-  return robot;
+  return *robot;
 }
 
-RobotPtr Robots::robotCopy(const Robot & robot, std::string_view name)
+Robot & Robots::robotCopy(const Robot & robot, std::string_view name)
 {
   return addRobot(robot.copy(name));
 }
 
-RobotPtr Robots::load(const RobotModule & module,
-                      std::string_view name,
-                      const std::optional<sva::PTransformd> & base,
-                      const std::optional<std::string_view> & bName)
+Robot & Robots::load(const RobotModule & module,
+                     std::string_view name,
+                     const std::optional<sva::PTransformd> & base,
+                     const std::optional<std::string_view> & bName)
 {
   return addRobot(std::allocate_shared<Robot>(Eigen::aligned_allocator_indirection<Robot>{}, Robot::make_shared_token{},
                                               module, name, base, bName));
 }
 
-RobotPtr Robots::loadFromUrdf(std::string_view name,
-                              const std::string & urdf,
-                              bool withVirtualLinks,
-                              const std::vector<std::string> & filteredLinks,
-                              bool fixed,
-                              const std::optional<sva::PTransformd> & base,
-                              const std::optional<std::string_view> & bName)
+Robot & Robots::loadFromUrdf(std::string_view name,
+                             const std::string & urdf,
+                             bool withVirtualLinks,
+                             const std::vector<std::string> & filteredLinks,
+                             bool fixed,
+                             const std::optional<sva::PTransformd> & base,
+                             const std::optional<std::string_view> & bName)
 {
   auto res = rbd::parsers::from_urdf(urdf, fixed, filteredLinks, true, "", withVirtualLinks);
 

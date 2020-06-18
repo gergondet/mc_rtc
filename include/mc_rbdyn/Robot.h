@@ -14,6 +14,7 @@
 #include <mc_control/generic_gripper.h>
 
 #include <mc_rtc/map.h>
+#include <mc_rtc/shared.h>
 
 #include <RBDyn/CoM.h>
 #include <RBDyn/FD.h>
@@ -63,7 +64,7 @@ namespace mc_rbdyn
  * - Dynamics: depends on FA + normalAcceleration (i.e. everything)
  *
  */
-struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::enable_shared_from_this<Robot>
+struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, mc_rtc::shared<Robot>
 {
   SET_OUTPUTS(Robot, FK, FV, FA, NormalAcceleration, tau, H, C)
   SET_UPDATES(Robot, Time, FK, FV, FA, NormalAcceleration, H, C)
@@ -89,7 +90,7 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::en
    *
    * \throws If the frame does not exist
    */
-  ConstFramePtr frame(std::string_view frame) const;
+  const Frame & frame(std::string_view frame) const;
 
   /** Access a frame (non-const)
    *
@@ -97,7 +98,7 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::en
    *
    * \throws If the frame does not exist
    */
-  FramePtr frame(std::string_view frame);
+  Frame & frame(std::string_view frame);
 
   /** Create a new frame attached to this robot
    *
@@ -111,7 +112,7 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::en
    *
    * \throws If a frame with this name already exists
    */
-  FramePtr makeFrame(std::string_view name, std::string_view body, sva::PTransformd X_b_f);
+  Frame & makeFrame(std::string_view name, std::string_view body, sva::PTransformd X_b_f);
 
   /** Create a new frame attached to this robot
    *
@@ -125,7 +126,7 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::en
    *
    * \throws If a frame with this name already exists or the parent frame does not belong to this robot
    */
-  FramePtr makeFrame(std::string_view name, ConstFramePtr parent, sva::PTransformd X_p_f);
+  Frame & makeFrame(std::string_view name, const Frame & parent, sva::PTransformd X_p_f);
 
   /** @name Body sensors
    *
@@ -289,9 +290,9 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::en
   }
 
   /** Returns the CoM algorithm associated to this robot */
-  inline const CoMPtr & com() const noexcept
+  inline const CoM & com() const noexcept
   {
-    return com_;
+    return *com_;
   }
 
   /** Compute the gravity-free wrench in a given frame
@@ -651,9 +652,9 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::en
   bool hasSurface(std::string_view surface) const;
 
   /** Access a surface by its name \p sName */
-  SurfacePtr surface(std::string_view sName);
+  Surface & surface(std::string_view sName);
   /** Access a surface by its name \p sName (const) */
-  ConstSurfacePtr surface(std::string_view sName) const;
+  const Surface & surface(std::string_view sName) const;
 
   /** Adds a surface */
   void addSurface(SurfacePtr surface, bool overwrite = false);
@@ -675,9 +676,9 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::en
    * \returns a pair giving the convex's parent body and the sch::Object
    * object
    */
-  ConvexPtr convex(std::string_view cName);
+  Convex & convex(std::string_view cName);
   /** Access a convex named \p cName (const) */
-  ConstConvexPtr convex(std::string_view cName) const;
+  const Convex & convex(std::string_view cName) const;
 
   /** Access all convexes available in this robot
    *
@@ -700,10 +701,10 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, std::en
    * \throws If such a convex already exists within the robot
    *
    */
-  ConvexPtr addConvex(std::string_view name,
-                      S_ObjectPtr object,
-                      std::string_view parent,
-                      sva::PTransformd X_f_c = sva::PTransformd::Identity());
+  Convex & addConvex(std::string_view name,
+                     S_ObjectPtr object,
+                     std::string_view parent,
+                     sva::PTransformd X_f_c = sva::PTransformd::Identity());
 
   /** Remove a given convex
    *
@@ -908,10 +909,13 @@ private:
   void updateAll();
 
   /** Used internally to access a frame safely and provide context information */
-  FramePtr frame(std::string_view, std::string_view context);
+  Frame & frame(std::string_view, std::string_view context);
 
   /** Used internally to access a frame safely and provide context information */
-  ConstFramePtr frame(std::string_view, std::string_view context) const;
+  const Frame & frame(std::string_view, std::string_view context) const;
+
+  /** Used internally to update frame to force sensor mapping */
+  Frame & updateFrameForceSensors(Frame & frame);
 };
 
 } // namespace mc_rbdyn
