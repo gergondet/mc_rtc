@@ -70,10 +70,10 @@ public:
    *
    * \returns the robot that was just loaded
    */
-  RobotPtr load(const RobotModule & module,
-                std::string_view name,
-                const std::optional<sva::PTransformd> & base = std::nullopt,
-                const std::optional<std::string_view> & bName = std::nullopt);
+  Robot & load(const RobotModule & module,
+               std::string_view name,
+               const std::optional<sva::PTransformd> & base = std::nullopt,
+               const std::optional<std::string_view> & bName = std::nullopt);
 
   /** Load a Robot from URDF content
    *
@@ -91,13 +91,13 @@ public:
    *
    * \param baseName If provided overwrite the default base choice
    */
-  RobotPtr loadFromUrdf(std::string_view name,
-                        const std::string & urdf,
-                        bool withVirtualLinks = true,
-                        const std::vector<std::string> & filteredLinks = {},
-                        bool fixed = false,
-                        const std::optional<sva::PTransformd> & base = std::nullopt,
-                        const std::optional<std::string_view> & bName = std::nullopt);
+  Robot & loadFromUrdf(std::string_view name,
+                       const std::string & urdf,
+                       bool withVirtualLinks = true,
+                       const std::vector<std::string> & filteredLinks = {},
+                       bool fixed = false,
+                       const std::optional<sva::PTransformd> & base = std::nullopt,
+                       const std::optional<std::string_view> & bName = std::nullopt);
 
   /** Duplicate a Robot, it doesn't have to belong to this instance of Robots
    *
@@ -107,7 +107,7 @@ public:
    *
    * \throws If the robot's name is already used in this instance
    */
-  RobotPtr robotCopy(const Robot & robot, std::string_view name);
+  Robot & robotCopy(const Robot & robot, std::string_view name);
 
   /** Remove a Robot, does nothing if the robot is not loaded
    *
@@ -124,10 +124,10 @@ public:
    *
    * \throws If no such robot exists within the Robots
    */
-  RobotPtr robot(std::string_view name);
+  Robot & robot(std::string_view name);
 
   /** Access a robot by name (const) */
-  ConstRobotPtr robot(std::string_view name) const;
+  const Robot & robot(std::string_view name) const;
 
   /** @name Iterators
    *
@@ -171,7 +171,7 @@ protected:
   std::vector<mc_rbdyn::RobotPtr> robots_;
   std::vector<mc_rbdyn::ConstRobotPtr> const_robots_;
   const_iterator getRobot(std::string_view name) const;
-  RobotPtr addRobot(RobotPtr robot);
+  Robot & addRobot(RobotPtr robot);
 };
 
 } // namespace mc_rbdyn

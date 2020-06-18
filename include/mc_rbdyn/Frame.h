@@ -6,6 +6,8 @@
 
 #include <mc_rbdyn/api.h>
 
+#include <mc_rtc/shared.h>
+
 #include <SpaceVecAlg/SpaceVecAlg>
 
 #include <RBDyn/Jacobian.h>
@@ -29,7 +31,7 @@ namespace mc_rbdyn
  * - JDot: derivative of the jacobian of the frame in world coordinate
  *
  */
-struct MC_RBDYN_DLLAPI Frame : public tvm::graph::abstract::Node<Frame>
+struct MC_RBDYN_DLLAPI Frame : public tvm::graph::abstract::Node<Frame>, mc_rtc::shared<Frame>
 {
   SET_OUTPUTS(Frame, Position, Jacobian, Velocity, NormalAcceleration, JDot)
   SET_UPDATES(Frame, Position, Jacobian, Velocity, NormalAcceleration, JDot)
@@ -66,7 +68,7 @@ public:
    *
    * \param X_f1_f2 Static transformation from the original frame to the new one
    */
-  Frame(ctor_token, std::string_view name, ConstFramePtr frame, sva::PTransformd X_f1_f2);
+  Frame(ctor_token, std::string_view name, const Frame & frame, sva::PTransformd X_f1_f2);
 
   /** Get a copy of the internal RBDyn Jacobian object
    *

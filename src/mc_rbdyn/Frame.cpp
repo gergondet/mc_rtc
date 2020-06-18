@@ -20,6 +20,7 @@ inline unsigned int frameGetBodyId(std::string_view frame, const RobotPtr & robo
     mc_rtc::log::error_and_throw<std::runtime_error>("Failed to create frame {}: no body named {} in {}", frame, body,
                                                      robot->name());
   }
+  return robot->bodyIndexByName(body);
 }
 } // namespace details
 
@@ -60,8 +61,8 @@ Frame::Frame(ctor_token, std::string_view name, RobotPtr robot, std::string_view
   updateAll();
 }
 
-Frame::Frame(ctor_token tkn, std::string_view name, ConstFramePtr frame, sva::PTransformd X_f1_f2)
-: Frame(tkn, name, frame->robot_, frame->body(), X_f1_f2 * frame->X_b_f_)
+Frame::Frame(ctor_token tkn, std::string_view name, const Frame & frame, sva::PTransformd X_f1_f2)
+: Frame(tkn, name, frame.robot_, frame.body(), X_f1_f2 * frame.X_b_f_)
 {
 }
 

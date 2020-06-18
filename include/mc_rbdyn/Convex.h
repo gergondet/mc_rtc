@@ -6,6 +6,8 @@
 
 #include <mc_rbdyn/api.h>
 
+#include <mc_rtc/shared.h>
+
 #include <tvm/graph/abstract/Node.h>
 
 #include <SpaceVecAlg/SpaceVecAlg>
@@ -18,7 +20,7 @@ namespace mc_rbdyn
  * It defines a single output:
  * - Position: update the convex position according to the frame
  */
-struct MC_RBDYN_DLLAPI Convex : public tvm::graph::abstract::Node<Convex>
+struct MC_RBDYN_DLLAPI Convex : public tvm::graph::abstract::Node<Convex>, mc_rtc::shared<Convex>
 {
   friend struct Robot;
 

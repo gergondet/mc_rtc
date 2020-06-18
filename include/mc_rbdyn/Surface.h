@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
@@ -9,26 +9,36 @@
 namespace mc_rbdyn
 {
 
-struct SurfaceImpl;
-
 /** A surface is attached to a frame and provides a list of points in the surface frame */
-struct MC_RBDYN_DLLAPI Surface
+struct MC_RBDYN_DLLAPI Surface : public mc_rtc::shared<Surface>
 {
   Surface(std::string_view name, FramePtr frame);
 
-  virtual ~Surface() noexcept;
+  virtual ~Surface() noexcept = default;
 
   /** Name of the surface */
-  const std::string & name() const noexcept;
+  inline const std::string & name() const noexcept
+  {
+    return name_;
+  }
 
   /** Frame to which this surface is attached */
-  ConstFramePtr frame() const noexcept;
+  inline const Frame & frame() const noexcept
+  {
+    return *frame_;
+  }
 
   /** Frame to which this surface is attached */
-  FramePtr frame() noexcept;
+  inline Frame & frame() noexcept
+  {
+    return *frame_;
+  }
 
   /** Points in the surface frame */
-  const std::vector<sva::PTransformd> & points() const noexcept;
+  inline const std::vector<sva::PTransformd> & points() const noexcept
+  {
+    return points_;
+  }
 
   /** Type of surface */
   virtual std::string type() const noexcept = 0;
@@ -38,16 +48,15 @@ struct MC_RBDYN_DLLAPI Surface
 
   inline const sva::PTransformd & X_b_s() const noexcept
   {
-    return frame()->X_b_f();
+    return frame_->X_b_f();
   }
 
-protected:
-  std::vector<sva::PTransformd> & points() noexcept;
-
 private:
-  std::unique_ptr<SurfaceImpl> impl;
-};
+  std::string name_;
+  FramePtr frame_;
 
-typedef std::shared_ptr<Surface> SurfacePtr;
+protected:
+  std::vector<sva::PTransformd> points_;
+};
 
 } // namespace mc_rbdyn

@@ -111,6 +111,7 @@ set(mc_rtc_utils_HDR
   ../include/mc_rtc/pragma.h
   ../include/mc_rtc/map.h
   ../include/mc_rtc/robin_hood/robin_hood.h
+  ../include/mc_rtc/shared.h
 )
 
 add_library(mc_rtc_utils SHARED ${mc_rtc_utils_SRC} ${mc_rtc_utils_HDR})
@@ -146,8 +147,8 @@ endif()
 install_mc_rtc_lib(mc_rtc_loader)
 
 set(mc_rbdyn_SRC
-mc_rbdyn/SCHAddon.cpp
 mc_rbdyn/Surface.cpp
+mc_rbdyn/SCHAddon.cpp
 mc_rbdyn/PlanarSurface.cpp
 mc_rbdyn/CylindricalSurface.cpp
 mc_rbdyn/GripperSurface.cpp

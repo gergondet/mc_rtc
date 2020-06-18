@@ -9,8 +9,6 @@
 namespace mc_rbdyn
 {
 
-struct GripperSurfaceImpl;
-
 struct MC_RBDYN_DLLAPI GripperSurface : public Surface
 {
 public:
@@ -20,20 +18,31 @@ public:
                  const sva::PTransformd & X_b_motor,
                  double motorMaxTorque);
 
-  ~GripperSurface() noexcept override;
+  ~GripperSurface() noexcept override = default;
 
   std::string type() const noexcept override;
 
-  const std::vector<sva::PTransformd> & pointsFromOrigin() const noexcept;
+  inline const std::vector<sva::PTransformd> & pointsFromOrigin() const noexcept
+  {
+    return pointsFromOrigin_;
+  }
 
-  const sva::PTransformd & X_b_motor() const noexcept;
+  inline const sva::PTransformd & X_b_motor() const noexcept
+  {
+    return X_b_motor_;
+  }
 
-  double motorMaxTorque() const noexcept;
+  inline double motorMaxTorque() const noexcept
+  {
+    return motorMaxTorque_;
+  }
 
   std::shared_ptr<Surface> copy(Robot & to) const override;
 
 private:
-  std::unique_ptr<GripperSurfaceImpl> impl;
+  std::vector<sva::PTransformd> pointsFromOrigin_;
+  sva::PTransformd X_b_motor_;
+  double motorMaxTorque_;
 };
 
 } // namespace mc_rbdyn

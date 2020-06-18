@@ -6,6 +6,8 @@
 
 #include <mc_rbdyn/api.h>
 
+#include <mc_rtc/shared.h>
+
 #include <RBDyn/CoM.h>
 
 #include <tvm/graph/abstract/Node.h>
@@ -27,7 +29,7 @@ namespace mc_rbdyn
  * - JDot: derivative of the jacobian of the CoM in world coordinates
  *
  */
-struct MC_RBDYN_DLLAPI CoM : public tvm::graph::abstract::Node<CoM>
+struct MC_RBDYN_DLLAPI CoM : public tvm::graph::abstract::Node<CoM>, mc_rtc::shared<CoM>
 {
   SET_OUTPUTS(CoM, CoM, Jacobian, Velocity, NormalAcceleration, Acceleration, JDot)
   SET_UPDATES(CoM, CoM, Jacobian, Velocity, NormalAcceleration, Acceleration, JDot)

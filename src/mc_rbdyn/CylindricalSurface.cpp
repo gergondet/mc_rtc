@@ -9,31 +9,12 @@
 namespace mc_rbdyn
 {
 
-struct CylindricalSurfaceImpl
-{
-public:
-  double radius;
-  double width;
-};
-
 CylindricalSurface::CylindricalSurface(std::string_view name, FramePtr frame, double radius, double width)
-: Surface(name, frame), impl(new CylindricalSurfaceImpl({radius, width}))
+: Surface(name, frame), radius_(radius), width_(width)
 {
-  points().clear();
-  points().push_back(sva::PTransformd(Eigen::Vector3d(-impl->width / 2, 0, 0)) * frame->X_b_f());
-  points().push_back(sva::PTransformd(Eigen::Vector3d(impl->width / 2, 0, 0)) * frame->X_b_f());
-}
-
-CylindricalSurface::~CylindricalSurface() noexcept {}
-
-double CylindricalSurface::radius() const noexcept
-{
-  return impl->radius;
-}
-
-double CylindricalSurface::width() const noexcept
-{
-  return impl->width;
+  points_.clear();
+  points_.push_back(sva::PTransformd(Eigen::Vector3d(-width_ / 2, 0, 0)) * frame->X_b_f());
+  points_.push_back(sva::PTransformd(Eigen::Vector3d(width_ / 2, 0, 0)) * frame->X_b_f());
 }
 
 std::string CylindricalSurface::type() const noexcept
@@ -47,7 +28,7 @@ std::shared_ptr<Surface> CylindricalSurface::copy(Robot & to) const
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("No frame {} in destination robot {}", name(), to.name());
   }
-  return std::make_shared<CylindricalSurface>(name(), to.frame(name()), impl->radius, impl->width);
+  return std::make_shared<CylindricalSurface>(name(), to.frame(name()), radius_, width_);
 }
 
 } // namespace mc_rbdyn

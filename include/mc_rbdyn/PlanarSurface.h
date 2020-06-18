@@ -9,22 +9,23 @@
 namespace mc_rbdyn
 {
 
-struct PlanarSurfaceImpl;
-
 struct MC_RBDYN_DLLAPI PlanarSurface : public Surface
 {
   PlanarSurface(std::string_view name, FramePtr frame, const std::vector<std::pair<double, double>> & planarPoints);
 
-  ~PlanarSurface() noexcept override;
+  ~PlanarSurface() noexcept override = default;
 
-  const std::vector<std::pair<double, double>> & planarPoints() const;
+  inline const std::vector<std::pair<double, double>> & planarPoints() const noexcept
+  {
+    return planarPoints_;
+  }
 
   std::string type() const noexcept override;
 
   std::shared_ptr<Surface> copy(Robot & to) const override;
 
 private:
-  std::unique_ptr<PlanarSurfaceImpl> impl;
+  std::vector<std::pair<double, double>> planarPoints_;
 };
 
 } // namespace mc_rbdyn
