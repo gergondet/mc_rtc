@@ -22,12 +22,12 @@ struct shared : public std::enable_shared_from_this<T>
 {
   operator std::shared_ptr<T>()
   {
-    return T::shared_from_this();
+    return static_cast<T *>(this)->shared_from_this();
   }
 
   operator std::shared_ptr<const T>() const
   {
-    return T::shared_from_this();
+    return static_cast<const T *>(this)->shared_from_this();
   }
 };
 
