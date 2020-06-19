@@ -223,6 +223,36 @@ endif()
 target_include_directories(mc_rbdyn SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../3rd-party/qhull/src")
 install_mc_rtc_lib(mc_rbdyn)
 
+set(mc_tvm_HDR_DIR ../include/mc_tvm)
+set(mc_tvm_HDR
+  ${mc_tvm_HDR_DIR}/api.h
+  ${mc_tvm_HDR_DIR}/CoMFunction.h
+  ${mc_tvm_HDR_DIR}/CoMInConvexFunction.h
+  ${mc_tvm_HDR_DIR}/ContactFunction.h
+  ${mc_tvm_HDR_DIR}/DynamicFunction.h
+  ${mc_tvm_HDR_DIR}/JointsSelectorFunction.h
+  ${mc_tvm_HDR_DIR}/OrientationFunction.h
+  ${mc_tvm_HDR_DIR}/PositionFunction.h
+  ${mc_tvm_HDR_DIR}/PostureFunction.h
+  ${mc_tvm_HDR_DIR}/TransformFunction.h
+)
+set(mc_tvm_SRC
+  mc_tvm/CoMFunction.cpp
+  mc_tvm/CoMInConvexFunction.cpp
+  mc_tvm/ContactFunction.cpp
+  mc_tvm/DynamicFunction.cpp
+  mc_tvm/JointsSelectorFunction.cpp
+  mc_tvm/OrientationFunction.cpp
+  mc_tvm/PositionFunction.cpp
+  mc_tvm/PostureFunction.cpp
+  mc_tvm/TransformFunction.cpp
+)
+
+add_library(mc_tvm SHARED ${mc_tvm_SRC} ${mc_tvm_HDR})
+set_target_properties(mc_tvm PROPERTIES COMPILE_FLAGS "-DMC_TVM_EXPORTS")
+target_link_libraries(mc_tvm PUBLIC mc_rbdyn)
+install_mc_rtc_lib(mc_tvm)
+
 set(mc_rtc_gui_SRC
   mc_rtc/gui/StateBuilder.cpp
 )
