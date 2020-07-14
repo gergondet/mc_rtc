@@ -4,12 +4,15 @@
 
 set(MODULE_FILES
   Findmc_rtc_3rd_party_geos.cmake
-  Findmc_rtc_3rd_party_hpp-spline.cmake
   Findmc_rtc_3rd_party_nanomsg.cmake
 )
 
 if(NOT WIN32)
   list(APPEND MODULE_FILES Findmc_rtc_3rd_party_ltdl.cmake)
+endif()
+
+if(TARGET mc_rtc_3rd_party::hpp-spline)
+  list(APPEND MODULE_FILES Findmc_rtc_3rd_party_hpp-spline.cmake)
 endif()
 
 install(FILES ${MODULE_FILES} DESTINATION "${CONFIG_INSTALL_DIR}")

@@ -62,8 +62,15 @@ add_project_dependency(eigen-quadprog REQUIRED)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/CMakeModules)
 
-# hpp-spline (defines target: mc_rtc_3rd_party::hpp-spline)
-find_package(mc_rtc_3rd_party_hpp-spline REQUIRED)
+# hpp-spline
+find_package(hpp-spline QUIET)
+if(hpp-spline_FOUND)
+  set(HPP_SPLINE hpp-spline::hpp-spline PARENT_SCOPE)
+  add_project_dependency(hpp-spline REQUIRED)
+else()
+  set(HPP_SPLINE mc_rtc_3rd_party::hpp-spline)
+  find_package(mc_rtc_3rd_party_hpp-spline REQUIRED)
+endif()
 
 # LTDL (defines target: mc_rtc_3rd_party::ltdl)
 add_subdirectory(3rd-party/ltdl)
