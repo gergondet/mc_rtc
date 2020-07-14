@@ -31,6 +31,12 @@ on:
       - "doc/**"
       - "README.md"
       - ".github/workflows/build.yml"
+      - ".github/workflows/sources/*"
+      - ".github/workflows/build-others.yml"
+      - ".github/workflows/docker/*"
+      - ".github/workflows/conan.yml"
+      - "conan/**"
+      - "conanfile.py"
     branches:
       - '**'
     tags:

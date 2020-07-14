@@ -18,6 +18,9 @@ on:
     - ".github/workflows/sources/*"
     - ".github/workflows/build-others.yml"
     - ".github/workflows/docker/*"
+    - ".github/workflows/conan.yml"
+    - "conan/**"
+    - "conanfile.py"
     branches:
     - "**"
     tags:

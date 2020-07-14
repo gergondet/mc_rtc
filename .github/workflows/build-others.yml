@@ -8,8 +8,13 @@ on:
       # Changes to those files don't mandate running CI
       - ".gitlab-ci.yml"
       - ".jrl-ci"
+      - ".github/workflows/build.yml"
       - ".github/workflows/package.yml"
+      - ".github/workflows/conan.yml"
+      - ".github/workflows/sources/**"
       - "debian/**"
+      - "conan/**"
+      - "conanfile.py"
     branches:
       - '**'
   pull_request:

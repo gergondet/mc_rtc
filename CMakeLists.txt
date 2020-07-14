@@ -52,15 +52,14 @@ option(BUILD_BENCHMARKS "Build benchmarks" OFF)
 
 option(DISABLE_ROS "Do not build with ROS support (even if ROS was found)" OFF)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/CMakeModules)
+
 add_project_dependency(Boost REQUIRED COMPONENTS filesystem timer)
 add_project_dependency(Tasks REQUIRED)
 if(NOT TARGET RBDyn::Parsers)
   message(FATAL_ERROR "RBDyn must be built with parsers support")
 endif()
 add_project_dependency(eigen-quadprog REQUIRED)
-
-
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/CMakeModules)
 
 # hpp-spline
 find_package(hpp-spline QUIET)
