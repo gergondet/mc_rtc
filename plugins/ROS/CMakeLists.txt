@@ -63,7 +63,7 @@ install(TARGETS mc_rtc_ros mc_tasks_ros
   ARCHIVE DESTINATION lib
 )
 
-install(FILES "${PROJECT_SOURCE_DIR}/CMakeModules/Findmc_rtc_3rd_party_ros.cmake"
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/Findmc_rtc_3rd_party_ros.cmake"
   DESTINATION "${CONFIG_INSTALL_DIR}/plugins/"
   RENAME "mc_rtc_3rd_party_rosTargets.cmake")
 
