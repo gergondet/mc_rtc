@@ -813,7 +813,7 @@ check_and_clone_git_dependency()
 }
 
 # If the dependencies have already been cloned, check if the local state of the repository is clean before upgrading
-GIT_DEPENDENCIES="gabime/spdlog#v1.6.1 humanoid-path-planner/hpp-spline#v4.7.0 jrl-umi3218/SpaceVecAlg jrl-umi3218/sch-core jrl-umi3218/RBDyn jrl-umi3218/eigen-qld jrl-umi3218/eigen-quadprog jrl-umi3218/Tasks jrl-umi3218/mc_rbdyn_urdf"
+GIT_DEPENDENCIES="gabime/spdlog#v1.6.1 humanoid-path-planner/hpp-spline#v4.7.0 jrl-umi3218/SpaceVecAlg jrl-umi3218/sch-core jrl-umi3218/RBDyn jrl-umi3218/eigen-qld jrl-umi3218/eigen-quadprog jrl-umi3218/Tasks"
 for repo in $GIT_DEPENDENCIES; do
   check_and_clone_git_dependency $repo $SOURCE_DIR
 done
@@ -1097,7 +1097,6 @@ then
 fi
 
 build_git_dependency jrl-umi3218/Tasks tasks
-build_git_dependency jrl-umi3218/mc_rbdyn_urdf mc_rbdyn_urdf
 
 if $WITH_ROS_SUPPORT
 then
