@@ -32,6 +32,10 @@ MC_ROBOTS_INSTALL_PREFIX = c_mc_rtc.MC_ROBOTS_INSTALL_PREFIX
 MC_CONTROLLER_INSTALL_PREFIX = c_mc_rtc.MC_CONTROLLER_INSTALL_PREFIX
 DATA_PATH = c_mc_rtc.DATA_PATH
 CONF_PATH = c_mc_rtc.CONF_PATH
+MC_RTC_VERSION = c_mc_rtc.MC_RTC_VERSION
+
+def version():
+  return c_mc_rtc.version()
 
 cdef c_eigen.Vector3d python_log_v3d(get_fn) with gil:
   cdef eigen.Vector3d ret = get_fn()

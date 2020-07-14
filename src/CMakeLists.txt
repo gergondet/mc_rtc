@@ -111,7 +111,7 @@ set(mc_rtc_loader_HDR
 
 add_library(mc_rtc_loader SHARED ${mc_rtc_loader_SRC} ${mc_rtc_loader_HDR})
 set_target_properties(mc_rtc_loader PROPERTIES COMPILE_FLAGS "-DMC_RTC_LOADER_EXPORTS")
-target_link_libraries(mc_rtc_loader PUBLIC Boost::filesystem Boost::disable_autolinking ${LTDL} mc_rtc_utils)
+target_link_libraries(mc_rtc_loader PUBLIC ${LTDL} mc_rtc_utils)
 install_mc_rtc_lib(mc_rtc_loader)
 
 set(mc_rbdyn_SRC

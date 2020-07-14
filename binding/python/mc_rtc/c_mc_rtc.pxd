@@ -24,6 +24,10 @@ cdef extern from "<mc_rtc/config.h>" namespace "mc_rtc":
   const char * DATA_PATH
   const char * CONF_PATH
 
+cdef extern from "<mc_rtc/version.h>" namespace "mc_rtc":
+  const char * MC_RTC_VERSION
+  string version()
+
 cdef extern from "<memory>" namespace "std" nogil:
   cdef cppclass shared_ptr[T]:
     shared_ptr(T*)
