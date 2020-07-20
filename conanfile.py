@@ -26,6 +26,7 @@ class MCRTCConan(base.Eigen3ToPythonConan):
     settings = "os", "arch", "compiler", "build_type"
 
     requires = (
+        "mc_rtc_data/latest@multi-contact/dev",
         "Tasks/latest@multi-contact/dev",
         "eigen-quadprog/latest@multi-contact/dev",
         "hpp-spline/latest@multi-contact/3rd-party",
