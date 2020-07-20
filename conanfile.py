@@ -53,15 +53,20 @@ class MCRTCConan(base.Eigen3ToPythonConan):
         shutil.move(os.path.join("conan", "FindBoost.cmake"), "CMakeModules/")
         # Make sure we find conan's Boost not system Boost
         pattern = 'include(CMakeFindDependencyMacro)'
-        replacement = '''set(BOOST_ROOT "${{PACKAGE_PREFIX_DIR}}")
+        replacement = '''if(CONAN_BOOST_ROOT)
+  set(BOOST_ROOT "${{CONAN_BOOST_ROOT}}")
+else()
+  set(BOOST_ROOT "${{PACKAGE_PREFIX_DIR}}")
+endif()
 set(Boost_NO_SYSTEM_PATHS ON)
 list(APPEND CMAKE_MODULE_PATH "${{CMAKE_CURRENT_LIST_DIR}}")
 {}'''.format(pattern)
         tools.replace_in_file('cmake/Config.cmake.in', pattern, replacement)
-        # Install the up-to-date FindBoost.cmake
+        # Use and install the up-to-date FindBoost.cmake
         pattern = 'add_subdirectory(src)'
-        replacement = '''{}
-install(FILES conan/FindBoost.cmake DESTINATION lib/cmake/mc_rtc)'''.format(pattern)
+        replacement = '''list(APPEND CMAKE_MODULE_PATH "${{CMAKE_CURRENT_LIST_DIR}}/conan")
+{}
+install(FILES conan/FindBoost.cmake DESTINATION lib/cmake/RBDyn)'''.format(pattern)
         tools.replace_in_file('CMakeListsOriginal.txt', pattern, replacement)
 
     def package(self):
@@ -77,5 +82,6 @@ install(FILES conan/FindBoost.cmake DESTINATION lib/cmake/mc_rtc)'''.format(patt
         cmake.definitions['PIP_INSTALL_PREFIX'] = self.package_folder
         cmake.definitions['PYTHON_BINDING_BUILD_PYTHON2_AND_PYTHON3'] = base.enable_python2_and_python3(self.options)
         cmake.definitions['DISABLE_ROS'] = True
+        cmake.definitions['INSTALL_DOCUMENTATION'] = False
         cmake.configure()
         return cmake
