@@ -64,7 +64,7 @@ add_project_dependency(eigen-quadprog REQUIRED)
 # hpp-spline
 find_package(hpp-spline QUIET)
 if(hpp-spline_FOUND)
-  set(HPP_SPLINE hpp-spline::hpp-spline PARENT_SCOPE)
+  set(HPP_SPLINE hpp-spline::hpp-spline)
   add_project_dependency(hpp-spline REQUIRED)
 else()
   set(HPP_SPLINE mc_rtc_3rd_party::hpp-spline)
