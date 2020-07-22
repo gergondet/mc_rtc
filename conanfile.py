@@ -64,9 +64,8 @@ list(APPEND CMAKE_MODULE_PATH "${{CMAKE_CURRENT_LIST_DIR}}")
         tools.replace_in_file('cmake/Config.cmake.in', pattern, replacement)
         # Use and install the up-to-date FindBoost.cmake
         pattern = 'add_subdirectory(src)'
-        replacement = '''list(APPEND CMAKE_MODULE_PATH "${{CMAKE_CURRENT_LIST_DIR}}/conan")
-{}
-install(FILES conan/FindBoost.cmake DESTINATION lib/cmake/RBDyn)'''.format(pattern)
+        replacement = '''{}
+install(FILES CMakeModules/FindBoost.cmake DESTINATION lib/cmake/mc_rtc)'''.format(pattern)
         tools.replace_in_file('CMakeListsOriginal.txt', pattern, replacement)
 
     def package(self):
