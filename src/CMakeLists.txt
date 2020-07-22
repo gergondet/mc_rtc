@@ -56,7 +56,6 @@ add_custom_command(OUTPUT ${VERSION_HEADER}
                            -DPROJECT_BINARY_DIR="${PROJECT_BINARY_DIR}"
                            -DPROJECT_VERSION="${PROJECT_VERSION}"
                            -P "${PROJECT_SOURCE_DIR}/CMakeModules/MakeVersionHeader.cmake"
-  DEPENDS ${MC_RTC_ALL_FILES}
 )
 
 set(mc_rtc_utils_SRC
