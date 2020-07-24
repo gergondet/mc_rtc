@@ -167,7 +167,7 @@ Contact::Contact(const mc_rbdyn::Robots & robots,
           r2Index,
           r1Surface,
           r2Surface,
-          sva::PTransformd::Identity(),
+          robots.robot(r1Index).surfacePose(r1Surface) * robots.robot(r2Index).surfacePose(r2Surface).inv(),
           robots.robot(r1Index).surface(r1Surface).X_b_s(),
           friction,
           ambiguityId)
