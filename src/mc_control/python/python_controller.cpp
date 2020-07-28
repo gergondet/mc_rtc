@@ -6,9 +6,6 @@
 
 #include <mc_control/mc_python_controller.h>
 
-#include "mc_control/mc_control.h"
-#include "mc_rbdyn/mc_rbdyn.h"
-
 #pragma GCC diagnostic push
 #ifdef __clang__
 #  pragma GCC diagnostic ignored "-Wdeprecated-register"
@@ -18,6 +15,9 @@ extern "C"
 #include <Python.h>
 }
 #pragma GCC diagnostic pop
+
+#include "mc_control/mc_control.h"
+#include "mc_rbdyn/mc_rbdyn.h"
 
 extern "C"
 {
