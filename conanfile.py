@@ -24,6 +24,7 @@ class MCRTCConan(base.Eigen3ToPythonConan):
     exports_sources = [".gitignore", "3rd-party/*", "CMakeLists.txt", "conan/CMakeLists.txt", "conan/FindBoost.cmake", "binding/*", "cmake/*", "CMakeModules/*", "doc/*", "etc/*", "include/*", "plugins/*", "src/*", "utils/*"]
     generators = ["cmake_paths"]
     settings = "os", "arch", "compiler", "build_type"
+    no_copy_source = True
 
     requires = (
         "mc_rtc_data/latest@multi-contact/dev",
