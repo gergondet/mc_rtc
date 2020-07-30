@@ -80,6 +80,8 @@ install(FILES CMakeModules/FindBoost.cmake DESTINATION lib/cmake/mc_rtc)'''.form
         cmake.definitions['DISABLE_TESTS'] = True
         cmake.definitions['CMAKE_BUILD_TYPE'] = self.settings.get_safe("build_type", "Release")
         cmake.definitions['PIP_INSTALL_PREFIX'] = self.package_folder
+        if self.settings.os == "Windows" and self.settings.build_type == "Debug":
+            cmake.definitions['PYTHON_BINDING'] = False
         cmake.definitions['PYTHON_BINDING_BUILD_PYTHON2_AND_PYTHON3'] = base.enable_python2_and_python3(self.options)
         cmake.definitions['DISABLE_ROS'] = True
         cmake.definitions['INSTALL_DOCUMENTATION'] = False
