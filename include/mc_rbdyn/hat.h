@@ -9,7 +9,7 @@
 namespace mc_rbdyn
 {
 
-Eigen::Matrix3d hat(const Eigen::Vector3d & v)
+inline Eigen::Matrix3d hat(const Eigen::Vector3d & v)
 {
   Eigen::Matrix3d ret;
   // clang-format off
