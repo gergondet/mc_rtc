@@ -49,11 +49,11 @@ public:
    * \param dof The function dof matrix
    *
    */
-  ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2);
+  ContactFunction(mc_rbdyn::ConstFramePtr f1, mc_rbdyn::ConstFramePtr f2);
 
 private:
-  mc_rbdyn::FramePtr f1_;
-  mc_rbdyn::FramePtr f2_;
+  mc_rbdyn::ConstFramePtr f1_;
+  mc_rbdyn::ConstFramePtr f2_;
 
   bool use_f1_ = false;
   rbd::Jacobian f1Jacobian_;

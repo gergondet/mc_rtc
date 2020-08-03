@@ -21,7 +21,7 @@ namespace mc_rbdyn
  */
 MC_RBDYN_DLLAPI std::vector<SurfacePtr> readRSDFFromDir(Robot & robot, std::string_view dirname);
 
-/** Returns the interesection points when putting the two provided surfaces in contact.
+/** Returns the intersection points when putting the two provided surfaces in contact.
  *
  * If the surfaces are compatible but the two surfaces don't intersect then s1.points() is returned
  *
