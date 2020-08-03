@@ -54,9 +54,7 @@ public:
    *
    * Returns the force variables that were created by this contact
    */
-  const tvm::VariableVector & addContact(const mc_rbdyn::Frame & frame,
-                                         std::vector<sva::PTransformd> points,
-                                         double dir);
+  const tvm::VariableVector & addContact(mc_rbdyn::Frame & frame, std::vector<sva::PTransformd> points, double dir);
 
   /** Removes the contact associated to the given frame
    *
@@ -81,7 +79,7 @@ protected:
   struct ForceContact
   {
     /** Constructor */
-    ForceContact(const mc_rbdyn::Frame & frame, std::vector<sva::PTransformd> points, double dir);
+    ForceContact(mc_rbdyn::Frame & frame, std::vector<sva::PTransformd> points, double dir);
 
     /** Update jacobians */
     void updateJacobians(DynamicFunction & parent);
@@ -90,7 +88,7 @@ protected:
     sva::ForceVecd force() const;
 
     /** Associated frame */
-    mc_rbdyn::ConstFramePtr frame_;
+    mc_rbdyn::FramePtr frame_;
 
     /** Force associated to a contact */
     tvm::VariableVector forces_;

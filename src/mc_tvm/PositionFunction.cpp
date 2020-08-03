@@ -6,7 +6,7 @@
 namespace mc_tvm
 {
 
-PositionFunction::PositionFunction(const mc_rbdyn::Frame & frame) : tvm::function::abstract::Function(3), frame_(frame)
+PositionFunction::PositionFunction(mc_rbdyn::Frame & frame) : tvm::function::abstract::Function(3), frame_(frame)
 {
   reset();
   // clang-format off

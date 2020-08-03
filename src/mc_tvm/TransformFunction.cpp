@@ -6,8 +6,7 @@
 namespace mc_tvm
 {
 
-TransformFunction::TransformFunction(const mc_rbdyn::Frame & frame)
-: tvm::function::abstract::Function(3), frame_(frame)
+TransformFunction::TransformFunction(mc_rbdyn::Frame & frame) : tvm::function::abstract::Function(3), frame_(frame)
 {
   reset();
   // clang-format off

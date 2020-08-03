@@ -64,7 +64,7 @@ std::unique_ptr<JointsSelectorFunction> JointsSelectorFunction::ActiveJoints(
     activeIndex.push_back({start, size});
   }
 
-  return std::make_unique<JointsSelectorFunction>(f, robot, ffActive, activeIndex);
+  return std::unique_ptr<JointsSelectorFunction>(new JointsSelectorFunction(f, robot, ffActive, activeIndex));
 }
 
 std::unique_ptr<JointsSelectorFunction> JointsSelectorFunction::InactiveJoints(

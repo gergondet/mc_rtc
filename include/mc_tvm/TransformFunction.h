@@ -26,7 +26,7 @@ public:
    * Set the objective to the current frame pose
    *
    */
-  TransformFunction(const mc_rbdyn::Frame & frame);
+  TransformFunction(mc_rbdyn::Frame & frame);
 
   /** Set the target pose to the current frame pose */
   void reset();
@@ -73,7 +73,7 @@ protected:
   void updateJacobian();
   void updateNormalAcceleration();
 
-  mc_rbdyn::ConstFramePtr frame_;
+  mc_rbdyn::FramePtr frame_;
 
   /** Target */
   sva::PTransformd pose_;
