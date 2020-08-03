@@ -24,7 +24,7 @@ public:
    * Set the objective to the current frame position
    *
    */
-  PositionFunction(const mc_rbdyn::Frame & frame);
+  PositionFunction(mc_rbdyn::Frame & frame);
 
   /** Set the target position to the current frame position */
   void reset();
@@ -71,7 +71,7 @@ protected:
   void updateJacobian();
   void updateNormalAcceleration();
 
-  mc_rbdyn::ConstFramePtr frame_;
+  mc_rbdyn::FramePtr frame_;
 
   /** Target */
   Eigen::Vector3d pos_;

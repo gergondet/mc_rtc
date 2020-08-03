@@ -17,7 +17,7 @@ namespace mc_tvm
 class MC_TVM_DLLAPI JointsSelectorFunction : public tvm::function::abstract::Function
 {
 public:
-  SET_UPDATES(JointsSelector, Jacobian, JDot)
+  SET_UPDATES(JointsSelectorFunction, Jacobian, JDot)
 
   /** Construct a JointsSelector from a vector of active joints
    *
@@ -30,9 +30,9 @@ public:
    * \throws If \p does not depend on \p robot or any joint in activeJoints
    * is not part of \p robot
    */
-  static std::unique_ptr<JointsSelector> ActiveJoints(tvm::FunctionPtr f,
-                                                      const mc_rbdyn::Robot & robot,
-                                                      const std::vector<std::string> & activeJoints);
+  static std::unique_ptr<JointsSelectorFunction> ActiveJoints(tvm::FunctionPtr f,
+                                                              const mc_rbdyn::Robot & robot,
+                                                              const std::vector<std::string> & activeJoints);
 
   /** Construct a JointsSelector from a vector of inactive joints
    *
@@ -45,9 +45,9 @@ public:
    * \throws If \p does not depend on \p robot or any joint in activeJoints
    * is not part of \p robot
    */
-  static std::unique_ptr<JointsSelector> InactiveJoints(tvm::FunctionPtr f,
-                                                        const mc_rbdyn::Robot & robot,
-                                                        const std::vector<std::string> & inactiveJoints);
+  static std::unique_ptr<JointsSelectorFunction> InactiveJoints(tvm::FunctionPtr f,
+                                                                const mc_rbdyn::Robot & robot,
+                                                                const std::vector<std::string> & inactiveJoints);
 
   inline const Eigen::VectorXd & value() const override
   {

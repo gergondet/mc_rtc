@@ -6,8 +6,7 @@
 namespace mc_tvm
 {
 
-OrientationFunction::OrientationFunction(const mc_rbdyn::Frame & frame)
-: tvm::function::abstract::Function(3), frame_(frame)
+OrientationFunction::OrientationFunction(mc_rbdyn::Frame & frame) : tvm::function::abstract::Function(3), frame_(frame)
 {
   reset();
   // clang-format off

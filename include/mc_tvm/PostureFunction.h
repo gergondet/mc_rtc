@@ -24,7 +24,7 @@ public:
    * Set the objective to the current posture of robot
    *
    */
-  PostureFunction(const mc_rbdyn::Robot & robot);
+  PostureFunction(mc_rbdyn::Robot & robot);
 
   /** Set the target posture to the current robot's posture */
   void reset();
@@ -46,7 +46,7 @@ protected:
 
   void updateVelocity();
 
-  mc_rbdyn::ConstRobotPtr robot_;
+  mc_rbdyn::RobotPtr robot_;
 
   /** Target */
   std::vector<std::vector<double>> posture_;

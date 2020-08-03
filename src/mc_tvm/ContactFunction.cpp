@@ -9,8 +9,7 @@
 namespace mc_tvm
 {
 
-ContactFunction::ContactFunction(mc_rbdyn::ConstFramePtr f1, mc_rbdyn::ConstFramePtr f2)
-: tvm::function::abstract::Function(6)
+ContactFunction::ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2) : tvm::function::abstract::Function(6)
 {
   registerUpdates(Update::Value, &ContactFunction::updateValue, Update::Derivatives,
                   &ContactFunction::updateDerivatives);
@@ -20,8 +19,7 @@ ContactFunction::ContactFunction(mc_rbdyn::ConstFramePtr f1, mc_rbdyn::ConstFram
   addOutputDependency<ContactFunction>(Output::NormalAcceleration, Update::Derivatives);
   addOutputDependency<ContactFunction>(Output::Jacobian, Update::Derivatives);
 
-  auto addRobot = [this](mc_rbdyn::ConstFramePtr & fIn, mc_rbdyn::ConstFramePtr & fOut, bool & useF,
-                         rbd::Jacobian & jac) {
+  auto addRobot = [this](mc_rbdyn::FramePtr & fIn, mc_rbdyn::FramePtr & fOut, bool & useF, rbd::Jacobian & jac) {
     fOut = fIn;
     if(fIn->rbdJacobian().dof() > 0)
     {

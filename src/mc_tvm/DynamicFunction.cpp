@@ -26,9 +26,7 @@ DynamicFunction::DynamicFunction(mc_rbdyn::RobotPtr robot)
   velocity_.setZero();
 }
 
-DynamicFunction::ForceContact::ForceContact(const mc_rbdyn::Frame & frame,
-                                            std::vector<sva::PTransformd> points,
-                                            double dir)
+DynamicFunction::ForceContact::ForceContact(mc_rbdyn::Frame & frame, std::vector<sva::PTransformd> points, double dir)
 : frame_(frame), points_(std::move(points)), dir_(dir), force_jac_(6, frame.rbdJacobian().dof()),
   full_jac_(6, frame.robot().mb().nrDof())
 {
@@ -65,7 +63,7 @@ sva::ForceVecd DynamicFunction::ForceContact::force() const
   return ret;
 }
 
-const tvm::VariableVector & DynamicFunction::addContact(const mc_rbdyn::Frame & frame,
+const tvm::VariableVector & DynamicFunction::addContact(mc_rbdyn::Frame & frame,
                                                         std::vector<sva::PTransformd> points,
                                                         double dir)
 {

@@ -6,7 +6,7 @@
 namespace mc_tvm
 {
 
-PostureFunction::PostureFunction(const mc_rbdyn::Robot & robot)
+PostureFunction::PostureFunction(mc_rbdyn::Robot & robot)
 : tvm::function::abstract::Function(robot.qJoints()->space().tSize()), robot_(robot),
   j0_(robot_->mb().joint(0).type() == rbd::Joint::Free ? 1 : 0)
 {
