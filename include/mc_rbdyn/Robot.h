@@ -307,10 +307,28 @@ public:
     return tau_;
   }
 
-  /** Returns the CoM algorithm associated to this robot */
+  /** Returns the CoM algorithm associated to this robot (const) */
   inline const CoM & com() const noexcept
   {
     return *com_;
+  }
+
+  /** Returns the CoM algorithm associated to this robot */
+  inline CoM & com() noexcept
+  {
+    return *com_;
+  }
+
+  /** Returns the mass matrix */
+  inline const Eigen::MatrixXd & H() const noexcept
+  {
+    return fd_.H();
+  }
+
+  /** Returns the non-linear dynamics component */
+  inline const Eigen::VectorXd & C() const noexcept
+  {
+    return fd_.C();
   }
 
   /** Compute the gravity-free wrench in a given frame
