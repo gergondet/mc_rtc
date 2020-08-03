@@ -21,7 +21,7 @@ public:
 
   /** Constructor
    *
-   * Set the objective to the current frame orientation
+   * Set the objective to the current frame position
    *
    */
   PositionFunction(const mc_rbdyn::Frame & frame);
