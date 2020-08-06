@@ -140,19 +140,70 @@ mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::BodySensor>::save(const mc_r
 
 mc_rbdyn::Collision ConfigurationLoader<mc_rbdyn::Collision>::load(const mc_rtc::Configuration & config)
 {
-  return mc_rbdyn::Collision(config("body1"), config("body2"), config("iDist", 0.05), config("sDist", 0.01),
-                             config("damping", 0.0));
+  if(config.has("robot"))
+  {
+    return {config("robot"),       config("object1"),     config("object2"),
+            config("iDist", 0.05), config("sDist", 0.01), config("damping", 0.0)};
+  }
+  else
+  {
+    return {config("robot1"),      config("robot2"),      config("object1"),     config("object2"),
+            config("iDist", 0.05), config("sDist", 0.01), config("damping", 0.0)};
+  }
 }
 
 mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::Collision>::save(const mc_rbdyn::Collision & c)
 {
   mc_rtc::Configuration config;
-  config.add("body1", c.body1);
-  config.add("body2", c.body2);
+  config.add("robot1", c.robot1);
+  config.add("robot2", c.robot2);
+  config.add("object1", c.object1);
+  config.add("object2", c.object2);
   config.add("iDist", c.iDist);
   config.add("sDist", c.sDist);
   config.add("damping", c.damping);
   return config;
+}
+
+mc_rbdyn::CollisionVector::CollisionDescription
+    ConfigurationLoader<mc_rbdyn::CollisionVector::CollisionDescription>::load(const mc_rtc::Configuration & config)
+{
+  return {config("object1"), config("object2"), config("iDist"), config("sDist"), config("damping")};
+}
+
+mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::CollisionVector::CollisionDescription>::save(
+    const mc_rbdyn::CollisionVector::CollisionDescription & c)
+{
+  mc_rtc::Configuration config;
+  config.add("object1", c.object1);
+  config.add("object2", c.object2);
+  config.add("iDist", c.iDist);
+  config.add("sDist", c.sDist);
+  config.add("damping", c.damping);
+  return config;
+}
+
+mc_rbdyn::CollisionVector ConfigurationLoader<mc_rbdyn::CollisionVector>::load(const mc_rtc::Configuration & config)
+{
+  if(config.has("robot"))
+  {
+    return {config("robot"), config("collisions")};
+  }
+  else
+  {
+    return {config("robot1"), config("robot2"), config("collisions")};
+  }
+}
+
+mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::CollisionVector>::save(const mc_rbdyn::CollisionVector & c)
+{
+  mc_rtc::Configuration config;
+  auto out = config.array("out", c.size());
+  for(const auto & col : c)
+  {
+    out.push(col);
+  }
+  return out;
 }
 
 mc_rbdyn::Flexibility ConfigurationLoader<mc_rbdyn::Flexibility>::load(const mc_rtc::Configuration & config)

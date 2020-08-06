@@ -99,6 +99,12 @@ public:
     return *robot_;
   }
 
+  /** The robot to which this frame belongs */
+  inline Robot & robot() noexcept
+  {
+    return *robot_;
+  }
+
   /** The frame's position in world coordinates */
   inline const sva::PTransformd & position() const noexcept
   {

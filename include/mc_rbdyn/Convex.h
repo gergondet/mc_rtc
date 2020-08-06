@@ -44,15 +44,15 @@ public:
   Convex(ctor_token, S_ObjectPtr object, FramePtr frame, sva::PTransformd X_f_c = sva::PTransformd::Identity());
 
   /** Access the underlying frame object */
-  inline ConstFramePtr frame() const noexcept
+  inline const Frame & frame() const noexcept
   {
-    return frame_;
+    return *frame_;
   }
 
   /** Access the underlying frame (non-const) */
-  inline FramePtr frame() noexcept
+  inline Frame & frame() noexcept
   {
-    return frame_;
+    return *frame_;
   }
 
   /** Access the underlying SCH object */

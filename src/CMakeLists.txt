@@ -226,6 +226,7 @@ install_mc_rtc_lib(mc_rbdyn)
 set(mc_tvm_HDR_DIR ../include/mc_tvm)
 set(mc_tvm_HDR
   ${mc_tvm_HDR_DIR}/api.h
+  ${mc_tvm_HDR_DIR}/CollisionFunction.h
   ${mc_tvm_HDR_DIR}/CoMFunction.h
   ${mc_tvm_HDR_DIR}/CoMInConvexFunction.h
   ${mc_tvm_HDR_DIR}/ContactFunction.h
@@ -237,6 +238,7 @@ set(mc_tvm_HDR
   ${mc_tvm_HDR_DIR}/TransformFunction.h
 )
 set(mc_tvm_SRC
+  mc_tvm/CollisionFunction.cpp
   mc_tvm/CoMFunction.cpp
   mc_tvm/CoMInConvexFunction.cpp
   mc_tvm/ContactFunction.cpp
@@ -303,18 +305,18 @@ install_mc_rtc_lib(mc_rtc_gui)
 add_subdirectory(mc_robots)
 
 set(mc_solver_SRC
-mc_solver/BoundedSpeedConstr.cpp
+#mc_solver/BoundedSpeedConstr.cpp
 mc_solver/CollisionsConstraint.cpp
-mc_solver/CoMIncPlaneConstr.cpp
-mc_solver/CompoundJointConstraint.cpp
-mc_solver/ConstraintSetLoader.cpp
-mc_solver/ContactConstraint.cpp
-mc_solver/ContactWrenchMatrixToLambdaMatrix.cpp
-mc_solver/DynamicsConstraint.cpp
-mc_solver/KinematicsConstraint.cpp
+#mc_solver/CoMIncPlaneConstr.cpp
+#mc_solver/CompoundJointConstraint.cpp
+mc_solver/ConstraintLoader.cpp
+#mc_solver/ContactConstraint.cpp
+#mc_solver/ContactWrenchMatrixToLambdaMatrix.cpp
+#mc_solver/DynamicsConstraint.cpp
+#mc_solver/KinematicsConstraint.cpp
 mc_solver/QPSolver.cpp
-mc_solver/Update.cpp
-mc_solver/UpdateNrVars.cpp
+#mc_solver/Update.cpp
+#mc_solver/UpdateNrVars.cpp
 mc_tasks/MetaTask.cpp
 )
 
@@ -331,7 +333,8 @@ set(mc_solver_HDR
 ../include/mc_solver/CollisionsConstraint.h
 ../include/mc_solver/CoMIncPlaneConstr.h
 ../include/mc_solver/CompoundJointConstraint.h
-../include/mc_solver/ConstraintSet.h
+../include/mc_solver/Constraint.h
+../include/mc_solver/ConstraintLoader.h
 ../include/mc_solver/ContactConstraint.h
 ../include/mc_solver/DynamicsConstraint.h
 ../include/mc_solver/EqualityConstraint.h
@@ -348,7 +351,7 @@ set(mc_solver_HDR
 
 add_library(mc_solver SHARED ${mc_solver_SRC} ${mc_solver_HDR})
 set_target_properties(mc_solver PROPERTIES COMPILE_FLAGS "-DMC_SOLVER_EXPORTS")
-target_link_libraries(mc_solver PUBLIC mc_rbdyn mc_rtc_gui)
+target_link_libraries(mc_solver PUBLIC mc_rbdyn mc_rtc_gui mc_tvm)
 install_mc_rtc_lib(mc_solver)
 
 set(mc_trajectory_SRC
