@@ -317,6 +317,17 @@ Configuration::operator std::string() const
   throw Exception("Stored Json value is not a string", v);
 }
 
+Configuration::operator std::string_view() const
+{
+  assert(v.value_);
+  auto value = static_cast<const internal::RapidJSONValue *>(v.value_);
+  if(value->IsString())
+  {
+    return std::string_view(value->GetString(), value->GetStringLength());
+  }
+  throw Exception("Stored Json value is not a string");
+}
+
 Configuration::operator Eigen::Vector2d() const
 {
   if(v.isArray() && v.size() == 2 && v[0].isNumeric())

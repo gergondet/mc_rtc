@@ -265,6 +265,12 @@ public:
    */
   operator std::string() const;
 
+  /*! \brief Cast to a string_view
+   *
+   * \throws If the underlying value does not hold a string
+   */
+  operator std::string_view() const;
+
   /*! \brief Retrieve as a Eigen::Vector2d instance
    *
    * \throws If the underlying value does not hold a numeric

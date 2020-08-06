@@ -26,6 +26,7 @@
 #include <tvm/Clock.h>
 #include <tvm/Variable.h>
 #include <tvm/VariableVector.h>
+#include <tvm/graph/CallGraph.h>
 #include <tvm/graph/abstract/Node.h>
 
 #include <memory>
@@ -720,7 +721,10 @@ public:
    *
    * \returns a map where keys are the convex name and values are those returned by \ref convex
    */
-  const std::map<std::string, convex_pair_t> & convexes() const;
+  inline const mc_rtc::map<std::string, ConvexPtr> & convexes() const noexcept
+  {
+    return convexes_;
+  }
 
   /** Add a convex online
    *
@@ -839,6 +843,18 @@ public:
     return grippersRef_;
   }
 
+  /** Shortcut for forward kinematics */
+  void forwardKinematics();
+
+  /** Shortcut for forward velocity */
+  void forwardVelocity();
+
+  /** Shortcut for forward acceleration */
+  void forwardAcceleration();
+
+  /** Update the robot's kinematic state */
+  void updateKinematics();
+
 private:
   /** Name of the robot */
   std::string name_;
@@ -936,6 +952,12 @@ private:
 
   /** Used internally to update frame to force sensor mapping */
   Frame & updateFrameForceSensors(Frame & frame);
+
+  /** List of inputs for the kinematics graph */
+  std::shared_ptr<tvm::graph::internal::Inputs> kinematicsInputs_;
+
+  /** Used internally to maintain a kinematic view of the robot up-to-date */
+  tvm::graph::CallGraph kinematicsGraph_;
 };
 
 } // namespace mc_rbdyn

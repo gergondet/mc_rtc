@@ -22,11 +22,6 @@ namespace mc_tvm
  *
  * It manages the force variables related to these contacts.
  *
- * It also takes care of linearizing the contacts, either by having them in a
- * linearized form in the solver (lambdas) or as forces. The related
- * constraint (mu*f_n >= ||f_t||) can be added to the problem through this
- * function.
- *
  * Notably, it does not take care of enforcing Newton 3rd law of motion when
  * two actuated robots are in contact.
  *
@@ -48,7 +43,7 @@ public:
    *
    * \param frame Contact frame
    *
-   * \param points Contact points in the contact frame
+   * \param points Contact points in the frame's parent body's frame
    *
    * \param dir Contact direction
    *

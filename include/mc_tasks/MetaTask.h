@@ -9,7 +9,6 @@
 #include <mc_rtc/log/Logger.h>
 #include <mc_solver/QPSolver.h>
 #include <mc_solver/api.h>
-#include <mc_tasks/api.h>
 
 #include <cmath>
 
@@ -21,14 +20,12 @@ struct CompletionCriteria;
 namespace mc_tasks
 {
 
-MC_SOLVER_DLLAPI double extraStiffness(double error, double extraStiffness);
-
 /*! \brief Represents a generic task
  *
  * A meta task may be composed of several tasks that work together to achieve a
  * given goal
  */
-struct MC_SOLVER_DLLAPI MetaTask
+struct MC_SOLVER_DLLAPI MetaTask : public mc_rtc::shared<MetaTask>
 {
   friend struct mc_solver::QPSolver;
   friend struct mc_control::CompletionCriteria;
@@ -78,7 +75,7 @@ public:
 
   /*! \brief Setup an active joints selector
    *
-   * This function setups a tasks::qp;:JointsSelector for the task. Only the
+   * This function setups an mc_tvm::JointsSelectorFunction for the task. Only the
    * provided joints will be used to solve the task.
    *
    * \note Calling this method or the related selectUnactiveJoints should reset
@@ -97,7 +94,7 @@ public:
 
   /*! \brief Setup an unactive joints selector
    *
-   * This function setups a tasks::qp;:JointsSelector for the task. All joints
+   * This function setups an mc_tvm::JointsSelectorFunction for the task. All joints
    * will be used to realize the task except those provided here.
    *
    * \note Calling this method or the related selectActiveJoints should reset

@@ -54,4 +54,6 @@ using ConstCoMPtr = std::shared_ptr<const CoM>;
 using S_ObjectPtr = std::shared_ptr<sch::S_Object>;
 using ConstS_ObjectPtr = std::shared_ptr<const sch::S_Object>;
 
+struct Contact;
+
 } // namespace mc_rbdyn

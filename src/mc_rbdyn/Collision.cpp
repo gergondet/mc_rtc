@@ -1,17 +1,15 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #include <mc_rbdyn/Collision.h>
-
-#include <iostream>
 
 namespace mc_rbdyn
 {
 
 bool Collision::operator==(const Collision & rhs) const
 {
-  return body1 == rhs.body1 && body2 == rhs.body2;
+  return robot1 == rhs.robot1 && robot2 == rhs.robot2 && object1 == rhs.object1 && object2 == rhs.object2;
 }
 
 bool Collision::operator!=(const Collision & rhs) const
@@ -19,11 +17,38 @@ bool Collision::operator!=(const Collision & rhs) const
   return !(*this == rhs);
 }
 
-std::ostream & operator<<(std::ostream & os, const Collision & col)
+CollisionVector::CollisionVector(std::string_view r1,
+                                 std::string_view r2,
+                                 const std::initializer_list<CollisionDescription> & cols)
 {
-  os << "Collision: " << col.body1 << "/" << col.body2 << " { " << col.iDist << ", " << col.sDist << ", " << col.damping
-     << "}";
-  return os;
+  for(const auto & col : cols)
+  {
+    emplace_back(r1, r2, col.object1, col.object2, col.iDist, col.sDist, col.damping);
+  }
 }
+
+CollisionVector::CollisionVector(std::string_view r, const std::initializer_list<CollisionDescription> & cols)
+: CollisionVector(r, r, cols)
+{
+}
+
+CollisionVector::CollisionVector(std::string_view r1,
+                                 std::string_view r2,
+                                 const std::vector<CollisionDescription> & cols)
+{
+  for(const auto & col : cols)
+  {
+    emplace_back(r1, r2, col.object1, col.object2, col.iDist, col.sDist, col.damping);
+  }
+}
+
+CollisionVector::CollisionVector(std::string_view r, const std::vector<CollisionDescription> & cols)
+: CollisionVector(r, r, cols)
+{
+}
+
+CollisionVector::CollisionVector(const std::vector<Collision> & cols) : std::vector<Collision>(cols) {}
+
+CollisionVector::CollisionVector(std::vector<Collision> && cols) : std::vector<Collision>(cols) {}
 
 } // namespace mc_rbdyn
