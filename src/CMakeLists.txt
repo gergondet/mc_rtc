@@ -209,6 +209,7 @@ set(mc_rbdyn_HDR
 ../include/mc_rbdyn/CoM.h
 ../include/mc_rbdyn/Convex.h
 ../include/mc_rbdyn/CollisionPair.h
+../include/mc_rbdyn/Limits.h
 )
 
 add_library(mc_rbdyn SHARED ${mc_rbdyn_SRC} ${mc_rbdyn_HDR})
