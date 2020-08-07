@@ -32,7 +32,7 @@ public:
 
 public:
   /** Constructor */
-  CollisionsConstraint() = default;
+  CollisionsConstraint();
 
   ~CollisionsConstraint() override = default;
 

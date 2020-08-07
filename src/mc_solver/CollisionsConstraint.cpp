@@ -25,6 +25,11 @@ CollisionsConstraint::CollisionData::CollisionData(uint64_t id, const mc_rbdyn::
 {
 }
 
+CollisionsConstraint::CollisionsConstraint()
+{
+  name_ = "CollisionConstraint";
+}
+
 void CollisionsConstraint::addCollision(QPSolver & solver, const mc_rbdyn::Collision & col)
 {
   auto & robots = solver.robots();
