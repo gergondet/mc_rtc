@@ -4,82 +4,74 @@
 
 #include <mc_solver/KinematicsConstraint.h>
 
-#include <Tasks/Bounds.h>
+#include <mc_solver/QPSolver.h>
 
-#include <array>
+#include <mc_rbdyn/Robot.h>
+
+#include <tvm/task_dynamics/Proportional.h>
+#include <tvm/task_dynamics/VelocityDamper.h>
 
 namespace mc_solver
 {
 
-KinematicsConstraint::KinematicsConstraint(const mc_rbdyn::Robots & robots, unsigned int robotIndex, double timeStep)
-{
-  const mc_rbdyn::Robot & robot = robots.robot(robotIndex);
-  tasks::QBound qBound(robot.ql(), robot.qu());
-  tasks::AlphaDBound aDBound(robot.al(), robot.au());
-  jointLimitsConstr.reset(
-      new tasks::qp::JointLimitsConstr(robots.mbs(), static_cast<int>(robotIndex), qBound, aDBound, timeStep));
-}
-
-KinematicsConstraint::KinematicsConstraint(const mc_rbdyn::Robots & robots,
-                                           unsigned int robotIndex,
-                                           double timeStep,
+KinematicsConstraint::KinematicsConstraint(mc_rbdyn::Robot & robot,
                                            const std::array<double, 3> & damper,
                                            double velocityPercent)
+: robot_(robot), damper_(damper), velocityPercent_(velocityPercent)
 {
-  const mc_rbdyn::Robot & robot = robots.robot(robotIndex);
-  tasks::QBound qBound(robot.ql(), robot.qu());
-  double percentInter = damper[0];
-  double percentSecur = damper[1];
-  double offset = damper[2];
-
-  std::vector<std::vector<double>> vl = robot.vl();
-  std::vector<std::vector<double>> vu = robot.vu();
-  std::vector<std::vector<double>> al = robot.al();
-  std::vector<std::vector<double>> au = robot.au();
-  for(auto & vi : vl)
+  name_ = fmt::format("KinematicsConstraint::{}", robot.name());
+  if(damper_[0] <= damper_[1])
   {
-    for(auto & v : vi)
-    {
-      v = v * velocityPercent;
-    }
+    mc_rtc::log::error_and_throw<std::runtime_error>(
+        "Wrong damper configuration in {}\nThe interaction distance must be strictly higher than the safety distance",
+        name_);
   }
-  for(auto & vi : vu)
+  if(damper_[2] < 0)
   {
-    for(auto & v : vi)
-    {
-      v = v * velocityPercent;
-    }
-  }
-  tasks::AlphaBound alphaBound(vl, vu);
-  tasks::AlphaDBound alphaDBound(al, au);
-
-  damperJointLimitsConstr.reset(new tasks::qp::DamperJointLimitsConstr(robots.mbs(), static_cast<int>(robotIndex),
-                                                                       qBound, alphaBound, alphaDBound, percentInter,
-                                                                       percentSecur, offset, timeStep));
-}
-
-void KinematicsConstraint::addToSolver(const std::vector<rbd::MultiBody> & mbs, tasks::qp::QPSolver & solver)
-{
-  if(damperJointLimitsConstr)
-  {
-    damperJointLimitsConstr->addToSolver(mbs, solver);
-  }
-  if(jointLimitsConstr)
-  {
-    jointLimitsConstr->addToSolver(mbs, solver);
+    mc_rtc::log::error_and_throw<std::runtime_error>(
+        "Wrong damper configuration in {}\nThe damping offset must be positive", name_);
   }
 }
 
-void KinematicsConstraint::removeFromSolver(tasks::qp::QPSolver & solver)
+void KinematicsConstraint::addToSolver(QPSolver & solver)
 {
-  if(damperJointLimitsConstr)
+  if(!constraints_.empty())
   {
-    damperJointLimitsConstr->removeFromSolver(solver);
+    return;
   }
-  if(jointLimitsConstr)
+  /** Joints limits */
+  auto nParams = robot_->mb().nrParams();
+  auto ql = robot_->limits().ql.tail(nParams);
+  auto qu = robot_->limits().qu.tail(nParams);
+  auto jl = solver.problem().add(
+      ql <= robot_->qJoints() <= qu,
+      tvm::task_dynamics::VelocityDamper(solver.dt(), {damper_[0] * (qu - ql), damper_[1] * (qu - ql),
+                                                       Eigen::VectorXd::Constant(nParams, 1, 0),
+                                                       Eigen::VectorXd::Constant(nParams, 1, damper_[2])}),
+      {tvm::requirements::PriorityLevel(0)});
+  /** Velocity limits */
+  auto nDof = robot_->mb().nrDof();
+  auto vl = robot_->limits().vl.tail(nDof) * velocityPercent_ / solver.dt();
+  auto vu = robot_->limits().vu.tail(nDof) * velocityPercent_ / solver.dt();
+  auto vL = solver.problem().add(vl <= dot(robot_->qJoints()) <= vu, tvm::task_dynamics::Proportional(1 / solver.dt()),
+                                 {tvm::requirements::PriorityLevel(0)});
+  auto al = robot_->limits().al.tail(nDof);
+  auto au = robot_->limits().au.tail(nDof);
+  auto aL = solver.problem().add(al <= dot(robot_->qJoints(), 2) <= au, tvm::task_dynamics::None{}, {tvm::requirements::PriorityLevel(0)});
+  constraints_ = {jl, vL, aL};
+}
+
+void KinematicsConstraint::removeFromSolver(QPSolver & solver)
+{
+  if(constraints_.empty())
   {
-    jointLimitsConstr->removeFromSolver(solver);
+    return;
   }
+  for(auto & c : constraints_)
+  {
+    solver.problem().remove(c.get());
+  }
+  constraints_.clear();
 }
 
 } // namespace mc_solver
