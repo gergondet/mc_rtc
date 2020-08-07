@@ -105,4 +105,6 @@ protected:
   void updateJacobian();
 };
 
+using DynamicFunctionPtr = std::shared_ptr<DynamicFunction>;
+
 } // namespace mc_tvm

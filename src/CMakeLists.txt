@@ -313,7 +313,7 @@ mc_solver/CollisionsConstraint.cpp
 mc_solver/ConstraintLoader.cpp
 #mc_solver/ContactConstraint.cpp
 #mc_solver/ContactWrenchMatrixToLambdaMatrix.cpp
-#mc_solver/DynamicsConstraint.cpp
+mc_solver/DynamicsConstraint.cpp
 mc_solver/KinematicsConstraint.cpp
 mc_solver/QPSolver.cpp
 #mc_solver/Update.cpp
