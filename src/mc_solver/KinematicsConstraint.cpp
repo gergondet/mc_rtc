@@ -40,7 +40,7 @@ void KinematicsConstraint::addToSolver(QPSolver & solver)
     return;
   }
   /** Joints limits */
-  auto nParams = robot_->mb().nrParams();
+  auto nParams = robot_->qJoints()->size();
   auto ql = robot_->limits().ql.tail(nParams);
   auto qu = robot_->limits().qu.tail(nParams);
   auto jl = solver.problem().add(
@@ -50,7 +50,7 @@ void KinematicsConstraint::addToSolver(QPSolver & solver)
                                                        Eigen::VectorXd::Constant(nParams, 1, damper_[2])}),
       {tvm::requirements::PriorityLevel(0)});
   /** Velocity limits */
-  auto nDof = robot_->mb().nrDof();
+  auto nDof = robot_->qJoints()->space().tSize();
   auto vl = robot_->limits().vl.tail(nDof) * velocityPercent_ / solver.dt();
   auto vu = robot_->limits().vu.tail(nDof) * velocityPercent_ / solver.dt();
   auto vL = solver.problem().add(vl <= dot(robot_->qJoints()) <= vu, tvm::task_dynamics::Proportional(1 / solver.dt()),

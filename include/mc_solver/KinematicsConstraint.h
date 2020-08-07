@@ -39,7 +39,25 @@ public:
 
   void removeFromSolver(QPSolver & solver) override;
 
-private:
+  /** Returns the robot handled by this constraint */
+  inline const mc_rbdyn::Robot & robot() const noexcept
+  {
+    return *robot_;
+  }
+
+  /** Returns the damping parameters */
+  inline const std::array<double, 3> damper() const noexcept
+  {
+    return damper_;
+  }
+
+  /** Returns the velocity percentage parameter */
+  inline double velocityPercent() const noexcept
+  {
+    return velocityPercent_;
+  }
+
+protected:
   mc_rbdyn::RobotPtr robot_;
   std::array<double, 3> damper_;
   double velocityPercent_;
