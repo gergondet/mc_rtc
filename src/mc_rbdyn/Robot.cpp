@@ -32,100 +32,6 @@ namespace bfs = boost::filesystem;
 namespace
 {
 
-using bound_t = std::vector<std::vector<double>>;
-using bounds_t = std::tuple<bound_t, bound_t, bound_t, bound_t, bound_t, bound_t>;
-using accelerationBounds_t = std::tuple<bound_t, bound_t>;
-using torqueDerivativeBounds_t = std::tuple<bound_t, bound_t>;
-using rm_bounds_t = mc_rbdyn::RobotModule::bounds_t;
-using rm_bound_t = mc_rbdyn::RobotModule::bound_t;;
-
-using jt_method = int (rbd::Joint::*)() const;
-
-bound_t fill_bound(const rbd::MultiBody & mb,
-                   const std::string & name,
-                   const rm_bound_t & bound_in,
-                   jt_method def_size,
-                   double def_value,
-                   double ff_def_value)
-{
-  bound_t res;
-  res.reserve(static_cast<size_t>(mb.nrJoints()));
-  for(const auto & j : mb.joints())
-  {
-    res.emplace_back(((j).*(def_size))(), j.type() == rbd::Joint::Free ? ff_def_value : def_value);
-    if(bound_in.count(j.name()))
-    {
-      const auto & b_ref = bound_in.at(j.name());
-      auto & b = res.back();
-      if(b_ref.size() != b.size())
-      {
-        mc_rtc::log::error_and_throw<std::runtime_error>(
-            "{} provided bound size ({}) different from expected size ({}) for joint {}", name, b_ref.size(), b.size(),
-            j.name());
-      }
-      res.back() = bound_in.at(j.name());
-    }
-  }
-  return res;
-}
-
-/** Generate bounds compatible with the given MultiBody
- *
- * If bounds is provided, use the values provided to build the bounds.
- *
- * Otherwise, default bounds are returned.
- */
-bounds_t bounds(const rbd::MultiBody & mb, const rm_bounds_t & bounds)
-{
-  return std::make_tuple(fill_bound(mb, "lower position", bounds.at(0), &rbd::Joint::params, -INFINITY, -INFINITY),
-                         fill_bound(mb, "upper position", bounds.at(1), &rbd::Joint::params, INFINITY, INFINITY),
-                         fill_bound(mb, "lower velocity", bounds.at(2), &rbd::Joint::dof, -INFINITY, -INFINITY),
-                         fill_bound(mb, "upper velocity", bounds.at(3), &rbd::Joint::dof, INFINITY, INFINITY),
-                         fill_bound(mb, "lower torque", bounds.at(4), &rbd::Joint::dof, -INFINITY, 0),
-                         fill_bound(mb, "upper torque", bounds.at(5), &rbd::Joint::dof, INFINITY, 0));
-}
-
-/** Generate acceleration bounds compatible with the given MultiBody
- *
- * If bounds is provided, use the values provided to build the bounds.
- *
- * Otherwise, default bounds are returned.
- */
-accelerationBounds_t acceleration_bounds(const rbd::MultiBody & mb, const rm_bounds_t & bounds)
-{
-  rm_bound_t default_bound;
-  auto safe_bounds = [&bounds, &default_bound](size_t idx) -> const rm_bound_t & {
-    if(idx < bounds.size())
-    {
-      return bounds[idx];
-    }
-    return default_bound;
-  };
-  return std::make_tuple(fill_bound(mb, "lower acceleration", safe_bounds(0), &rbd::Joint::dof, -INFINITY, -INFINITY),
-                         fill_bound(mb, "upper acceleration", safe_bounds(1), &rbd::Joint::dof, INFINITY, INFINITY));
-}
-
-/** Generate torque-derivative bounds compatible with the given MultiBody
- *
- * If bounds is provided, use the values provided to build the bounds.
- *
- * Otherwise, default bounds are returned.
- */
-torqueDerivativeBounds_t torqueDerivative_bounds(const rbd::MultiBody & mb, const rm_bounds_t & bounds)
-{
-  rm_bound_t default_bound;
-  auto safe_bounds = [&bounds, &default_bound](size_t idx) -> const rm_bound_t & {
-    if(idx < bounds.size())
-    {
-      return bounds[idx];
-    }
-    return default_bound;
-  };
-  return std::make_tuple(
-      fill_bound(mb, "lower torque-derivative", safe_bounds(0), &rbd::Joint::dof, -INFINITY, -INFINITY),
-      fill_bound(mb, "upper torque-derivative", safe_bounds(1), &rbd::Joint::dof, INFINITY, INFINITY));
-}
-
 bool VisualToConvex(mc_rbdyn::Robot & robot,
                     std::string_view cName,
                     std::string_view bName,
@@ -216,6 +122,75 @@ Robot::Robot(make_shared_token,
     mbc() = rbd::MultiBodyConfig(mb());
   }
 
+  using jt_method = int (rbd::Joint::*)() const;
+  auto initBound = [&](const std::string & name, Eigen::VectorXd & bound, int size, jt_method getSize,
+                       const RobotModule::bound_t & map, double defaultJoint, double defaultFB) {
+    bound.resize(size);
+    Eigen::DenseIndex i = 0;
+    for(const auto & j : mb().joints())
+    {
+      auto jSize = (j.*getSize)();
+      const auto & jName = j.name();
+      auto it = map.find(jName);
+      if(it == map.end())
+      {
+        const auto & def = j.type() == rbd::Joint::Free ? defaultFB : defaultJoint;
+        bound.segment(i, jSize).setConstant(def);
+      }
+      else
+      {
+        const auto & value = it->second;
+        if(value.size() != static_cast<size_t>(jSize))
+        {
+          mc_rtc::log::error_and_throw<std::runtime_error>(
+              "{} provided bound size ({}) different from expected size ({}) for joint {}", name, value.size(), jSize,
+              jName);
+        }
+        for(size_t k = 0; k < static_cast<size_t>(jSize); ++k)
+        {
+          bound(i + k) = value[k];
+        }
+      }
+      i += jSize;
+    }
+  };
+
+  auto inf = std::numeric_limits<double>::infinity();
+  if(module_.bounds().size() != 6)
+  {
+    mc_rtc::log::error_and_throw<std::invalid_argument>(
+        "The bounds of robotmodule \"{}\" have a size of {} instead of 6 (ql, qu, vl, vu, tl, tu).", module_.name,
+        module_.bounds().size());
+  }
+  initBound("lower position", limits_.ql, mb().nrParams(), &rbd::Joint::params, module_.bounds()[0], -inf, -inf);
+  initBound("upper position", limits_.qu, mb().nrParams(), &rbd::Joint::params, module_.bounds()[1], inf, inf);
+  initBound("lower velocity", limits_.vl, mb().nrDof(), &rbd::Joint::dof, module_.bounds()[2], -inf, -inf);
+  initBound("upper velocity", limits_.vu, mb().nrDof(), &rbd::Joint::dof, module_.bounds()[3], inf, inf);
+  initBound("lower torque", limits_.tl, mb().nrDof(), &rbd::Joint::dof, module_.bounds()[4], -inf, 0);
+  initBound("upper torque", limits_.tu, mb().nrDof(), &rbd::Joint::dof, module_.bounds()[5], inf, 0);
+
+  auto initOtherBound = [&](std::string_view name, const auto & bounds, Eigen::VectorXd & lower,
+                            Eigen::VectorXd & upper) {
+    if(bounds.size() == 0)
+    {
+      lower = Eigen::VectorXd::Constant(mb().nrDof(), 1, -inf);
+      upper = Eigen::VectorXd::Constant(mb().nrDof(), 1, inf);
+    }
+    else if(bounds.size() == 2)
+    {
+      initBound(fmt::format("lower {}", name), lower, mb().nrDof(), &rbd::Joint::dof, bounds[0], -inf, -inf);
+      initBound(fmt::format("upper {}", name), lower, mb().nrDof(), &rbd::Joint::dof, bounds[1], inf, inf);
+    }
+    else
+    {
+      mc_rtc::log::error_and_throw<std::invalid_argument>("The {} bounds of RobotModule \"{}\" have a size of {} "
+                                                          "instead of 2 ([lower, upper]).",
+                                                          name, module_.name, module_.accelerationBounds().size());
+    }
+  };
+  initOtherBound("acceleration", module_.accelerationBounds(), limits_.al, limits_.au);
+  initOtherBound("torque derivative", module_.torqueDerivativeBounds(), limits_.tdl, limits_.tdu);
+
   mbc().gravity = mc_rtc::constants::gravity;
   mbc().zero(mb());
   {
@@ -253,31 +228,6 @@ Robot::Robot(make_shared_token,
     const auto & b = mb().body(static_cast<int>(i));
     bodyTransforms_[i] = bbts.at(b.name());
   }
-
-  if(module_.bounds().size() != 6)
-  {
-    mc_rtc::log::error_and_throw<std::invalid_argument>("The (urdf)-bounds of RobotModule \"{}\" have a size of {} "
-                                                        "instead of 6 (ql, qu, vl, vu, tl, tu).",
-                                                        module_.name, module_.bounds().size());
-  }
-
-  if(module_.accelerationBounds().size() != 0 && module_.accelerationBounds().size() != 2)
-  {
-    mc_rtc::log::error_and_throw<std::invalid_argument>(
-        "The additional acceleration bounds of RobotModule \"{}\" have a size of {} "
-        "instead of 2 ([al, au]).",
-        module_.name, module_.accelerationBounds().size());
-  }
-  std::tie(al_, au_) = acceleration_bounds(mb(), module_.accelerationBounds());
-
-  if(module_.torqueDerivativeBounds().size() != 0 && module_.torqueDerivativeBounds().size() != 2)
-  {
-    mc_rtc::log::error_and_throw<std::invalid_argument>(
-        "The additional acceleration bounds of RobotModule \"{}\" have a size of {} "
-        "instead of 2 ([tdl, tdu]).",
-        module_.name, module_.torqueDerivativeBounds().size());
-  }
-  std::tie(tdl_, tdu_) = torqueDerivative_bounds(mb(), module_.torqueDerivativeBounds());
 
   if(loadFiles)
   {

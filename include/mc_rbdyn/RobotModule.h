@@ -93,7 +93,7 @@ struct MC_RBDYN_DLLAPI RobotModule
    *
    * Each entry is a map joint name <-> bound
    */
-  using accelerationBounds_t = std::vector<std::map<std::string, std::vector<double>>>;
+  using accelerationBounds_t = std::vector<bound_t>;
 
   /*! Holds information regarding the additional torque-derivative bounds (specified in addition to urdf limits)
    *
@@ -102,7 +102,7 @@ struct MC_RBDYN_DLLAPI RobotModule
    *
    * Each entry is a map joint name <-> bound
    */
-  using torqueDerivativeBounds_t = std::vector<std::map<std::string, std::vector<double>>>;
+  using torqueDerivativeBounds_t = std::vector<bound_t>;
 
   /*! Holds necessary information to create a gripper */
   struct MC_RBDYN_DLLAPI Gripper
@@ -279,7 +279,7 @@ struct MC_RBDYN_DLLAPI RobotModule
    * They should be provided in the following order:
    * - acceleration limits (lower/upper)
    */
-  const std::vector<std::map<std::string, std::vector<double>>> & accelerationBounds() const
+  const accelerationBounds_t & accelerationBounds() const
   {
     return _accelerationBounds;
   }
@@ -293,7 +293,7 @@ struct MC_RBDYN_DLLAPI RobotModule
    * They should be provided in the following order:
    * - torque-derivative limits (lower/upper)
    */
-  const std::vector<std::map<std::string, std::vector<double>>> & torqueDerivativeBounds() const
+  const torqueDerivativeBounds_t & torqueDerivativeBounds() const
   {
     return _torqueDerivativeBounds;
   }

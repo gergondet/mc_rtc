@@ -8,6 +8,7 @@
 #include <mc_rbdyn/CoM.h>
 #include <mc_rbdyn/Convex.h>
 #include <mc_rbdyn/Frame.h>
+#include <mc_rbdyn/Limits.h>
 #include <mc_rbdyn/RobotModule.h>
 
 #include <mc_control/generic_gripper.h>
@@ -99,6 +100,18 @@ public:
 
   /** Retrieve the associated RobotModule */
   const RobotModule & module() const;
+
+  /** Retrieve the joint limits */
+  inline const Limits & limits() const noexcept
+  {
+    return limits_;
+  }
+
+  /** Retrieve the joint limits */
+  inline Limits & limits() noexcept
+  {
+    return limits_;
+  }
 
   /** Returns true if the robot has the given frame */
   bool hasFrame(std::string_view frame) const;
@@ -860,6 +873,8 @@ private:
   std::string name_;
   /** RobotModule that was used to create this robot */
   RobotModule module_;
+  /** Joint limits */
+  Limits limits_;
   /** Floating-base variable */
   tvm::VariablePtr q_fb_;
   /** Joints variable */
