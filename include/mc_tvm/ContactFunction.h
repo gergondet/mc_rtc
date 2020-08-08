@@ -69,4 +69,6 @@ private:
   void updateDerivatives();
 };
 
+using ContactFunctionPtr = std::shared_ptr<mc_tvm::ContactFunction>;
+
 } // namespace mc_tvm
