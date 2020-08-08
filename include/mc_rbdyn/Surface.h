@@ -31,6 +31,12 @@ struct MC_RBDYN_DLLAPI Surface : public mc_rtc::shared<Surface>
     return *frame_;
   }
 
+  /** Frame to which this surface is attached */
+  inline Frame & frame() noexcept
+  {
+    return *frame_;
+  }
+
   /** Robot to which this surface is attached */
   inline const Robot & robot() const noexcept
   {

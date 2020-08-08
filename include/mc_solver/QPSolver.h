@@ -5,6 +5,7 @@
 #pragma once
 
 #include <mc_solver/Constraint.h>
+#include <mc_solver/DynamicsConstraint.h>
 #include <mc_solver/api.h>
 
 #include <mc_rbdyn/Contact.h>
@@ -12,6 +13,7 @@
 
 #include <mc_rtc/pragma.h>
 
+#include <tvm/ControlProblem.h>
 #include <tvm/LinearizedControlProblem.h>
 #include <tvm/scheme/WeightedLeastSquares.h>
 
@@ -112,6 +114,26 @@ public:
     return contacts_;
   }
 
+  /** Add or update a contact
+   *
+   * If the contact already exists this updates the friction or dof vector if
+   * the specification is different from the existing contact
+   *
+   * \param contact Contact definition
+   *
+   * \throws If the contact definition is ill-formed (wrong robot or wrong
+   * surface)
+   */
+  void addContact(const mc_rbdyn::Contact & contact);
+
+  /** Remove a contact
+   *
+   * Does nothing if the contact is not currently active
+   *
+   * \param contact Contact definition
+   */
+  void removeContact(const mc_rbdyn::Contact & contact);
+
   /** Returns the MetaTasks currently in the solver */
   const std::vector<mc_tasks::MetaTaskPtr> & tasks() const;
 
@@ -191,10 +213,28 @@ private:
   tvm::scheme::WeightedLeastSquares solver_;
   /** Constraints currently active */
   std::vector<ConstraintPtr> constraints_;
+  /** Dynamics constraint currently active for robots in the solver */
+  mc_rtc::map<std::string, DynamicsConstraintPtr> dynamics_;
   /** Tasks currently active */
   std::vector<mc_tasks::MetaTaskPtr> tasks_;
   /** Current contacts */
   std::vector<mc_rbdyn::Contact> contacts_;
+  /** Contact data on the solver side */
+  struct ContactData
+  {
+    /** Contact function in the solver */
+    tvm::TaskWithRequirementsPtr contactConstraint_;
+    /** Force variables on r1 side (if any) */
+    tvm::VariableVector f1_;
+    /** Constraints on f1 */
+    std::vector<tvm::TaskWithRequirementsPtr> f1Constraints_;
+    /** Force variables on r2 side (if any) */
+    tvm::VariableVector f2_;
+    /** Constraints on f2 */
+    std::vector<tvm::TaskWithRequirementsPtr> f2Constraints_;
+  };
+  /** Related contact functions */
+  std::vector<ContactData> contactsData_;
   /** Pointer to the Logger */
   std::shared_ptr<mc_rtc::Logger> logger_ = nullptr;
   /** Pointer to the GUI helper */
@@ -234,6 +274,17 @@ private:
 
   std::vector<ConstraintPtr>::iterator getConstraint(ConstraintPtr & c);
   std::vector<mc_tasks::MetaTaskPtr>::iterator getTask(mc_tasks::MetaTaskPtr & t);
+  size_t getContactIdx(const mc_rbdyn::Contact & contact);
+
+  bool addDynamicsConstraint(const DynamicsConstraintPtr & constraint);
+  void removeDynamicsConstraint(const DynamicsConstraintPtr & constraint);
+  void addContactToDynamics(const std::string & robot,
+                            mc_rbdyn::Frame & frame,
+                            const std::vector<sva::PTransformd> & points,
+                            tvm::VariableVector & forces,
+                            std::vector<tvm::TaskWithRequirementsPtr> & constraints,
+                            const Eigen::MatrixXd & frictionCone,
+                            double dir);
 };
 
 } // namespace mc_solver

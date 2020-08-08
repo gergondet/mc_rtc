@@ -49,4 +49,6 @@ protected:
   mc_tvm::DynamicFunctionPtr dynamic_;
 };
 
+using DynamicsConstraintPtr = std::shared_ptr<DynamicsConstraint>;
+
 } // namespace mc_solver

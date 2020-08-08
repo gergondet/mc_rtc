@@ -2,18 +2,24 @@
  * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
-#include <mc_rbdyn/RobotModule.h>
-#include <mc_rbdyn/Surface.h>
-#include <mc_rtc/logging.h>
 #include <mc_solver/KinematicsConstraint.h>
 #include <mc_solver/QPSolver.h>
+
 #include <mc_tasks/MetaTask.h>
+
+#include <mc_tvm/ContactFunction.h>
+
+#include <mc_rbdyn/RobotModule.h>
+#include <mc_rbdyn/Surface.h>
+#include <mc_rbdyn/surface_utils.h>
 
 #include <mc_rtc/gui/Button.h>
 #include <mc_rtc/gui/Force.h>
 #include <mc_rtc/gui/Form.h>
+#include <mc_rtc/logging.h>
 
 #include <tvm/solver/defaultLeastSquareSolver.h>
+#include <tvm/task_dynamics/ProportionalDerivative.h>
 
 #include <RBDyn/EulerIntegration.h>
 #include <RBDyn/FA.h>
@@ -22,6 +28,21 @@
 
 namespace mc_solver
 {
+
+namespace
+{
+
+inline static Eigen::MatrixXd discretizedFrictionCone(double muI)
+{
+  Eigen::MatrixXd C(4, 3);
+  double mu = muI / std::sqrt(2);
+  C << Eigen::Matrix2d::Identity(), Eigen::Vector2d::Constant(mu), -Eigen::Matrix2d::Identity(),
+      Eigen::Vector2d::Constant(mu);
+  return C;
+}
+
+} // namespace
+
 QPSolver::QPSolver(std::shared_ptr<mc_rbdyn::Robots> robots,
                    std::shared_ptr<mc_rtc::Logger> logger,
                    std::shared_ptr<mc_rtc::gui::StateBuilder> gui,
@@ -58,10 +79,61 @@ void QPSolver::addConstraint(ConstraintPtr cs)
   auto it = getConstraint(cs);
   if(cs && it == constraints_.end())
   {
-    cs->addToSolver(*this);
-    constraints_.push_back(cs);
-    mc_rtc::log::info("Added constraint {}", cs->name());
+    auto dynamics = std::dynamic_pointer_cast<DynamicsConstraint>(cs);
+    if(addDynamicsConstraint(dynamics))
+    {
+      cs->addToSolver(*this);
+      constraints_.push_back(cs);
+      mc_rtc::log::info("Added constraint {}", cs->name());
+    }
   }
+}
+
+bool QPSolver::addDynamicsConstraint(const DynamicsConstraintPtr & cs)
+{
+  if(!cs)
+  {
+    return true;
+  }
+  if(dynamics_.count(cs->robot().name()))
+  {
+    mc_rtc::log::error("A DynamicsConstraint has already been added for {}", cs->robot().name());
+    return false;
+  }
+  dynamics_[cs->robot().name()] = cs;
+  for(size_t i = 0; i < contacts_.size(); ++i)
+  {
+    const auto & contact = contacts_[i];
+    auto & data = contactsData_[i];
+    bool isR1 = contact.r1 == cs->robot().name();
+    bool isR2 = contact.r2 == cs->robot().name();
+    if(isR1 || isR2)
+    {
+      auto & r1 = robots_->robot(contact.r1);
+      auto & r2 = robots_->robot(contact.r2);
+      auto & s1 = r1.surface(contact.r1Surface);
+      auto & s2 = r2.surface(contact.r2Surface);
+      auto & f1 = s1.frame();
+      auto & f2 = s2.frame();
+      auto C = discretizedFrictionCone(contact.friction);
+      auto s1Points = mc_rbdyn::intersection(s1, s2);
+      if(isR1)
+      {
+        addContactToDynamics(contact.r1, f1, s1Points, data.f1_, data.f1Constraints_, C, 1.0);
+      }
+      if(isR2)
+      {
+        std::vector<sva::PTransformd> s2Points;
+        s2Points.reserve(s1Points.size());
+        auto X_b2_b1 = r1.mbc().bodyPosW[r1.bodyIndexByName(s1.frame().body())]
+                       * r2.mbc().bodyPosW[r2.bodyIndexByName(s2.frame().body())].inv();
+        std::transform(s1Points.begin(), s2Points.end(), std::back_inserter(s2Points),
+                       [&](const auto & X_b1_p) { return X_b1_p * X_b2_b1; });
+        addContactToDynamics(contact.r2, f2, s2Points, data.f2_, data.f2Constraints_, C, 2.0);
+      }
+    }
+  }
+  return true;
 }
 
 void QPSolver::removeConstraint(ConstraintPtr cs)
@@ -72,6 +144,36 @@ void QPSolver::removeConstraint(ConstraintPtr cs)
     cs->removeFromSolver(*this);
     constraints_.erase(it);
     mc_rtc::log::info("Removed constraint {}", cs->name());
+    auto dynamics = std::dynamic_pointer_cast<DynamicsConstraint>(cs);
+    if(dynamics)
+    {
+      removeDynamicsConstraint(dynamics);
+    }
+  }
+}
+
+void QPSolver::removeDynamicsConstraint(const DynamicsConstraintPtr & cs)
+{
+  dynamics_.erase(cs->robot().name());
+  for(size_t i = 0; i < contacts_.size(); ++i)
+  {
+    const auto & contact = contacts_[i];
+    auto & data = contactsData_[i];
+    auto clearContacts = [&](const std::string & robot, tvm::VariableVector & forces,
+                             std::vector<tvm::TaskWithRequirementsPtr> & constraints) {
+      if(robot != cs->robot().name())
+      {
+        return;
+      }
+      for(auto & c : constraints)
+      {
+        problem_.remove(c.get());
+      }
+      constraints.clear();
+      forces = tvm::VariableVector();
+    };
+    clearContacts(contact.r1, data.f1_, data.f1Constraints_);
+    clearContacts(contact.r2, data.f2_, data.f2Constraints_);
   }
 }
 
@@ -100,6 +202,137 @@ void QPSolver::removeTask(mc_tasks::MetaTaskPtr task)
     tasks_.erase(it);
     mc_rtc::log::info("Removed task {}", task->name());
   }
+}
+
+size_t QPSolver::getContactIdx(const mc_rbdyn::Contact & contact)
+{
+  for(size_t i = 0; i < contacts_.size(); ++i)
+  {
+    if(contacts_[i] == contact)
+    {
+      return i;
+    }
+  }
+  return contacts_.size();
+}
+
+void QPSolver::addContactToDynamics(const std::string & robot,
+                                    mc_rbdyn::Frame & frame,
+                                    const std::vector<sva::PTransformd> & points,
+                                    tvm::VariableVector & forces,
+                                    std::vector<tvm::TaskWithRequirementsPtr> & constraints,
+                                    const Eigen::MatrixXd & frictionCone,
+                                    double dir)
+{
+  auto it = dynamics_.find(robot);
+  if(it == dynamics_.end())
+  {
+    return;
+  }
+  if(constraints.size())
+  {
+    // FIXME Instead of this we should be able to change C
+    for(const auto & c : constraints)
+    {
+      problem_.remove(c.get());
+    }
+    constraints.clear();
+  }
+  else
+  {
+    forces = it->second->dynamic().addContact(frame, points, dir);
+  }
+  for(auto & f : forces)
+  {
+    constraints.push_back(problem_.add(dir * frictionCone * f >= 0, {tvm::requirements::PriorityLevel(0)}));
+  }
+}
+
+void QPSolver::addContact(const mc_rbdyn::Contact & contact)
+{
+  auto idx = getContactIdx(contact);
+  double prevFriction = -1;
+  if(idx < contacts_.size())
+  {
+    const auto & oldContact = contacts_[idx];
+    if(oldContact.dof == contact.dof && oldContact.friction == contact.friction)
+    {
+      return;
+    }
+    prevFriction = oldContact.friction;
+    contacts_[idx] = contact;
+  }
+  else
+  {
+    contacts_.push_back(contact);
+  }
+  auto & data = idx < contacts_.size() ? contactsData_[idx] : contactsData_.emplace_back();
+  auto & r1 = robots_->robot(contact.r1);
+  auto & r2 = robots_->robot(contact.r2);
+  auto & s1 = r1.surface(contact.r1Surface);
+  auto & s2 = r2.surface(contact.r2Surface);
+  auto & f1 = s1.frame();
+  auto & f2 = s2.frame();
+  // FIXME Currently ignore dof...
+  if(data.contactConstraint_) // New contact
+  {
+    auto contact_fn = std::make_shared<mc_tvm::ContactFunction>(f1, f2);
+    data.contactConstraint_ =
+        problem_.add(contact_fn == 0., tvm::task_dynamics::PD(1.), {tvm::requirements::PriorityLevel(0)});
+  }
+  // FIXME Let the user decide how much the friction cone should be discretized
+  auto C = discretizedFrictionCone(contact.friction);
+  auto addContactForce = [&](const std::string & robot, mc_rbdyn::Frame & frame,
+                             const std::vector<sva::PTransformd> & points, tvm::VariableVector & forces,
+                             std::vector<tvm::TaskWithRequirementsPtr> & constraints, double dir) {
+    if(forces.totalSize() && contact.friction == prevFriction)
+    {
+      return;
+    }
+    addContactToDynamics(robot, frame, points, forces, constraints, C, dir);
+  };
+  // FIXME These points computation are a waste of time if they are not needed
+  auto s1Points = mc_rbdyn::intersection(s1, s2);
+  addContactForce(contact.r1, f1, s1Points, data.f1_, data.f1Constraints_, 1.0);
+  std::vector<sva::PTransformd> s2Points;
+  s2Points.reserve(s1Points.size());
+  auto X_b2_b1 = r1.mbc().bodyPosW[r1.bodyIndexByName(s1.frame().body())]
+                 * r2.mbc().bodyPosW[r2.bodyIndexByName(s2.frame().body())].inv();
+  std::transform(s1Points.begin(), s2Points.end(), std::back_inserter(s2Points),
+                 [&](const auto & X_b1_p) { return X_b1_p * X_b2_b1; });
+  addContactForce(contact.r2, f2, s2Points, data.f2_, data.f2Constraints_, -1.0);
+  mc_rtc::log::info("Added contact {}::{}/{}::{} (dof: {}, friction: {})", contact.r1, contact.r1Surface, contact.r2,
+                    contact.r2Surface, contact.dof.transpose(), contact.friction);
+}
+
+void QPSolver::removeContact(const mc_rbdyn::Contact & contact)
+{
+  auto idx = getContactIdx(contact);
+  if(idx >= contacts_.size())
+  {
+    return;
+  }
+  auto & data = contactsData_[idx];
+  auto r1DynamicsIt = dynamics_.find(contact.r1);
+  if(r1DynamicsIt != dynamics_.end())
+  {
+    r1DynamicsIt->second->dynamic().removeContact(robots_->robot(contact.r1).surface(contact.r1Surface).frame());
+  }
+  auto r2DynamicsIt = dynamics_.find(contact.r2);
+  if(r2DynamicsIt != dynamics_.end())
+  {
+    r2DynamicsIt->second->dynamic().removeContact(robots_->robot(contact.r2).surface(contact.r2Surface).frame());
+  }
+  for(const auto & c : data.f1Constraints_)
+  {
+    problem_.remove(c.get());
+  }
+  for(const auto & c : data.f2Constraints_)
+  {
+    problem_.remove(c.get());
+  }
+  problem_.remove(data.contactConstraint_.get());
+  mc_rtc::log::info("Removed contact {}::{}/{}::{}", contact.r1, contact.r1Surface, contact.r2, contact.r2Surface);
 }
 
 bool QPSolver::run(FeedbackType fType)
