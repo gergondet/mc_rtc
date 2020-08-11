@@ -30,9 +30,14 @@ void MetaTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & 
   {
     selectActiveJoints(solver, config("activeJoints"));
   }
-  else if(config.has("unactiveJoints"))
+  if(config.has("inactiveJoints"))
   {
-    selectUnactiveJoints(solver, config("unactiveJoints"));
+    selectInactiveJoints(solver, config("inactiveJoints"));
+  }
+  if(config.has("unactiveJoints"))
+  {
+    mc_rtc::log::warning("[deprecated] unactiveJoints is deprecated, use inactiveJoints instead");
+    selectInactiveJoints(solver, config("unactiveJoints"));
   }
   if(config.has("name"))
   {

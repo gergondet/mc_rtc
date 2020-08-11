@@ -4,18 +4,23 @@
 
 #pragma once
 
-#include <mc_rbdyn/Robots.h>
-#include <mc_rtc/logging.h>
-#include <mc_solver/QPSolver.h>
 #include <mc_tasks/MetaTask.h>
 #include <mc_tasks/api.h>
 
-#include <Tasks/QPTasks.h>
+#include <mc_tvm/JointsSelectorFunction.h>
+
+#include <mc_rbdyn/Robots.h>
+
+#include <tvm/ControlProblem.h>
+#include <tvm/task_dynamics/ProportionalDerivative.h>
 
 namespace mc_tasks
 {
 
-/*! \brief Generic wrapper for a tasks::qp::TrajectoryTask
+// FIXME It may be better to create a TaskWithRequirementsPtr directly rather than having intermediate values for
+// stiffness, damping, weight and dimWeight but this would require tvm::Task to allow swapping functions
+
+/*! \brief Generic wrapper for a TVM function put in the cost function
  *
  * This task is meant to be derived to build actual tasks
  *
@@ -31,16 +36,14 @@ struct TrajectoryTaskGeneric : public MetaTask
    * 2*sqrt(stiffness). This is the most appropriate constructor to use
    * TrajectoryTask as a SetPointTask
    *
-   * \param robots Robots used in the task
-   *
-   * \param robotIndex Index of the robot controlled by the task
+   * \param robot Robot used in the task
    *
    * \param stiffness Stiffness of the task
    *
    * \param weight Weight of the task
    *
    */
-  TrajectoryTaskGeneric(const mc_rbdyn::Robots & robots, unsigned int robotIndex, double stiffness, double weight);
+  TrajectoryTaskGeneric(mc_rbdyn::Robot & robot, double stiffness, double weight);
 
   virtual ~TrajectoryTaskGeneric();
 
@@ -54,24 +57,36 @@ struct TrajectoryTaskGeneric : public MetaTask
    * \param vel New reference velocity
    *
    */
-  void refVel(const Eigen::VectorXd & vel);
+  void refVel(const Eigen::VectorXd & vel)
+  {
+    errorT_->refVel(vel);
+  }
 
   /*! \brief Get the trajectory reference velocity
    *
    */
-  const Eigen::VectorXd & refVel() const;
+  const Eigen::VectorXd & refVel() const noexcept
+  {
+    return errorT_->refVel();
+  }
 
   /*! \brief Set the trajectory reference acceleration
    *
    * \param accel New reference acceleration
    *
    */
-  void refAccel(const Eigen::VectorXd & accel);
+  void refAccel(const Eigen::VectorXd & accel)
+  {
+    errorT_->refAccel(accel);
+  }
 
   /*! \brief Get the trajectory reference acceleration
    *
    */
-  const Eigen::VectorXd & refAccel() const;
+  const Eigen::VectorXd & refAccel() const noexcept
+  {
+    return errorT_->refAccel();
+  }
 
   /*! \brief Set the task stiffness/damping
    *
@@ -80,7 +95,10 @@ struct TrajectoryTaskGeneric : public MetaTask
    * \param stiffness Task stiffness
    *
    */
-  void stiffness(double stiffness);
+  void stiffness(double stiffness)
+  {
+    setGains(stiffness, 2 * std::sqrt(stiffness));
+  }
 
   /*! \brief Set dimensional stiffness
    *
@@ -91,14 +109,21 @@ struct TrajectoryTaskGeneric : public MetaTask
    * \param stiffness Dimensional stiffness
    *
    */
-  void stiffness(const Eigen::VectorXd & stiffness);
+  void stiffness(const Eigen::VectorXd & stiffness)
+  {
+    setGains(stiffness, 2 * stiffness.cwiseSqrt());
+  }
 
   /*! \brief Set the task damping, leaving its stiffness unchanged
    *
    * \param damping Task stiffness
    *
    */
-  void damping(double damping);
+  void damping(double damping)
+  {
+    damping_.setConstant(damping);
+    setGains(stiffness_, damping_);
+  }
 
   /*! \brief Set dimensional damping
    *
@@ -107,7 +132,10 @@ struct TrajectoryTaskGeneric : public MetaTask
    * \param damping Dimensional damping
    *
    */
-  void damping(const Eigen::VectorXd & damping);
+  void damping(const Eigen::VectorXd & damping)
+  {
+    setGains(stiffness_, damping);
+  }
 
   /*! \brief Set both stiffness and damping
    *
@@ -116,7 +144,12 @@ struct TrajectoryTaskGeneric : public MetaTask
    * \param damping Task damping
    *
    */
-  void setGains(double stiffness, double damping);
+  void setGains(double stiffness, double damping)
+  {
+    stiffness_.setConstant(stiffness);
+    damping_.setConstant(damping);
+    setGains(stiffness_, damping_);
+  }
 
   /*! \brief Set dimensional stiffness and damping
    *
@@ -130,16 +163,28 @@ struct TrajectoryTaskGeneric : public MetaTask
   void setGains(const Eigen::VectorXd & stiffness, const Eigen::VectorXd & damping);
 
   /*! \brief Get the current task stiffness */
-  double stiffness() const;
+  double stiffness() const noexcept
+  {
+    return stiffness_(0);
+  }
 
   /*! \brief Get the current task damping */
-  double damping() const;
+  double damping() const noexcept
+  {
+    return damping_(0);
+  }
 
   /*! \brief Get the current task dimensional stiffness */
-  const Eigen::VectorXd & dimStiffness() const;
+  const Eigen::VectorXd & dimStiffness() const noexcept
+  {
+    return stiffness_;
+  }
 
   /*! \brief Get the current task dimensional damping */
-  const Eigen::VectorXd & dimDamping() const;
+  const Eigen::VectorXd & dimDamping() const noexcept
+  {
+    return damping_;
+  }
 
   /*! \brief Set the task weight
    *
@@ -149,11 +194,17 @@ struct TrajectoryTaskGeneric : public MetaTask
   void weight(double w);
 
   /*! \brief Returns the task weight */
-  double weight() const;
+  double weight() const noexcept
+  {
+    return weight_;
+  }
 
   void dimWeight(const Eigen::VectorXd & dimW) override;
 
-  Eigen::VectorXd dimWeight() const override;
+  virtual const Eigen::VectorXd & dimWeight() const noexcept override
+  {
+    return dimWeight_;
+  }
 
   /** \brief Create an active joints selector
    *
@@ -188,11 +239,11 @@ struct TrajectoryTaskGeneric : public MetaTask
                           const std::vector<std::string> & activeJointsName,
                           const std::map<std::string, std::vector<std::array<int, 2>>> & activeDofs = {}) override;
 
-  /** \brief Create an unactive joints selector
+  /** \brief Create an inactive joints selector
    *
    * \warning This function should only be called if the task hasn't yet been
    * added to the solver. If the tasks is already in the solver it does nothing,
-   * and warns that it had no effect. Call void selectUnactiveJoints(mc_solver::QPSolver &, const
+   * and warns that it had no effect. Call void selectInactiveJoints(mc_solver::QPSolver &, const
    * std::vector<std::string> &, const std::map<std::string, std::vector<std::array<int, 2>>> &) instead.
    *
    * @param unactiveJointsName Name of the joints not activated for this task
@@ -201,15 +252,15 @@ struct TrajectoryTaskGeneric : public MetaTask
    * \throws If checkJoints is true and a joint name in unactiveJointsName is not
    * part of the robot
    */
-  void selectUnactiveJoints(const std::vector<std::string> & unactiveJointsName,
+  void selectInactiveJoints(const std::vector<std::string> & unactiveJointsName,
                             const std::map<std::string, std::vector<std::array<int, 2>>> & unactiveDofs = {},
                             bool checkJoints = true);
 
-  /** \brief Create an unactive joints selector
+  /** \brief Create an inactive joints selector
    *
    * \note Calling this function is a bit expensive. If the task is already in
    * the solver, it will be removed first, then recreated with the joint
-   * selector and added to the solver again. If possible, consider calling void selectUnactiveJoints(const
+   * selector and added to the solver again. If possible, consider calling void selectInactiveJoints(const
    * std::vector<std::string> &, const std::map<std::string, std::vector<std::array<int, 2>>> &) before adding the task
    * to the solver.
    *
@@ -217,7 +268,7 @@ struct TrajectoryTaskGeneric : public MetaTask
    * \param unactiveDofs Allow to select only part of the dofs of a joint
    * \throws If a joint name in unactiveJointsName is not part of the robot
    */
-  void selectUnactiveJoints(mc_solver::QPSolver & solver,
+  void selectInactiveJoints(mc_solver::QPSolver & solver,
                             const std::vector<std::string> & unactiveJointsName,
                             const std::map<std::string, std::vector<std::array<int, 2>>> & unactiveDofs = {}) override;
 
@@ -229,9 +280,19 @@ struct TrajectoryTaskGeneric : public MetaTask
 
   Eigen::VectorXd speed() const override;
 
-  const Eigen::VectorXd & normalAcc() const;
+  Eigen::VectorXd normalAcc() const;
 
-  const Eigen::MatrixXd & jac() const;
+  /** Expose the underlying TVM function to acess (e.g.) the jacobian */
+  const tvm::function::abstract::Function & function() const noexcept
+  {
+    return selectorT_ ? *selectorT_ : *errorT_;
+  }
+
+  /** Expose the underlying error function without the selector */
+  const T & error() const noexcept
+  {
+    return *errorT_;
+  }
 
   void load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) override;
 
@@ -249,25 +310,20 @@ protected:
       double dt,
       const mc_rtc::Configuration & config) const override;
 
-protected:
-  const mc_rbdyn::Robots & robots;
-  unsigned int rIndex;
-  std::shared_ptr<T> errorT = nullptr;
-  Eigen::VectorXd refVel_;
-  Eigen::VectorXd refAccel_;
-  bool inSolver_ = false;
-  std::shared_ptr<tasks::qp::TrajectoryTask> trajectoryT_ = nullptr;
+  mc_rbdyn::RobotPtr robot_;
+  std::shared_ptr<T> errorT_ = nullptr;
+  std::shared_ptr<tvm::TaskWithRequirementsPtr> task_; // null if the task is not in solver
 
-protected:
   void addToSolver(mc_solver::QPSolver & solver) override;
+
+  void removeFromSolver(mc_solver::QPSolver & solver) override;
 
 private:
   Eigen::VectorXd stiffness_;
   Eigen::VectorXd damping_;
   double weight_;
-  std::shared_ptr<tasks::qp::JointsSelector> selectorT_ = nullptr;
-
-  void removeFromSolver(mc_solver::QPSolver & solver) override;
+  Eigen::VectorXd dimWeight_;
+  std::shared_ptr<mc_tvm::JointsSelectorFunction> selectorT_ = nullptr;
 
   void update(mc_solver::QPSolver &) override;
 };
