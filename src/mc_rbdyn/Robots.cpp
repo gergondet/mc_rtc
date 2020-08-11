@@ -204,6 +204,54 @@ mc_rbdyn::Robots::size_type mc_rbdyn::Robots::size() const noexcept
   return robots_.size();
 }
 
+mc_rbdyn::Robot & Robots::fromConfig(const mc_rtc::Configuration & config,
+                                     const std::string & prefix,
+                                     bool required,
+                                     const std::string & robotIndexKey,
+                                     const std::string & robotNameKey,
+                                     const std::string & defaultRobotName)
+
+{
+  std::string p = prefix.size() ? "[" + prefix + "]" : "";
+  if(config.has(robotNameKey))
+  {
+    std::string_view name = config(robotNameKey);
+    auto it = getRobot(name);
+    if(it != const_robots_.end())
+    {
+      return const_cast<Robot &>(*it->get());
+    }
+    mc_rtc::log::error_and_throw<std::runtime_error>("{} No robot named {} in this controller", p, name);
+  }
+  else if(config.has(robotIndexKey))
+  {
+    mc_rtc::log::warning("[MC_RTC_DEPRECATED]{} \"robotIndex\" will be deprecated in future versions, use \"{}: "
+                         "<robot name>\" instead",
+                         p, robotNameKey);
+    size_t robotIndex = config(robotIndexKey);
+    if(robotIndex < robots_.size())
+    {
+      return *robots_[robotIndex];
+    }
+    mc_rtc::log::error_and_throw<std::runtime_error>("{} No robot with index {} in this controller ({} robots loaded)",
+                                                     p, robotIndex, robots_.size());
+  }
+  if(!required)
+  {
+    if(defaultRobotName.size())
+    {
+      auto it = getRobot(defaultRobotName);
+      if(it != const_robots_.end())
+      {
+        return const_cast<Robot &>(*it->get());
+      }
+      mc_rtc::log::error_and_throw<std::runtime_error>("{} No robot named {} in this controller", p, defaultRobotName);
+    }
+    return *robots_[0];
+  }
+  mc_rtc::log::error_and_throw<std::runtime_error>("{} \"{}\" is required", p, robotNameKey);
+}
+
 MC_RTC_diagnostic_pop;
 
 } // namespace mc_rbdyn

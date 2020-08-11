@@ -167,6 +167,39 @@ public:
    */
   void reserve(size_type new_cap);
 
+  /** @brief Obtains a reference to a loaded robot from configuration (using \p
+   * robotNameKey or \p robotIndexKey)
+   *
+   * - If \p robotNameKey is present, it is used to find the robot
+   * - Otherwise, it'll attempt to use \p robotIndexKey and inform the user
+   *   that its use is deprecated in favor of \p robotNameKey
+   *
+   * @param config Configuration from which to look for
+   * robotNameKey/robotIndexKey @param prefix Prefix used for printing outputs
+   * to the user (deprecation warning, non-existing robot, etc).  @param
+   * required
+   * - When true, throws if the robotName/robotIndex is missing.
+   * - When false, returns the main robot if the robotName/robotIndex is
+   *   missing.
+   *
+   * @param robotIndexKey Configuration key for accessing robot by index @param
+   * robotNameKey Configuration key for accessing robot by name @param
+   * defaultRobotName When empty, return the main robot name, otherwise use the
+   * specified name
+   *
+   * @throws If the key is missing when required is true or when the
+   * configuration points to non-existing robots
+   *
+   * @return The requested robot from the config according to the settings
+   * described
+   */
+  mc_rbdyn::Robot & fromConfig(const mc_rtc::Configuration & config,
+                               const std::string & prefix,
+                               bool required = false,
+                               const std::string & robotIndexKey = "robotIndex",
+                               const std::string & robotNameKey = "robot",
+                               const std::string & defaultRobotName = "");
+
 protected:
   std::vector<mc_rbdyn::RobotPtr> robots_;
   std::vector<mc_rbdyn::ConstRobotPtr> const_robots_;
