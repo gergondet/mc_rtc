@@ -1,121 +1,58 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+* Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
 
-#include <mc_tasks/MetaTask.h>
+#include <mc_tasks/TrajectoryTaskGeneric.h>
 
-#include <Tasks/QPTasks.h>
+#include <mc_tvm/PostureFunction.h>
 
 namespace mc_tasks
 {
 
-/** A posture task for a given robot */
-struct MC_TASKS_DLLAPI PostureTask : public MetaTask
-{
-public:
-  PostureTask(const mc_solver::QPSolver & solver, unsigned int rIndex, double stiffness = 1, double weight = 10);
+// FIXME Rewrite an equivalent to tasks::qp::JointGains/tasks::qp::JointStiffness which interacts with dimensional
+// stiffness
 
-  void reset() override;
+/** A posture task for a given robot */
+struct MC_TASKS_DLLAPI PostureTask : public TrajectoryTaskGeneric<mc_tvm::PostureFunction>
+{
+  using TrajectoryBase = TrajectoryTaskGeneric<mc_tvm::PostureFunction>;
+
+  PostureTask(mc_rbdyn::Robot & robot, double stiffness = 1, double weight = 10);
 
   /*! \brief Load parameters from a Configuration object */
   void load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) override;
 
-  /** Does not make much sense for PostureTask, prefer selectActiveJoints
-   * or selectUnactiveJoints */
-  void dimWeight(const Eigen::VectorXd &) override {}
-
-  /** Does not make much sense for PostureTask, prefer selectActiveJoints
-   * or selectUnactiveJoints */
-  Eigen::VectorXd dimWeight() const override
-  {
-    return Eigen::VectorXd::Zero(0);
-  }
-
-  void selectActiveJoints(mc_solver::QPSolver & solver,
-                          const std::vector<std::string> & activeJointsName,
-                          const std::map<std::string, std::vector<std::array<int, 2>>> & activeDofs = {}) override;
-
-  void selectUnactiveJoints(mc_solver::QPSolver & solver,
-                            const std::vector<std::string> & unactiveJointsName,
-                            const std::map<std::string, std::vector<std::array<int, 2>>> & unactiveDofs = {}) override;
-
-  void resetJointsSelector(mc_solver::QPSolver & solver) override;
-
-  Eigen::VectorXd eval() const override;
-
-  Eigen::VectorXd speed() const override;
+  void reset() override;
 
   /** Change posture objective */
-  void posture(const std::vector<std::vector<double>> & p);
+  inline void posture(const std::vector<std::vector<double>> & p) noexcept
+  {
+    errorT_->posture(p);
+  }
 
   /** Get current posture objective */
-  std::vector<std::vector<double>> posture() const;
-
-  /** Set joint gains for the posture task */
-  void jointGains(const mc_solver::QPSolver & solver, const std::vector<tasks::qp::JointGains> & jgs);
-
-  /** Set joint stiffness for the posture task */
-  void jointStiffness(const mc_solver::QPSolver & solver, const std::vector<tasks::qp::JointStiffness> & jss);
+  inline const std::vector<std::vector<double>> & posture() const noexcept
+  {
+    return errorT_->posture();
+  }
 
   /** Set specific joint targets
    *
    * \param joints Map of joint's name to joint's configuration
    *
    */
-  void target(const std::map<std::string, std::vector<double>> & joints);
-
-  /** Set task's stiffness */
-  void stiffness(double s);
-
-  /** Get task's stiffness */
-  double stiffness() const;
-
-  /** Set task's damping */
-  void damping(double d);
-
-  /** Get task's damping */
-  double damping() const;
-
-  /** Set task's weight */
-  void weight(double w);
-
-  /** Get task's weight */
-  double weight() const;
-
-  /** True if the task is in the solver */
-  bool inSolver() const;
+  void target(const mc_rtc::map<std::string, std::vector<double>> & joints);
 
 protected:
-  void addToSolver(mc_solver::QPSolver & solver) override;
-
-  void removeFromSolver(mc_solver::QPSolver & solver) override;
-
-  void update(mc_solver::QPSolver &) override;
-
   void addToGUI(mc_rtc::gui::StateBuilder &) override;
 
   void addToLogger(mc_rtc::Logger & logger) override;
 
 private:
-  /** True if added to solver */
-  bool inSolver_ = false;
-  /** Robot handled by the task */
-  const mc_rbdyn::Robots & robots_;
-  unsigned int rIndex_;
-  /** Actual task */
-  tasks::qp::PostureTask pt_;
-  /** Solver timestep */
-  double dt_;
-  /** Store the target posture */
-  std::vector<std::vector<double>> posture_;
   /** Store mimic information */
-  std::unordered_map<std::string, std::vector<int>> mimics_;
-  /** Store the previous eval vector */
-  Eigen::VectorXd eval_;
-  /** Store the task speed */
-  Eigen::VectorXd speed_;
+  mc_rtc::map<std::string, std::vector<int>> mimics_;
 };
 
 using PostureTaskPtr = std::shared_ptr<PostureTask>;

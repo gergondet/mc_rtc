@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <mc_tasks/api.h>
+
 #include <mc_solver/QPSolver.h>
 #include <mc_solver/api.h>
 
