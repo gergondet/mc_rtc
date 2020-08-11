@@ -4,13 +4,12 @@
 
 #pragma once
 
-#include <mc_rtc/Configuration.h>
-#include <mc_rtc/gui/StateBuilder.h>
-#include <mc_rtc/log/Logger.h>
 #include <mc_solver/QPSolver.h>
 #include <mc_solver/api.h>
 
-#include <cmath>
+#include <mc_rtc/Configuration.h>
+#include <mc_rtc/gui/StateBuilder.h>
+#include <mc_rtc/log/Logger.h>
 
 namespace mc_control
 {
@@ -34,7 +33,7 @@ public:
   virtual ~MetaTask();
 
   /** Get the type of the task */
-  const std::string & type() const
+  const std::string & type() const noexcept
   {
     return type_;
   }
@@ -52,7 +51,7 @@ public:
   }
 
   /** Get the name of the task */
-  inline const std::string & name() const
+  inline const std::string & name() const noexcept
   {
     return name_;
   }
@@ -71,14 +70,14 @@ public:
   virtual void dimWeight(const Eigen::VectorXd & dimW) = 0;
 
   /*! \brief Get the current task's dim weight vector */
-  virtual Eigen::VectorXd dimWeight() const = 0;
+  virtual const Eigen::VectorXd & dimWeight() const noexcept = 0;
 
   /*! \brief Setup an active joints selector
    *
    * This function setups an mc_tvm::JointsSelectorFunction for the task. Only the
    * provided joints will be used to solve the task.
    *
-   * \note Calling this method or the related selectUnactiveJoints should reset
+   * \note Calling this method or the related selectInactiveJoints should reset
    * the current joints' selection
    *
    * \param solver Solver where the task is involved
@@ -107,7 +106,7 @@ public:
    * \param unactiveDofs Allow to select only part of the dofs of a joint
    *
    */
-  virtual void selectUnactiveJoints(
+  virtual void selectInactiveJoints(
       mc_solver::QPSolver & solver,
       const std::vector<std::string> & unactiveJointsName,
       const std::map<std::string, std::vector<std::array<int, 2>>> & unactiveDofs = {}) = 0;
