@@ -1,35 +1,30 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #include <mc_rtc/ConfigurationHelpers.h>
 #include <mc_tasks/CoMTask.h>
+
 #include <mc_tasks/MetaTaskLoader.h>
+
+#include <mc_rbdyn/Surface.h>
 
 #include <mc_rtc/gui/Point3D.h>
 
 namespace mc_tasks
 {
 
-CoMTask::CoMTask(const mc_rbdyn::Robots & robots, unsigned int robotIndex, double stiffness, double weight)
-: TrajectoryTaskGeneric<tasks::qp::CoMTask>(robots, robotIndex, stiffness, weight), robot_index_(robotIndex),
-  cur_com_(Eigen::Vector3d::Zero())
+CoMTask::CoMTask(mc_rbdyn::Robot & robot, double stiffness, double weight) : TrajectoryBase(robot, stiffness, weight)
 {
-  const mc_rbdyn::Robot & robot = robots.robot(robotIndex);
-
-  cur_com_ = rbd::computeCoM(robot.mb(), robot.mbc());
-
-  finalize(robots.mbs(), static_cast<int>(robotIndex), cur_com_);
+  finalize(robot_);
   type_ = "com";
-  name_ = "com_" + robots.robot(robot_index_).name();
+  name_ = "com_" + robot.name();
 }
 
 void CoMTask::reset()
 {
   TrajectoryTaskGeneric::reset();
-  const mc_rbdyn::Robot & robot = robots.robot(rIndex);
-  cur_com_ = rbd::computeCoM(robot.mb(), robot.mbc());
-  errorT->com(cur_com_);
+  com(robot_->com().com());
 }
 
 void CoMTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & config)
@@ -44,17 +39,19 @@ void CoMTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & c
     auto surfaces = mc_rtc::fromVectorOrElement<std::string>(config, "above");
     auto com = this->com();
     Eigen::Vector3d target = Eigen::Vector3d::Zero();
-    auto & robot = robotFromConfig(config, solver.robots(), name());
+    std::string rName = config("robot", solver.robots().begin()->get()->name());
+    auto & robot = solver.robots().robot(rName);
     for(const auto & s : surfaces)
     {
-      target += robot.surface(s).X_0_s(robot).translation();
+      target += robot.surface(s).frame().position().translation();
     }
     target /= static_cast<double>(surfaces.size());
     this->com({target.x(), target.y(), com.z()});
   }
   if(config.has("move_com"))
   {
-    this->move_com(config("move_com"));
+    Eigen::Vector3d move = config("move_com");
+    com(com() + move);
   }
   if(config.has("offset"))
   {
@@ -65,40 +62,18 @@ void CoMTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & c
   }
 }
 
-void CoMTask::move_com(const Eigen::Vector3d & com)
-{
-  cur_com_ += com;
-  errorT->com(cur_com_);
-}
-
-void CoMTask::com(const Eigen::Vector3d & com)
-{
-  cur_com_ = com;
-  errorT->com(com);
-}
-
-const Eigen::Vector3d & CoMTask::com() const
-{
-  return errorT->com();
-}
-
-const Eigen::Vector3d & CoMTask::actual() const
-{
-  return errorT->actual();
-}
-
 void CoMTask::addToLogger(mc_rtc::Logger & logger)
 {
   TrajectoryBase::addToLogger(logger);
-  MC_RTC_LOG_HELPER(name_ + "_pos", actual);
-  MC_RTC_LOG_HELPER(name_ + "_target", cur_com_);
+  MC_RTC_LOG_GETTER(name_ + "_pos", actual);
+  MC_RTC_LOG_GETTER(name_ + "_target", com);
 }
 
 void CoMTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
 {
-  TrajectoryTaskGeneric<tasks::qp::CoMTask>::addToGUI(gui);
+  TrajectoryBase::addToGUI(gui);
   gui.addElement({"Tasks", name_},
-                 mc_rtc::gui::Point3D("com_target", [this]() -> const Eigen::Vector3d & { return this->com(); },
+                 mc_rtc::gui::Point3D("target", [this]() -> const Eigen::Vector3d & { return this->com(); },
                                       [this](const Eigen::Vector3d & com) { this->com(com); }),
                  mc_rtc::gui::Point3D("com", [this]() -> const Eigen::Vector3d & { return this->actual(); }));
 }
@@ -111,8 +86,7 @@ namespace
 static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
     "com",
     [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) {
-      auto robotIndex = robotIndexFromConfig(config, solver.robots(), "CoMTask");
-      auto t = std::make_shared<mc_tasks::CoMTask>(solver.robots(), robotIndex);
+      auto t = std::make_shared<mc_tasks::CoMTask>(solver.robots().fromConfig(config, "CoMTask"));
       t->load(solver, config);
       return t;
     });
