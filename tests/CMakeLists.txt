@@ -16,6 +16,10 @@ add_executable(testConstraintImplementation testConstraintImplementation.cpp)
 set_target_properties(testConstraintImplementation PROPERTIES FOLDER tests/compilation)
 target_link_libraries(testConstraintImplementation PUBLIC mc_solver)
 
+add_executable(MetaTaskTraits MetaTaskTraits.cpp)
+set_target_properties(MetaTaskTraits PROPERTIES FOLDER tests/compilation)
+target_link_libraries(MetaTaskTraits PUBLIC mc_tasks)
+
 #################################
 #      -- Utility tests --      #
 # -- FIXME not actuals tests -- #

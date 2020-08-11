@@ -1,11 +1,12 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
 
 #include <mc_tasks/MetaTask.h>
-#include <mc_tasks/api.h>
+
+#include <mc_tasks/details/details.h>
 
 #include <mc_tvm/JointsSelectorFunction.h>
 
@@ -29,6 +30,17 @@ template<typename T>
 struct TrajectoryTaskGeneric : public MetaTask
 {
   using TrajectoryBase = TrajectoryTaskGeneric<T>;
+
+  static constexpr bool hasRefVel = details::has_refVel_v<T>;
+  static constexpr bool hasRefAccel = details::has_refAccel_v<T>;
+  // Return type of the refVel() getter (if any)
+  using refVel_return_t = details::refVel_return_t<T>;
+  // For use in setter function and prevent forming reference to void
+  using refVel_t = std::conditional_t<std::is_void_v<refVel_return_t>, int, std::decay_t<refVel_return_t>>;
+  // Return type of the refAccel() getter (if any)
+  using refAccel_return_t = details::refAccel_return_t<T>;
+  // For use in setter function and prevent forming reference to void
+  using refAccel_t = std::conditional_t<std::is_void_v<refVel_return_t>, int, std::decay_t<refVel_return_t>>;
 
   /*! \brief Constructor (auto damping)
    *
@@ -57,17 +69,31 @@ struct TrajectoryTaskGeneric : public MetaTask
    * \param vel New reference velocity
    *
    */
-  void refVel(const Eigen::VectorXd & vel)
+  void refVel(const refVel_t & vel)
   {
-    errorT_->refVel(vel);
+    if constexpr(hasRefVel)
+    {
+      errorT_->refVel(vel);
+    }
+    else
+    {
+      static_assert(details::always_false_v<T>, "refVel is not defined for this function");
+    }
   }
 
   /*! \brief Get the trajectory reference velocity
    *
    */
-  const Eigen::VectorXd & refVel() const noexcept
+  refVel_return_t refVel() const noexcept
   {
-    return errorT_->refVel();
+    if constexpr(hasRefVel)
+    {
+      return errorT_->refVel();
+    }
+    else
+    {
+      static_assert(details::always_false_v<T>, "refVel is not defined for this function");
+    }
   }
 
   /*! \brief Set the trajectory reference acceleration
@@ -75,17 +101,31 @@ struct TrajectoryTaskGeneric : public MetaTask
    * \param accel New reference acceleration
    *
    */
-  void refAccel(const Eigen::VectorXd & accel)
+  void refAccel(const refAccel_t & accel)
   {
-    errorT_->refAccel(accel);
+    if constexpr(hasRefAccel)
+    {
+      errorT_->refAccel(accel);
+    }
+    else
+    {
+      static_assert(details::always_false_v<T>, "refAccel is not defined for this function");
+    }
   }
 
   /*! \brief Get the trajectory reference acceleration
    *
    */
-  const Eigen::VectorXd & refAccel() const noexcept
+  refAccel_return_t refAccel() const noexcept
   {
-    return errorT_->refAccel();
+    if constexpr(hasRefAccel)
+    {
+      return errorT_->refAccel();
+    }
+    else
+    {
+      static_assert(details::always_false_v<T>, "refAccel is not defined for this function");
+    }
   }
 
   /*! \brief Set the task stiffness/damping
@@ -312,7 +352,7 @@ protected:
 
   mc_rbdyn::RobotPtr robot_;
   std::shared_ptr<T> errorT_ = nullptr;
-  std::shared_ptr<tvm::TaskWithRequirementsPtr> task_; // null if the task is not in solver
+  tvm::TaskWithRequirementsPtr task_; // null if the task is not in solver
 
   void addToSolver(mc_solver::QPSolver & solver) override;
 

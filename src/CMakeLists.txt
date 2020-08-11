@@ -441,6 +441,7 @@ set(mc_tasks_HDR
 ../include/mc_tasks/lipm_stabilizer/StabilizerTask.h
 ../include/mc_tasks/lipm_stabilizer/Contact.h
 ../include/mc_tasks/lipm_stabilizer/ZMPCC.h
+../include/mc_tasks/details/details.h
 )
 
 add_library(mc_tasks SHARED ${mc_tasks_SRC} ${mc_tasks_HDR})
