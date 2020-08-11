@@ -1,10 +1,12 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
 
 #include <mc_tasks/TrajectoryTaskGeneric.h>
+
+#include <mc_tvm/CoMFunction.h>
 
 namespace mc_tasks
 {
@@ -14,51 +16,51 @@ namespace mc_tasks
  * This task is a thin wrapper above the appropriate Tasks types
  *
  */
-struct MC_TASKS_DLLAPI CoMTask : public TrajectoryTaskGeneric<tasks::qp::CoMTask>
+struct MC_TASKS_DLLAPI CoMTask : public TrajectoryTaskGeneric<mc_tvm::CoMFunction>
 {
-  using TrajectoryBase = TrajectoryTaskGeneric<tasks::qp::CoMTask>;
+  using TrajectoryBase = TrajectoryTaskGeneric<mc_tvm::CoMFunction>;
 
 public:
   /*! \brief Constructor
    *
-   * \param robots Robots involved in the task
-   *
-   * \param robotIndex Select the robot which CoM should be controlled
+   * \param robot Robot whose CoM is controlled by this task
    *
    * \param stiffness Task stiffness
    *
    * \param weight Task weight
    *
    */
-  CoMTask(const mc_rbdyn::Robots & robots, unsigned int robotIndex, double stiffness = 5.0, double weight = 100.);
+  CoMTask(mc_rbdyn::Robot & robot, double stiffness = 5.0, double weight = 100.);
 
   void reset() override;
-
-  /*! \brief Change the CoM target by a given amount
-   *
-   * \param com Modification applied to the CoM
-   *
-   */
-  void move_com(const Eigen::Vector3d & com);
 
   /*! \brief Set the CoM target to a given position
    *
    * \param com New CoM target
    *
    */
-  void com(const Eigen::Vector3d & com);
+  inline void com(const Eigen::Vector3d & com) noexcept
+  {
+    errorT_->com(com);
+  }
 
   /*! \brief Return the current CoM target
    *
    * \returns The current CoM target
    */
-  const Eigen::Vector3d & com() const;
+  inline const Eigen::Vector3d & com() const
+  {
+    return errorT_->com();
+  }
 
   /** \brief Actual CoM position (computed at the previous iteration)
    *
    * \return Return the current CoM position
    */
-  const Eigen::Vector3d & actual() const;
+  const Eigen::Vector3d & actual() const noexcept
+  {
+    return robot_->com().com();
+  }
 
   /*! \brief Load from configuration */
   void load(mc_solver::QPSolver &, const mc_rtc::Configuration & config) override;
@@ -68,8 +70,6 @@ protected:
   void addToLogger(mc_rtc::Logger & logger) override;
 
 private:
-  unsigned int robot_index_;
-  Eigen::Vector3d cur_com_;
 };
 
 } // namespace mc_tasks
