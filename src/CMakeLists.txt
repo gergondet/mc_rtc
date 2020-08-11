@@ -398,7 +398,7 @@ mc_tasks/ImpedanceTask.cpp
 #mc_tasks/CoPTask.cpp
 #mc_tasks/GazeTask.cpp
 #mc_tasks/PositionBasedVisServoTask.cpp
-#mc_tasks/PostureTask.cpp
+mc_tasks/PostureTask.cpp
 #mc_tasks/LookAtTask.cpp
 #mc_tasks/LookAtSurfaceTask.cpp
 mc_tasks/MetaTaskLoader.cpp

@@ -41,6 +41,12 @@ public:
   /** Set the fully body posture */
   void posture(const std::vector<std::vector<double>> & p);
 
+  /** Access the full target posture */
+  const std::vector<std::vector<double>> & posture() const noexcept
+  {
+    return posture_;
+  }
+
 protected:
   void updateValue();
 
