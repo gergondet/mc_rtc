@@ -25,6 +25,7 @@ usr/include/mc_rtc/utils.h
 usr/include/mc_rtc/utils_api.h
 usr/include/mc_rtc/version.h
 usr/include/mc_solver/*
+usr/include/mc_tasks/details/*
 usr/include/mc_tasks/MetaTaskLoader.h
 usr/include/mc_tasks/SmoothTask.h
 usr/include/mc_tasks/RelativeEndEffectorTask.h

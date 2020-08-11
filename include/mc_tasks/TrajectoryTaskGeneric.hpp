@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
@@ -51,17 +51,32 @@ void TrajectoryTaskGeneric<T>::addToSolver(mc_solver::QPSolver & solver)
 {
   if(!task_)
   {
-    auto error = selectorT_ ? selectorT_ : errorT_;
-    task_ = solver.problem().add(error == 0., tvm::task_dynamics::ProportionalDerivative(stiffness_, damping_),
-                                 {tvm::requirements::PriorityLevel(1), tvm::requirements::Weight(weight_)});
+    auto addTask = [&, this](auto & error) {
+      task_ = solver.problem().add(error == 0., tvm::task_dynamics::ProportionalDerivative(stiffness_, damping_),
+                                   {tvm::requirements::PriorityLevel(1), tvm::requirements::Weight(weight_)});
+    };
+    if(selectorT_)
+    {
+      addTask(selectorT_);
+    }
+    else
+    {
+      addTask(errorT_);
+    }
   }
 }
 
 template<typename T>
 void TrajectoryTaskGeneric<T>::reset()
 {
-  refVel(Eigen::VectorXd::Zero(refVel().size()));
-  refAccel(Eigen::VectorXd::Zero(refAccel().size()));
+  if constexpr(hasRefVel)
+  {
+    refVel(Eigen::VectorXd::Zero(refVel().size()));
+  }
+  if constexpr(hasRefAccel)
+  {
+    refAccel(Eigen::VectorXd::Zero(refAccel().size()));
+  }
 }
 
 template<typename T>
@@ -76,7 +91,7 @@ void TrajectoryTaskGeneric<T>::setGains(const Eigen::VectorXd & stiffness, const
   damping_ = damping;
   if(task_)
   {
-    auto & PDImpl = static_cast<tvm::task_dynamics::PD::Impl &>(*task_.get()->task.taskDynamics());
+    auto & PDImpl = static_cast<tvm::task_dynamics::PD::Impl &>(*task_->task.taskDynamics());
     PDImpl.gains(stiffness_, damping_);
   }
 }
@@ -87,7 +102,8 @@ void TrajectoryTaskGeneric<T>::weight(double w)
   weight_ = w;
   if(task_)
   {
-    task_->get()->requirements.weight(weight_);
+    // FIXME Currently not possible
+    // task_->requirements.weight(weight_);
   }
 }
 
@@ -98,7 +114,7 @@ void TrajectoryTaskGeneric<T>::dimWeight(const Eigen::VectorXd & w)
   if(task_)
   {
     // FIXME Currently not possible
-    // task_->get()->requirements.anisotropicWeight(w);
+    // task_->requirements.anisotropicWeight(w);
   }
 }
 
@@ -259,13 +275,19 @@ void TrajectoryTaskGeneric<T>::load(mc_solver::QPSolver & solver, const mc_rtc::
   {
     weight(config("weight"));
   }
-  if(config.has("refVel"))
+  if constexpr(hasRefVel)
   {
-    refVel(config("refVel"));
+    if(config.has("refVel"))
+    {
+      refVel(config("refVel"));
+    }
   }
-  if(config.has("refAccel"))
+  if constexpr(hasRefAccel)
   {
-    refAccel(config("refAccel"));
+    if(config.has("refAccel"))
+    {
+      refAccel(config("refAccel"));
+    }
   }
 }
 
@@ -273,11 +295,18 @@ template<typename T>
 void TrajectoryTaskGeneric<T>::addToGUI(mc_rtc::gui::StateBuilder & gui)
 {
   MetaTask::addToGUI(gui);
-  gui.addElement({"Tasks", name_},
-                 mc_rtc::gui::ArrayInput("refVel", [this]() { return this->refVel(); },
-                                         [this](const Eigen::VectorXd & v) { this->refVel(v); }),
-                 mc_rtc::gui::ArrayInput("refAccel", [this]() { return this->refAccel(); },
-                                         [this](const Eigen::VectorXd & v) { this->refAccel(v); }));
+  if constexpr(hasRefVel)
+  {
+    gui.addElement({"Tasks", name_},
+                   mc_rtc::gui::ArrayInput("refVel", [this]() -> refVel_return_t { return this->refVel(); },
+                                           [this](const refVel_t & v) { this->refVel(v); }));
+  }
+  if constexpr(hasRefAccel)
+  {
+    gui.addElement({"Tasks", name_},
+                   mc_rtc::gui::ArrayInput("refAccel", [this]() -> refAccel_return_t { return this->refAccel(); },
+                                           [this](const refAccel_t & v) { this->refAccel(v); }));
+  }
   gui.addElement({"Tasks", name_, "Gains"},
                  mc_rtc::gui::NumberInput("stiffness", [this]() { return this->stiffness(); },
                                           [this](const double & s) { this->setGains(s, this->damping()); }),
@@ -308,8 +337,14 @@ void TrajectoryTaskGeneric<T>::addToLogger(mc_rtc::Logger & logger)
   MC_RTC_LOG_HELPER(name_ + "_dimWeight", dimWeight_);
   MC_RTC_LOG_HELPER(name_ + "_dimDamping", damping_);
   MC_RTC_LOG_HELPER(name_ + "_dimStiffness", stiffness_);
-  MC_RTC_LOG_HELPER(name_ + "_refVel", refVel_);
-  MC_RTC_LOG_HELPER(name_ + "_refAccel", refAccel_);
+  if constexpr(hasRefVel)
+  {
+    logger.addLogEntry(name_ + "_refVel", this, [this]() -> refVel_return_t { return refVel(); });
+  }
+  if constexpr(hasRefAccel)
+  {
+    logger.addLogEntry(name_ + "_refAccel", this, [this]() -> refAccel_return_t { return refAccel(); });
+  }
 }
 
 } // namespace mc_tasks
