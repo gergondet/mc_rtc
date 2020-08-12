@@ -345,6 +345,18 @@ public:
     return fd_.C();
   }
 
+  /** Shortcut to access the position of a body */
+  inline const sva::PTransformd & bodyPosW(std::string_view body) const
+  {
+    return mbc().bodyPosW[bodyIndexByName(body)];
+  }
+
+  /** Shortcut to query the position of b2 relative to b1 */
+  inline sva::PTransformd X_b1_b2(std::string_view b1, std::string_view b2) const
+  {
+    return bodyPosW(b2) * bodyPosW(b1).inv();
+  }
+
   /** Compute the gravity-free wrench in a given frame
    *
    * @note If the frame is indirectly attached to the sensor (i.e there are

@@ -3,6 +3,8 @@
  */
 
 #include <mc_rbdyn/Robots.h>
+#include <mc_rbdyn/Surface.h>
+
 #include <mc_rtc/config.h>
 #include <mc_rtc/logging.h>
 #include <mc_rtc/ros.h>
@@ -197,7 +199,7 @@ void RobotPublisherImpl::init(const mc_rbdyn::Robot & robot, bool use_real)
   {
     const auto & surf = s.second;
     data.surface_tfs.push_back(
-        PT2TF(surf->X_b_s(), tm, prefix + surf->bodyName(), prefix + "surfaces/" + surf->name(), 0));
+        PT2TF(surf->X_b_s(), tm, prefix + surf->frame().body(), prefix + "surfaces/" + surf->name(), 0));
   }
 
   nh.setParam(prefix + "/robot_module", robot.module().parameters());

@@ -17,20 +17,20 @@ namespace mc_control
 
 void MCGlobalController::initGUI()
 {
-  if(controller_ && controller_->gui())
+  if(controller_)
   {
-    auto gui = controller_->gui();
-    gui->removeCategory({"Global", "Log"});
-    gui->addElement({"Global", "Log"}, mc_rtc::gui::Button("Start a new log", [this]() { this->refreshLog(); }));
-    gui->removeCategory({"Global", "Grippers"});
+    auto & gui = controller_->gui();
+    gui.removeCategory({"Global", "Log"});
+    gui.addElement({"Global", "Log"}, mc_rtc::gui::Button("Start a new log", [this]() { this->refreshLog(); }));
+    gui.removeCategory({"Global", "Grippers"});
     for(const auto & robot : controller().robots())
     {
-      const auto & gi = robot.grippersByName();
+      const auto & gi = robot->grippersByName();
       for(const auto & g : gi)
       {
         auto g_ptr = g.second.get();
-        std::vector<std::string> category = {"Global", "Grippers", robot.name(), g.first};
-        gui->addElement(category, mc_rtc::gui::Button("Open", [g_ptr]() { g_ptr->setTargetOpening(1); }),
+        std::vector<std::string> category = {"Global", "Grippers", robot->name(), g.first};
+        gui.addElement(category, mc_rtc::gui::Button("Open", [g_ptr]() { g_ptr->setTargetOpening(1); }),
                         mc_rtc::gui::Button("Close", [g_ptr]() { g_ptr->setTargetOpening(0); }),
                         mc_rtc::gui::NumberSlider("Opening percentage", [g_ptr]() { return g_ptr->opening(); },
                                                   [g_ptr](double op) { g_ptr->setTargetOpening(op); }, 0, 1),
@@ -42,7 +42,7 @@ void MCGlobalController::initGUI()
         targetCat.push_back("Targets");
         for(const auto & joint : g_ptr->activeJoints())
         {
-          gui->addElement(targetCat,
+          gui.addElement(targetCat,
                           mc_rtc::gui::NumberSlider(
                               joint, [joint, g_ptr]() { return g_ptr->curOpening(joint); },
                               [joint, g_ptr](double targetOpening) { g_ptr->setTargetOpening(joint, targetOpening); },
@@ -50,7 +50,7 @@ void MCGlobalController::initGUI()
         }
 
         category.push_back("Safety");
-        gui->addElement(
+        gui.addElement(
             category,
             mc_rtc::gui::NumberInput(
                 "Actual command diff threshold [deg]",
@@ -64,15 +64,15 @@ void MCGlobalController::initGUI()
                 [g_ptr](double deg) { g_ptr->releaseSafetyOffset(mc_rtc::constants::toRad(deg)); }));
       }
     }
-    gui->removeCategory({"Global", "Change controller"});
-    gui->addElement({"Global", "Change controller"},
-                    mc_rtc::gui::Label("Current controller", [this]() { return current_ctrl; }),
-                    mc_rtc::gui::Form("Change controller",
-                                      [this](const mc_rtc::Configuration & form) {
-                                        std::string controller = form("Controller");
-                                        this->EnableController(controller);
-                                      },
-                                      mc_rtc::gui::FormComboInput("Controller", true, this->enabled_controllers())));
+    gui.removeCategory({"Global", "Change controller"});
+    gui.addElement({"Global", "Change controller"},
+                   mc_rtc::gui::Label("Current controller", [this]() { return current_ctrl; }),
+                   mc_rtc::gui::Form("Change controller",
+                                     [this](const mc_rtc::Configuration & form) {
+                                       std::string controller = form("Controller");
+                                       this->EnableController(controller);
+                                     },
+                                     mc_rtc::gui::FormComboInput("Controller", true, this->enabled_controllers())));
   }
 }
 

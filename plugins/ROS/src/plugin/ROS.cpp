@@ -4,16 +4,18 @@
 
 #include <mc_control/GlobalPluginMacros.h>
 
-#include <mc_tasks/LookAtTFTask.h>
+// FIXME
+// #include <mc_tasks/LookAtTFTask.h>
 
 namespace mc_plugin
 {
 
 // This is useless but ensure we bring in LookAtTFTask into the library
-void ROSPlugin::build(mc_control::MCGlobalController & controller)
+void ROSPlugin::build(mc_control::MCGlobalController & /*controller*/)
 {
-  mc_tasks::LookAtTFTask task("body", Eigen::Vector3d::UnitZ(), "source", "target", controller.controller().robots(),
-                              0);
+  // FIXME
+  // mc_tasks::LookAtTFTask task("body", Eigen::Vector3d::UnitZ(), "source", "target", controller.controller().robots(),
+  //                            0);
 }
 
 void ROSPlugin::init(mc_control::MCGlobalController & controller, const mc_rtc::Configuration & config)
@@ -43,7 +45,7 @@ void ROSPlugin::reset(mc_control::MCGlobalController & controller)
       for(size_t i = 1; i < robots.robots().size(); ++i)
       {
         mc_rtc::ROSBridge::init_robot_publisher(prefix + "_" + std::to_string(i), controller.timestep(),
-                                                robots.robot(i), use_real);
+                                                *robots.robots()[i], use_real);
       }
     };
     publish_env("control/env", controller.controller().robots(), false);
@@ -72,7 +74,7 @@ void ROSPlugin::after(mc_control::MCGlobalController & controller)
       for(size_t i = 1; i < robots.robots().size(); ++i)
       {
         mc_rtc::ROSBridge::update_robot_publisher(prefix + "_" + std::to_string(i), controller.timestep(),
-                                                  robots.robot(i));
+                                                  *robots.robots()[i]);
       }
     };
     update_env("control/env", controller.controller().robots());

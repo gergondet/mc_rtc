@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <mc_control/Configuration.h>
+#include <mc_control/api.h>
 
 #include <mc_observers/ObserverPipeline.h>
 
@@ -15,12 +15,9 @@
 #include <mc_rtc/log/Logger.h>
 
 #include <mc_solver/CollisionsConstraint.h>
-#include <mc_solver/CompoundJointConstraint.h>
-#include <mc_solver/ContactConstraint.h>
 #include <mc_solver/DynamicsConstraint.h>
 #include <mc_solver/KinematicsConstraint.h>
 #include <mc_solver/QPSolver.h>
-#include <mc_solver/msg/QPResult.h>
 
 #include <mc_tasks/PostureTask.h>
 
@@ -28,8 +25,6 @@ namespace mc_rbdyn
 {
 struct Contact;
 }
-
-#include <mc_control/api.h>
 
 namespace mc_control
 {
@@ -137,9 +132,9 @@ public:
    *
    * @throws if no pipeline with that name exist
    */
-  const mc_observers::ObserverPipeline & observerPipeline(const std::string & name) const;
+  const mc_observers::ObserverPipeline & observerPipeline(std::string_view name) const;
   /** Non-const variant */
-  mc_observers::ObserverPipeline & observerPipeline(const std::string & name);
+  mc_observers::ObserverPipeline & observerPipeline(std::string_view name);
 
   /**
    * Provides const access to the main observer pipeline (first pipeline)
@@ -167,11 +162,6 @@ public:
    */
   virtual void stop();
 
-  /** Gives access to the result of the QP execution
-   * \param t Unused at the moment
-   */
-  virtual const mc_solver::QPResultMsg & send(const double & t);
-
   /** Reset the controller with data provided by ControllerResetData. This is
    * called at two possible points during a simulation/live execution:
    *   1. Actual start
@@ -192,24 +182,34 @@ public:
   /** Return the main robot (first robot provided in the constructor)
    * \anchor mc_controller_robot_const_doc
    */
-  const mc_rbdyn::Robot & robot() const;
+  inline const mc_rbdyn::Robot & robot() const noexcept
+  {
+    return robots_->robot();
+  }
 
-  /** Return the env "robot"
-   * \note
-   * In multi-robot scenarios, the env robot is either:
-   *   1. The first robot with zero dof
-   *   2. The last robot provided at construction
-   * \anchor mc_controller_env_const_doc
+  /** Access a robot by name
+   * \anchor mc_controller_robot_by_name_const_doc
+   *
+   * \throws If the robot does not exist
    */
-  const mc_rbdyn::Robot & env() const;
+  inline const mc_rbdyn::Robot & robot(std::string_view name) const
+  {
+    return robots_->robot(name);
+  }
 
   /** Return the mc_rbdyn::Robots controlled by this controller
    * \anchor mc_controller_robots_const_doc
    */
-  const mc_rbdyn::Robots & robots() const;
+  inline const mc_rbdyn::Robots & robots() const noexcept
+  {
+    return *robots_;
+  }
 
   /** Non-const variant of \ref mc_controller_robots_const_doc "robots()" */
-  mc_rbdyn::Robots & robots();
+  inline mc_rbdyn::Robots & robots() noexcept
+  {
+    return *robots_;
+  }
 
   /** Return the mc_rbdyn::Robot controlled by this controller
    *
@@ -222,36 +222,51 @@ public:
   mc_rbdyn::Robot & robot(const std::string & name);
 
   /** Non-const variant of \ref mc_controller_robot_const_doc "robot()" */
-  mc_rbdyn::Robot & robot();
+  inline mc_rbdyn::Robot & robot() noexcept
+  {
+    return robots_->robot();
+  }
 
-  /** Non-const variant of \ref mc_controller_env_const_doc "env()" */
-  mc_rbdyn::Robot & env();
+  /** Non-const variant of \ref mc_controller_robot_by_name_const_doc "robot(name)" */
+  inline mc_rbdyn::Robot & robot(std::string_view name)
+  {
+    return robots_->robot(name);
+  }
 
   /** Return the mc_solver::QPSolver instance attached to this controller
    * \anchor mc_controller_qpsolver_const_doc
    */
-  const mc_solver::QPSolver & solver() const;
+  inline const mc_solver::QPSolver & solver() const noexcept
+  {
+    return solver_;
+  }
 
   /** Non-const variant of \ref mc_controller_qpsolver_const_doc "solver()" */
-  mc_solver::QPSolver & solver();
+  inline mc_solver::QPSolver & solver() noexcept
+  {
+    return solver_;
+  }
 
   /** Returns mc_rtc::Logger instance */
-  mc_rtc::Logger & logger();
+  inline mc_rtc::Logger & logger() noexcept
+  {
+    return *logger_;
+  }
 
   /** Returns mc_rtc::gui::StateBuilder ptr */
-  std::shared_ptr<mc_rtc::gui::StateBuilder> gui()
+  inline mc_rtc::GUI & gui() noexcept
   {
-    return gui_;
+    return *gui_;
   }
 
   /** Provides access to the shared datastore */
-  mc_rtc::DataStore & datastore()
+  inline mc_rtc::DataStore & datastore() noexcept
   {
     return datastore_;
   }
 
   /** Provides access to the shared datastore (const) */
-  const mc_rtc::DataStore & datastore() const
+  inline const mc_rtc::DataStore & datastore() const noexcept
   {
     return datastore_;
   }
@@ -259,26 +274,40 @@ public:
   /** Return the mc_rbdyn::Robots real robots instance
    * \anchor mc_controller_real_robots_const_doc
    */
-  const mc_rbdyn::Robots & realRobots() const;
+  inline const mc_rbdyn::Robots & realRobots() const noexcept
+  {
+    return *realRobots_;
+  }
+
   /** Non-const variant of \ref mc_controller_real_robots_const_doc "realRobots()" **/
-  mc_rbdyn::Robots & realRobots();
+  inline mc_rbdyn::Robots & realRobots() noexcept
+  {
+    return *realRobots_;
+  }
 
   /** Return the main mc_rbdyn::Robot real robot instance
    * \anchor mc_controller_real_robot_const_doc
    */
-  const mc_rbdyn::Robot & realRobot() const;
+  inline const mc_rbdyn::Robot & realRobot() const noexcept
+  {
+    return realRobots().robot();
+  }
+
   /** Non-const variant of \ref mc_controller_real_robot_const_doc "realRobot()" */
-  mc_rbdyn::Robot & realRobot();
+  inline mc_rbdyn::Robot & realRobot() noexcept
+  {
+    return realRobots().robot();
+  }
 
   /** Return the mc_rbdyn::Robot controlled by this controller
    *
    * @throws std::runtime_error if the robot does not exist
    * \anchor mc_controller_realRobot_name_const_doc
    **/
-  const mc_rbdyn::Robot & realRobot(const std::string & name) const;
+  const mc_rbdyn::Robot & realRobot(std::string_view name) const;
 
   /** Non-const variant of \ref mc_controller_realRobot_name_const_doc "realRobot(name)" */
-  mc_rbdyn::Robot & realRobot(const std::string & name);
+  mc_rbdyn::Robot & realRobot(std::string_view name);
 
   /** Returns a list of robots supported by the controller.
    * \param out Vector of supported robots designed by name (as returned by
@@ -302,22 +331,22 @@ public:
    * \return The loaded control robot.
    * You may access the corresponding real robot through realRobots().robot(name)
    */
-  mc_rbdyn::Robot & loadRobot(mc_rbdyn::RobotModulePtr rm, const std::string & name);
+  mc_rbdyn::Robot & loadRobot(mc_rbdyn::RobotModulePtr rm, std::string_view name);
 
   /** Remove a robot from the controller
    *
    * \param name Name of the robot to remove
    */
-  void removeRobot(const std::string & name);
+  void removeRobot(std::string_view name);
 
   /** Access or modify controller configuration */
-  mc_rtc::Configuration & config()
+  inline mc_rtc::Configuration & config() noexcept
   {
     return config_;
   }
 
   /** Access controller configuration (const) */
-  const mc_rtc::Configuration & config() const
+  inline const mc_rtc::Configuration & config() const noexcept
   {
     return config_;
   }
@@ -330,7 +359,10 @@ public:
    *
    * \throws If the robot's name is not valid or the gripper's name is not valid
    */
-  Gripper & gripper(const std::string & robot, const std::string & gripper);
+  inline Gripper & gripper(std::string_view robot, std::string_view gripper)
+  {
+    return this->robot(robot).gripper(gripper);
+  }
 
   /** Helper to make the anchor frame compile-time deprecation warning
    * clearer
@@ -403,74 +435,54 @@ protected:
    * \param dt Controller timestep
    * your controller
    */
-  MCController(std::shared_ptr<mc_rbdyn::RobotModule> robot, double dt);
+  MCController(mc_rbdyn::RobotModulePtr robot, double dt);
 
-  MCController(std::shared_ptr<mc_rbdyn::RobotModule> robot, double dt, const mc_rtc::Configuration & config);
+  MCController(mc_rbdyn::RobotModulePtr robot, double dt, const mc_rtc::Configuration & config);
 
   /** Builds a multi-robot controller base
    * \param robots Collection of robot modules used by the controller
    * \param dt Timestep of the controller
    */
-  MCController(const std::vector<std::shared_ptr<mc_rbdyn::RobotModule>> & robot_modules, double dt);
+  MCController(const std::vector<mc_rbdyn::RobotModulePtr> & robot_modules, double dt);
 
   /** Builds a multi-robot controller base
    * \param robots Collection of robot modules used by the controller
    * \param dt Timestep of the controller
    * \param config Controller configuration
    */
-  MCController(const std::vector<std::shared_ptr<mc_rbdyn::RobotModule>> & robot_modules,
+  MCController(const std::vector<mc_rbdyn::RobotModulePtr> & robot_modules,
                double dt,
                const mc_rtc::Configuration & config);
 
-  /** Load an additional robot into the controller
-   *
-   * \param name Name of the robot
-   * \param rm RobotModule used to load the robot
-   * \param robots Robots in which this robot will be loaded
-   * \param updateNrVars When true, update the number of variables in the QP
-   * problem.
-   *
-   * \returns The loaded robot
-   */
-  mc_rbdyn::Robot & loadRobot(mc_rbdyn::RobotModulePtr rm,
-                              const std::string & name,
-                              mc_rbdyn::Robots & robots,
-                              bool updateNrVars = true);
-
 protected:
-  /** QP solver */
-  std::shared_ptr<mc_solver::QPSolver> qpsolver;
-
+  /** Logger instance */
+  std::shared_ptr<mc_rtc::Logger> logger_;
+  /** GUI instance */
+  std::shared_ptr<mc_rtc::gui::StateBuilder> gui_;
+  /** Robots in the controller */
+  std::shared_ptr<mc_rbdyn::Robots> realRobots_;
+  /** Robots in the controller */
+  std::shared_ptr<mc_rbdyn::Robots> robots_;
   /** State observation pipelines for this controller */
   std::vector<mc_observers::ObserverPipeline> observerPipelines_;
-
-  /** Logger provided by MCGlobalController */
-  std::shared_ptr<mc_rtc::Logger> logger_;
-  /** GUI state builder */
-  std::shared_ptr<mc_rtc::gui::StateBuilder> gui_;
-
+  /** QP solver */
+  mc_solver::QPSolver solver_;
   /** Keep track of the configuration of the controller */
   mc_rtc::Configuration config_;
-
   /** DataStore to share variables/objects between different parts of the
    * framework (states...) */
   mc_rtc::DataStore datastore_;
-
-public:
-  /** Controller timestep */
-  const double timeStep;
-  /** Contact constraint for the main robot */
-  mc_solver::ContactConstraint contactConstraint;
   /** Dynamics constraints for the main robot */
-  mc_solver::DynamicsConstraint dynamicsConstraint;
+  mc_solver::DynamicsConstraintPtr dynamicsConstraint_;
   /** Kinematics constraints for the main robot */
-  mc_solver::KinematicsConstraint kinematicsConstraint;
+  mc_solver::KinematicsConstraintPtr kinematicsConstraint_;
   /** Self collisions constraint for the main robot */
-  mc_solver::CollisionsConstraint selfCollisionConstraint;
+  mc_solver::CollisionsConstraintPtr collisionConstraint_;
   /** Compound joint constraint for the main robot */
-  std::unique_ptr<mc_solver::CompoundJointConstraint> compoundJointConstraint;
+  // FIXME Should be included again
+  // std::unique_ptr<mc_solver::CompoundJointConstraint> compoundJointConstraint_;
   /** Posture task for the main robot */
-  std::shared_ptr<mc_tasks::PostureTask> postureTask;
+  mc_tasks::PostureTaskPtr postureTask_;
   /* Controller's name */
   std::string name_;
 };

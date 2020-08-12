@@ -1,13 +1,13 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
 
 #include <mc_control/api.h>
 #include <mc_control/mc_controller.h>
+
 #include <mc_tasks/CoMTask.h>
-#include <mc_tasks/PostureTask.h>
 
 namespace mc_control
 {
@@ -15,10 +15,13 @@ namespace mc_control
 struct MC_CONTROL_DLLAPI MCCoMController : public MCController
 {
   MCCoMController(std::shared_ptr<mc_rbdyn::RobotModule> robot, double dt);
+
   void reset(const ControllerResetData & reset_data) override;
 
-protected:
-  std::shared_ptr<mc_tasks::CoMTask> comTask;
+  bool run() override;
+
+private:
+  mc_tasks::CoMTaskPtr comTask_;
   std::string leftFootSurface_, rightFootSurface_;
 };
 

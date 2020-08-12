@@ -65,4 +65,6 @@ protected:
   std::vector<tvm::TaskWithRequirementsPtr> constraints_;
 };
 
+using KinematicsConstraintPtr = std::shared_ptr<KinematicsConstraint>;
+
 } // namespace mc_solver

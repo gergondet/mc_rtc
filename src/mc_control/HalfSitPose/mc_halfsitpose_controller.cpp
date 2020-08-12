@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #include "mc_halfsitpose_controller.h"
@@ -25,7 +25,7 @@ MCHalfSitPoseController::MCHalfSitPoseController(std::shared_ptr<mc_rbdyn::Robot
 
   /* Set the halfSitPose in posture Task */
   const auto & halfSit = robot_module->stance();
-  const auto & ref_joint_order = robot().refJointOrder();
+  const auto & ref_joint_order = robot_module->ref_joint_order();
   for(unsigned int i = 0; i < ref_joint_order.size(); ++i)
   {
     if(robot().hasJoint(ref_joint_order[i]))
@@ -34,29 +34,24 @@ MCHalfSitPoseController::MCHalfSitPoseController(std::shared_ptr<mc_rbdyn::Robot
     }
   }
 
-  selfCollisionConstraint.reset();
-  qpsolver->addConstraintSet(selfCollisionConstraint);
   /* Get the complete collision constraint set */
-  selfCollisionConstraint.addCollisions(solver(), robot_module->commonSelfCollisions());
-  qpsolver->addConstraintSet(kinematicsConstraint);
-  qpsolver->addTask(postureTask.get());
-  qpsolver->addConstraintSet(contactConstraint);
-  qpsolver->setContacts({});
-  mc_rtc::log::success("MCHalfSitPoseController init done");
+  collisionConstraint_->addCollisions(solver(), {robot().name(), robot_module->commonSelfCollisions()});
+  solver().addConstraint(collisionConstraint_);
+
+  solver().addConstraint(kinematicsConstraint_);
+
+  postureTask_->weight(100.0);
+  postureTask_->stiffness(2.0);
+  solver().addTask(postureTask_);
+  mc_rtc::log::success("Half-sitting controller initialized");
 }
 
 void MCHalfSitPoseController::reset(const ControllerResetData & reset_data)
 {
-  robot().mbc().zero(robot().mb());
-  robot().mbc().q = reset_data.q;
-  postureTask->reset();
-  postureTask.get()->weight(100.);
-  postureTask.get()->stiffness(2.);
-  rbd::forwardKinematics(robot().mb(), robot().mbc());
-  rbd::forwardVelocity(robot().mb(), robot().mbc());
-  gui_->removeElement({"Controller"}, "Go half-sitting");
-  gui_->addElement({"Controller"},
-                   mc_rtc::gui::Button("Go half-sitting", [this]() { postureTask->posture(halfSitPose); }));
+  MCController::reset(reset_data);
+  postureTask_->reset();
+  gui_->removeElement({}, "Go half-sitting");
+  gui_->addElement({}, mc_rtc::gui::Button("Go half-sitting", [this]() { postureTask_->posture(halfSitPose); }));
 }
 
 } // namespace mc_control

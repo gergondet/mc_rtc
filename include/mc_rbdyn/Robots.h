@@ -129,6 +129,20 @@ public:
   /** Access a robot by name (const) */
   const Robot & robot(std::string_view name) const;
 
+  /** Convenience accessor for the "main" robot */
+  inline Robot & robot() noexcept
+  {
+    assert(robots_.size());
+    return *robots_.begin()->get();
+  }
+
+  /** Convenience accessor for the "main" robot (const) */
+  inline const Robot & robot() const noexcept
+  {
+    assert(const_robots_.size());
+    return *const_robots_.begin()->get();
+  }
+
   /** @name Iterators
    *
    * These functions provide an iterator interface to Robots

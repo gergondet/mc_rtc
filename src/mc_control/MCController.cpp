@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #include <mc_control/MCController.h>
@@ -25,11 +25,9 @@
 namespace mc_control
 {
 
-MCController::MCController(std::shared_ptr<mc_rbdyn::RobotModule> robot, double dt) : MCController(robot, dt, {}) {}
+MCController::MCController(mc_rbdyn::RobotModulePtr robot, double dt) : MCController(robot, dt, {}) {}
 
-MCController::MCController(std::shared_ptr<mc_rbdyn::RobotModule> robot,
-                           double dt,
-                           const mc_rtc::Configuration & config)
+MCController::MCController(mc_rbdyn::RobotModulePtr robot, double dt, const mc_rtc::Configuration & config)
 : MCController({robot, mc_rbdyn::RobotLoader::get_robot_module("env",
                                                                std::string(mc_rtc::MC_ENV_DESCRIPTION_PATH),
                                                                std::string("ground"))},
@@ -38,109 +36,122 @@ MCController::MCController(std::shared_ptr<mc_rbdyn::RobotModule> robot,
 {
 }
 
-MCController::MCController(const std::vector<std::shared_ptr<mc_rbdyn::RobotModule>> & robots_modules, double dt)
+MCController::MCController(const std::vector<mc_rbdyn::RobotModulePtr> & robots_modules, double dt)
 : MCController(robots_modules, dt, {})
 {
 }
 
-MCController::MCController(const std::vector<std::shared_ptr<mc_rbdyn::RobotModule>> & robots_modules,
+namespace internal
+{
+
+static mc_rbdyn::Robot & loadRobot(mc_rbdyn::Robots & robots,
+                                   mc_rtc::GUI & gui,
+                                   const mc_rbdyn::RobotModulePtr & rm,
+                                   std::string_view name)
+{
+  auto & r = robots.load(*rm, name);
+  r.mbc().gravity = mc_rtc::constants::gravity;
+  r.updateKinematics();
+  auto data = gui.data();
+  if(!data.has("robots"))
+  {
+    data.array("robots");
+  }
+  if(!data.has("bodies"))
+  {
+    data.add("bodies");
+  }
+  if(!data.has("surfaces"))
+  {
+    data.add("surfaces");
+  }
+  data("robots").push(r.name());
+  auto bs = data("bodies").array(r.name());
+  for(const auto & b : r.mb().bodies())
+  {
+    bs.push(b.name());
+  }
+  data("surfaces").add(r.name(), r.availableSurfaces());
+  std::string rName = name;
+  gui.addElement({"Robots"}, mc_rtc::gui::Robot(r.name(), [rName, &robots]() -> const mc_rbdyn::Robot & {
+                   return robots.robot(rName);
+                 }));
+  return r;
+}
+
+static mc_rbdyn::RobotsPtr loadRobots(const std::vector<mc_rbdyn::RobotModulePtr> & modules,
+                                      mc_rtc::GUI & gui,
+                                      mc_rbdyn::Robots & realRobots)
+{
+  auto robots = std::make_shared<mc_rbdyn::Robots>();
+  mc_rtc::map<std::string_view, size_t> count;
+  for(auto & m : modules)
+  {
+    auto it = count.find(m->name);
+    if(it == count.end())
+    {
+      count[m->name] = 1;
+      const auto & r = loadRobot(*robots, gui, m, m->name);
+      realRobots.robotCopy(r, r.name());
+    }
+    else
+    {
+      count[m->name] += 1;
+      const auto & r = loadRobot(*robots, gui, m, fmt::format("{}_{}", m->name, count[m->name]));
+      realRobots.robotCopy(r, r.name());
+    }
+  }
+  return robots;
+}
+
+} // namespace internal
+
+MCController::MCController(const std::vector<mc_rbdyn::RobotModulePtr> & modules,
                            double dt,
                            const mc_rtc::Configuration & config)
-: qpsolver(std::make_shared<mc_solver::QPSolver>(dt)),
-  logger_(std::make_shared<mc_rtc::Logger>(mc_rtc::Logger::Policy::NON_THREADED, "", "")),
-  gui_(std::make_shared<mc_rtc::gui::StateBuilder>()), config_(config), timeStep(dt)
+: logger_(std::make_shared<mc_rtc::Logger>(mc_rtc::Logger::Policy::NON_THREADED, "", "")),
+  gui_(std::make_shared<mc_rtc::gui::StateBuilder>()), realRobots_(std::make_shared<mc_rbdyn::Robots>()),
+  robots_(internal::loadRobots(modules, *gui_, *realRobots_)), solver_(robots_, realRobots_, logger_, gui_, dt),
+  config_(config)
 {
-  /* Load robots */
-  qpsolver->logger(logger_);
-  qpsolver->gui(gui_);
-  for(auto rm : robots_modules)
-  {
-    loadRobot(rm, rm->name);
-  }
-
-  if(gui_)
-  {
-    gui_->addElement({"Global", "Add task"},
-                     mc_rtc::gui::Schema("Add MetaTask", "MetaTask", [this](const mc_rtc::Configuration & config) {
-                       try
-                       {
-                         auto t = mc_tasks::MetaTaskLoader::load(this->solver(), config);
-                         this->solver().addTask(t);
-                       }
-                       catch(...)
-                       {
-                         mc_rtc::log::error("Failed to load MetaTask from request\n{}", config.dump(true));
-                       }
-                     }));
-  }
+  gui_->addElement({"Global", "Add task"},
+                   mc_rtc::gui::Schema("Add MetaTask", "MetaTask", [this](const mc_rtc::Configuration & config) {
+                     try
+                     {
+                       auto t = mc_tasks::MetaTaskLoader::load(this->solver(), config);
+                       this->solver().addTask(t);
+                     }
+                     catch(...)
+                     {
+                       mc_rtc::log::error("Failed to load MetaTask from request\n{}", config.dump(true));
+                     }
+                   }));
   /* Initialize constraints and tasks */
   std::array<double, 3> damper = {0.1, 0.01, 0.5};
-  contactConstraint = mc_solver::ContactConstraint(timeStep, mc_solver::ContactConstraint::Velocity);
-  dynamicsConstraint = mc_solver::DynamicsConstraint(robots(), 0, timeStep, damper, 0.5);
-  kinematicsConstraint = mc_solver::KinematicsConstraint(robots(), 0, timeStep, damper, 0.5);
-  selfCollisionConstraint = mc_solver::CollisionsConstraint(robots(), 0, 0, timeStep);
-  selfCollisionConstraint.addCollisions(solver(), robots_modules[0]->minimalSelfCollisions());
-  compoundJointConstraint.reset(new mc_solver::CompoundJointConstraint(robots(), 0, timeStep));
-  postureTask = std::make_shared<mc_tasks::PostureTask>(solver(), 0, 10.0, 5.0);
+  kinematicsConstraint_ = std::make_shared<mc_solver::KinematicsConstraint>(robot(), damper, 0.5);
+  dynamicsConstraint_ = std::make_shared<mc_solver::DynamicsConstraint>(robot(), damper, 0.5);
+  collisionConstraint_ = std::make_shared<mc_solver::CollisionsConstraint>();
+  collisionConstraint_->addCollisions(solver(), {robot().name(), modules[0]->minimalSelfCollisions()});
+  // FIXME Implement CompoundJointConstraint
+  // compoundJointConstraint.reset(new mc_solver::CompoundJointConstraint(robots(), 0, timeStep));
+  postureTask_ = std::make_shared<mc_tasks::PostureTask>(robot());
   mc_rtc::log::info("MCController(base) ready");
 }
 
 MCController::~MCController() {}
 
-mc_rbdyn::Robot & MCController::loadRobot(mc_rbdyn::RobotModulePtr rm, const std::string & name)
-{
-  loadRobot(rm, name, realRobots(), false);
-  return loadRobot(rm, name, robots(), true);
-}
-
-mc_rbdyn::Robot & MCController::loadRobot(mc_rbdyn::RobotModulePtr rm,
-                                          const std::string & name,
-                                          mc_rbdyn::Robots & robots,
-                                          bool updateNrVars)
+mc_rbdyn::Robot & MCController::loadRobot(mc_rbdyn::RobotModulePtr rm, std::string_view name)
 {
   assert(rm);
-  auto & r = robots.load(name, *rm);
-  r.mbc().gravity = mc_rtc::constants::gravity;
-  r.forwardKinematics();
-  r.forwardVelocity();
-  if(gui_ && updateNrVars)
-  {
-    auto data = gui_->data();
-    if(!data.has("robots"))
-    {
-      data.array("robots");
-    }
-    if(!data.has("bodies"))
-    {
-      data.add("bodies");
-    }
-    if(!data.has("surfaces"))
-    {
-      data.add("surfaces");
-    }
-    data("robots").push(r.name());
-    auto bs = data("bodies").array(r.name());
-    for(const auto & b : r.mb().bodies())
-    {
-      bs.push(b.name());
-    }
-    data("surfaces").add(r.name(), r.availableSurfaces());
-    auto name = r.name();
-    gui()->addElement({"Robots"}, mc_rtc::gui::Robot(r.name(), [name, this]() -> const mc_rbdyn::Robot & {
-                        return this->robot(name);
-                      }));
-  }
-  if(updateNrVars)
-  {
-    solver().updateNrVars();
-  }
+  auto & r = internal::loadRobot(*robots_, *gui_, rm, name);
+  realRobots_->robotCopy(r, r.name());
   return r;
 }
 
-void MCController::removeRobot(const std::string & name)
+void MCController::removeRobot(std::string_view name)
 {
   robots().removeRobot(name);
-  solver().updateNrVars();
+  realRobots().removeRobot(name);
 }
 
 void MCController::createObserverPipelines(const mc_rtc::Configuration & config)
@@ -226,7 +237,7 @@ std::vector<mc_observers::ObserverPipeline> & MCController::observerPipelines()
   return observerPipelines_;
 }
 
-const mc_observers::ObserverPipeline & MCController::observerPipeline(const std::string & name) const
+const mc_observers::ObserverPipeline & MCController::observerPipeline(std::string_view name) const
 {
   auto pipelineIt =
       std::find_if(observerPipelines_.begin(), observerPipelines_.end(),
@@ -241,7 +252,7 @@ const mc_observers::ObserverPipeline & MCController::observerPipeline(const std:
   }
 }
 
-mc_observers::ObserverPipeline & MCController::observerPipeline(const std::string & name)
+mc_observers::ObserverPipeline & MCController::observerPipeline(std::string_view name)
 {
   return const_cast<mc_observers::ObserverPipeline &>(static_cast<const MCController *>(this)->observerPipeline(name));
 }
@@ -272,17 +283,12 @@ bool MCController::run()
 
 bool MCController::run(mc_solver::FeedbackType fType)
 {
-  if(!qpsolver->run(fType))
+  if(!solver_.run(fType))
   {
     mc_rtc::log::error("QP failed to run()");
     return false;
   }
   return true;
-}
-
-const mc_solver::QPResultMsg & MCController::send(const double & t)
-{
-  return qpsolver->send(t);
 }
 
 void MCController::reset(const ControllerResetData & reset_data)
@@ -298,96 +304,18 @@ void MCController::reset(const ControllerResetData & reset_data)
 
   robot().mbc().zero(robot().mb());
   robot().mbc().q = reset_data.q;
-  postureTask->posture(reset_data.q);
-  robot().forwardKinematics();
-  robot().forwardVelocity();
+  postureTask_->posture(reset_data.q);
+  robot().updateKinematics();
 }
 
-const mc_rbdyn::Robots & MCController::robots() const
-{
-  return qpsolver->robots();
-}
-
-mc_rbdyn::Robots & MCController::robots()
-{
-  return qpsolver->robots();
-}
-
-const mc_rbdyn::Robot & MCController::robot() const
-{
-  return qpsolver->robot();
-}
-
-mc_rbdyn::Robot & MCController::robot()
-{
-  return qpsolver->robot();
-}
-
-const mc_rbdyn::Robot & MCController::robot(const std::string & name) const
-{
-  return robots().robot(name);
-}
-
-mc_rbdyn::Robot & MCController::robot(const std::string & name)
-{
-  return robots().robot(name);
-}
-
-const mc_rbdyn::Robots & MCController::realRobots() const
-{
-  return solver().realRobots();
-}
-
-mc_rbdyn::Robots & MCController::realRobots()
-{
-  return solver().realRobots();
-}
-
-const mc_rbdyn::Robot & MCController::realRobot() const
-{
-  return realRobots().robot();
-}
-
-mc_rbdyn::Robot & MCController::realRobot()
-{
-  return realRobots().robot();
-}
-
-const mc_rbdyn::Robot & MCController::realRobot(const std::string & name) const
+const mc_rbdyn::Robot & MCController::realRobot(std::string_view name) const
 {
   return realRobots().robot(name);
 }
 
-mc_rbdyn::Robot & MCController::realRobot(const std::string & name)
+mc_rbdyn::Robot & MCController::realRobot(std::string_view name)
 {
   return realRobots().robot(name);
-}
-
-const mc_rbdyn::Robot & MCController::env() const
-{
-  return qpsolver->env();
-}
-
-mc_rbdyn::Robot & MCController::env()
-{
-  return qpsolver->env();
-}
-
-const mc_solver::QPSolver & MCController::solver() const
-{
-  assert(qpsolver);
-  return *qpsolver;
-}
-
-mc_solver::QPSolver & MCController::solver()
-{
-  assert(qpsolver);
-  return *qpsolver;
-}
-
-mc_rtc::Logger & MCController::logger()
-{
-  return *logger_;
 }
 
 void MCController::supported_robots(std::vector<std::string> & out) const
@@ -396,10 +324,5 @@ void MCController::supported_robots(std::vector<std::string> & out) const
 }
 
 void MCController::stop() {}
-
-Gripper & MCController::gripper(const std::string & robot, const std::string & gripper)
-{
-  return robots().robot(robot).gripper(gripper);
-}
 
 } // namespace mc_control

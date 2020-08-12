@@ -136,11 +136,6 @@ MCGlobalController::MCGlobalController(const GlobalConfiguration & conf)
 
 MCGlobalController::~MCGlobalController() {}
 
-std::shared_ptr<mc_rbdyn::RobotModule> MCGlobalController::get_robot_module()
-{
-  return config.main_robot_module;
-}
-
 std::vector<std::string> MCGlobalController::enabled_controllers() const
 {
   std::vector<std::string> ret;
@@ -261,12 +256,12 @@ void MCGlobalController::initEncoders(const std::vector<double> & initq)
   }
   for(size_t i = 1; i < controller_->robots().size(); ++i)
   {
-    auto & robot = controller_->robots().robot(i);
+    auto & robot = *controller_->robots().robots()[i];
     if(robot.grippers().empty())
     {
       continue;
     }
-    const auto & rjo = robot.refJointOrder();
+    const auto & rjo = robot.module().ref_joint_order();
     std::vector<double> rinitq;
     rinitq.reserve(rjo.size());
     for(const auto & j : rjo)
@@ -582,24 +577,19 @@ void MCGlobalController::setWrenches(const std::string & robotName,
 // deprecated
 void MCGlobalController::setWrenches(unsigned int robotIndex, const std::map<std::string, sva::ForceVecd> & wrenches)
 {
-  auto & robot = controller_->robots().robot(robotIndex);
-  auto & realRobot = controller_->realRobots().robot(robotIndex);
+  auto & robot = controller_->robots().robots()[robotIndex];
+  auto & real = controller_->realRobots().robots()[robotIndex];
   for(const auto & w : wrenches)
   {
-    robot.forceSensor(w.first).wrench(w.second);
-    realRobot.forceSensor(w.first).wrench(w.second);
+    robot->forceSensor(w.first).wrench(w.second);
+    real->forceSensor(w.first).wrench(w.second);
   }
 }
 
 bool MCGlobalController::run()
 {
-  /** Always pick a steady clock */
-  using clock = typename std::conditional<std::chrono::high_resolution_clock::is_steady,
-                                          std::chrono::high_resolution_clock, std::chrono::steady_clock>::type;
   /** Helper to converst Tasks' timer */
-  using boost_ms = boost::chrono::duration<double, boost::milli>;
-  using boost_ns = boost::chrono::duration<double, boost::nano>;
-  auto start_run_t = clock::now();
+  auto start_run_t = mc_rtc::clock::now();
   /* Check if we need to change the controller this time */
   if(next_controller_)
   {
@@ -672,16 +662,18 @@ bool MCGlobalController::run()
   }
   for(auto & plugin : plugins_)
   {
-    auto start_t = clock::now();
+    auto start_t = mc_rtc::clock::now();
     plugin.plugin->before(*this);
-    plugin.plugin_before_dt = clock::now() - start_t;
+    plugin.plugin_before_dt = mc_rtc::clock::now() - start_t;
   }
   if(running)
   {
+    const auto & robots = controller_->robots().robots();
     for(size_t i = 0; i < pre_gripper_mbcs_.size() && i < controller_->robots().size(); ++i)
     {
-      controller_->robots().robot(i).mbc() = pre_gripper_mbcs_[i];
+      robots[i]->mbc() = pre_gripper_mbcs_[i];
     }
+
     auto start_observers_run_t = clock::now();
     controller_->runObserverPipelines();
     observers_run_dt = clock::now() - start_observers_run_t;
@@ -690,26 +682,27 @@ bool MCGlobalController::run()
     bool r = controller_->run();
     auto end_controller_run_t = clock::now();
 
-    pre_gripper_mbcs_ = controller_->robots().mbcs();
+    pre_gripper_mbcs_.resize(robots.size());
+    std::transform(robots.begin(), robots.end(), pre_gripper_mbcs_.begin(),
+                   [&](const auto & robot) { return robot->mbc(); });
     for(size_t i = 0; i < controller_->robots().size(); ++i)
     {
-      const auto & gi = controller_->robots().robot(i).grippers();
+      const auto & gi = robots[i]->grippers();
       if(gi.empty())
       {
         continue;
       }
       for(auto & g : gi)
       {
-        g.get().run(controller_->timeStep, controller_->robots().robot(i),
-                    controller_->solver().result().robots_state[i].q);
+        g.get().run(controller_->solver().dt(), *robots[i]);
       }
-      controller_->robots().robot(i).forwardKinematics();
+      robots[i]->forwardKinematics();
     }
     if(config.enable_log)
     {
-      auto start_log_t = clock::now();
+      auto start_log_t = mc_rtc::clock::now();
       controller_->logger().log();
-      log_dt = clock::now() - start_log_t;
+      log_dt = mc_rtc::clock::now() - start_log_t;
     }
     if(server_)
     {
@@ -719,8 +712,7 @@ bool MCGlobalController::run()
       gui_dt = clock::now() - start_gui_t;
     }
     controller_run_dt = end_controller_run_t - start_controller_run_t;
-    solver_build_and_solve_t = boost_ms(boost_ns(controller_->solver().solveAndBuildTime().wall)).count();
-    solver_solve_t = boost_ms(boost_ns(controller_->solver().solveTime().wall)).count();
+    solver_build_and_solve_t = controller_->solver().solveTime();
     if(!r)
     {
       running = false;
@@ -729,23 +721,22 @@ bool MCGlobalController::run()
   else
   {
     controller_run_dt.zero();
-    solver_build_and_solve_t = 0;
-    solver_solve_t = 0;
+    solver_build_and_solve_t.zero();
     if(server_)
     {
-      auto start_gui_t = clock::now();
+      auto start_gui_t = mc_rtc::clock::now();
       server_->handle_requests(*controller_->gui_);
       server_->publish(*controller_->gui_);
-      gui_dt = clock::now() - start_gui_t;
+      gui_dt = mc_rtc::clock::now() - start_gui_t;
     }
   }
   for(auto & plugin : plugins_)
   {
-    auto start_t = clock::now();
+    auto start_t = mc_rtc::clock::now();
     plugin.plugin->after(*this);
-    plugin.plugin_after_dt = clock::now() - start_t;
+    plugin.plugin_after_dt = mc_rtc::clock::now() - start_t;
   }
-  global_run_dt = clock::now() - start_run_t;
+  global_run_dt = mc_rtc::clock::now() - start_run_t;
   // Percentage of time not spent inside the user code
   framework_cost = 100 * (1 - controller_run_dt.count() / global_run_dt.count());
   return running;
@@ -755,83 +746,6 @@ ControllerServer & MCGlobalController::server()
 {
   assert(server_);
   return *server_;
-}
-
-const mc_solver::QPResultMsg & MCGlobalController::send(const double & t)
-{
-  return controller_->send(t);
-}
-
-MCController & MCGlobalController::controller()
-{
-  assert(controller_ != nullptr);
-  return *controller_;
-}
-
-const MCController & MCGlobalController::controller() const
-{
-  assert(controller_ != nullptr);
-  return *controller_;
-}
-
-mc_rbdyn::Robots & MCGlobalController::realRobots()
-{
-  return controller_->realRobots();
-}
-
-const mc_rbdyn::Robots & MCGlobalController::realRobots() const
-{
-  return controller_->realRobots();
-}
-
-mc_rbdyn::Robots & MCGlobalController::robots()
-{
-  return controller_->robots();
-}
-
-const mc_rbdyn::Robots & MCGlobalController::robots() const
-{
-  return controller_->robots();
-}
-
-mc_rbdyn::Robot & MCGlobalController::robot()
-{
-  return controller_->robot();
-}
-
-const mc_rbdyn::Robot & MCGlobalController::robot() const
-{
-  return controller_->robot();
-}
-
-mc_rbdyn::Robot & MCGlobalController::robot(const std::string & name)
-{
-  return robots().robot(name);
-}
-
-const mc_rbdyn::Robot & MCGlobalController::robot(const std::string & name) const
-{
-  return robots().robot(name);
-}
-
-mc_rbdyn::Robot & MCGlobalController::realRobot()
-{
-  return controller_->realRobot();
-}
-
-const mc_rbdyn::Robot & MCGlobalController::realRobot() const
-{
-  return controller_->realRobot();
-}
-
-mc_rbdyn::Robot & MCGlobalController::realRobot(const std::string & name)
-{
-  return realRobots().robot(name);
-}
-
-const mc_rbdyn::Robot & MCGlobalController::realRobot(const std::string & name) const
-{
-  return realRobots().robot(name);
 }
 
 void MCGlobalController::setGripperTargetQ(const std::string & robot,
@@ -869,16 +783,6 @@ void MCGlobalController::setGripperOpenPercent(const std::string & robot, const 
   {
     mc_rtc::log::error("Cannot set gripper opening for non-existing gripper {} in {}", name, robot);
   }
-}
-
-double MCGlobalController::timestep() const
-{
-  return config.timestep;
-}
-
-const std::vector<std::string> & MCGlobalController::ref_joint_order()
-{
-  return robot().refJointOrder();
 }
 
 bool MCGlobalController::AddController(const std::string & name)
@@ -928,11 +832,6 @@ bool MCGlobalController::AddController(const std::string & name)
     mc_rtc::log::warning("Controller {} enabled in configuration but not available", name);
     return false;
   }
-}
-
-const MCGlobalController::GlobalConfiguration & MCGlobalController::configuration() const
-{
-  return config;
 }
 
 void MCGlobalController::add_controller_module_paths(const std::vector<std::string> & paths)
@@ -988,13 +887,13 @@ bool MCGlobalController::GoToHalfSitPose()
 
 void MCGlobalController::start_log()
 {
-  controller_->logger().start(current_ctrl, controller_->timeStep);
+  controller_->logger().start(current_ctrl, controller_->solver().dt());
   setup_log();
 }
 
 void MCGlobalController::refreshLog()
 {
-  controller_->logger().start(current_ctrl, controller_->timeStep, true);
+  controller_->logger().start(current_ctrl, controller_->solver().dt(), true);
   setup_log();
 }
 
@@ -1012,7 +911,7 @@ void MCGlobalController::setup_log()
       "ff", [controller]() -> const sva::PTransformd & { return controller->robot().mbc().bodyPosW[0]; });
   // Convert reference order to mbc.q, -1 if the joint does not exist
   std::vector<int> refToQ;
-  for(const auto & j : controller->robot().refJointOrder())
+  for(const auto & j : ref_joint_order())
   {
     if(controller->robot().hasJoint(j))
     {
@@ -1025,7 +924,7 @@ void MCGlobalController::setup_log()
     }
     refToQ.push_back(-1);
   }
-  std::vector<double> qOut(controller->robot().refJointOrder().size(), 0);
+  std::vector<double> qOut(ref_joint_order().size(), 0);
   controller->logger().addLogEntry("qOut", [controller, refToQ, qOut]() mutable -> const std::vector<double> & {
     for(size_t i = 0; i < qOut.size(); ++i)
     {
@@ -1087,8 +986,7 @@ void MCGlobalController::setup_log()
   controller->logger().addLogEntry("perf_GlobalRun", [this]() { return global_run_dt.count(); });
   controller->logger().addLogEntry("perf_ControllerRun", [this]() { return controller_run_dt.count(); });
   controller->logger().addLogEntry("perf_ObserversRun", [this]() { return observers_run_dt.count(); });
-  controller->logger().addLogEntry("perf_SolverBuildAndSolve", [this]() { return solver_build_and_solve_t; });
-  controller->logger().addLogEntry("perf_SolverSolve", [this]() { return solver_solve_t; });
+  controller->logger().addLogEntry("perf_SolverBuildAndSolve", [this]() { return solver_build_and_solve_t.count(); });
   controller->logger().addLogEntry("perf_Log", [this]() { return log_dt.count(); });
   controller->logger().addLogEntry("perf_Gui", [this]() { return gui_dt.count(); });
   controller->logger().addLogEntry("perf_FrameworkCost", [this]() { return framework_cost; });

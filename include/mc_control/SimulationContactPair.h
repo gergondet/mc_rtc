@@ -18,22 +18,19 @@ namespace mc_control
 struct MC_CONTROL_DLLAPI SimulationContactPair
 {
 public:
-  SimulationContactPair(const std::shared_ptr<mc_rbdyn::Surface> & robotSurface,
-                        const std::shared_ptr<mc_rbdyn::Surface> & envSurface);
+  SimulationContactPair(const mc_rbdyn::Surface & robotSurface, const mc_rbdyn::Surface & envSurface);
 
-  double update(const mc_rbdyn::Robot & robot, const mc_rbdyn::Robot & env);
+  double update();
 
-public:
-  std::shared_ptr<mc_rbdyn::Surface> robotSurface;
-  std::shared_ptr<mc_rbdyn::Surface> envSurface;
-  std::shared_ptr<sch::S_Object> robotSch;
-  std::shared_ptr<sch::S_Object> envSch;
+private:
+  mc_rbdyn::ConstSurfacePtr robotSurface_;
+  mc_rbdyn::ConstSurfacePtr envSurface_;
+  std::shared_ptr<sch::S_Object> robotSch_;
+  std::shared_ptr<sch::S_Object> envSch_;
   sch::CD_Pair pair;
 
 private:
-  void updateSCH(sch::S_Object * obj,
-                 const mc_rbdyn::Robot & robot,
-                 const std::shared_ptr<mc_rbdyn::Surface> & robotSurface);
+  void updateSCH(sch::S_Object * obj, const mc_rbdyn::Surface & robotSurface);
 };
 
 } // namespace mc_control
