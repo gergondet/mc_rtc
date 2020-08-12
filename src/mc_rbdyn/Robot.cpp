@@ -218,7 +218,7 @@ Robot::Robot(make_shared_token,
       initQ[0] = {std::begin(attitude), std::end(attitude)};
     }
     mbc().q = initQ;
-    updateKinematics();
+    forwardKinematics();
   }
 
   bodyTransforms_.resize(mb().bodies().size());
@@ -1232,7 +1232,15 @@ void Robot::forwardAcceleration()
 
 void Robot::updateKinematics()
 {
-  kinematicsGraph_.execute();
+  forwardKinematics();
+  com_->updateCoM();
+  for(auto & f : frames_)
+  {
+    f.second->updatePosition();
+  }
+  // FIXME Does not work?
+  // kinematicsGraph_.update();
+  // kinematicsGraph_.execute();
 }
 
 } // namespace mc_rbdyn

@@ -669,10 +669,6 @@ bool MCGlobalController::run()
   if(running)
   {
     const auto & robots = controller_->robots().robots();
-    for(size_t i = 0; i < pre_gripper_mbcs_.size() && i < controller_->robots().size(); ++i)
-    {
-      robots[i]->mbc() = pre_gripper_mbcs_[i];
-    }
 
     auto start_observers_run_t = clock::now();
     controller_->runObserverPipelines();

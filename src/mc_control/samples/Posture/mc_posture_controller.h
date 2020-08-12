@@ -17,6 +17,8 @@ public:
   MCPostureController(std::shared_ptr<mc_rbdyn::RobotModule> robot, double dt);
 
   bool run() override;
+
+  void reset(const ControllerResetData & reset_data) override;
 };
 
 } // namespace mc_control
