@@ -13,20 +13,20 @@ namespace mc_rbdyn
 namespace details
 {
 
-inline unsigned int frameGetBodyId(std::string_view frame, const RobotPtr & robot, std::string_view body)
+inline unsigned int frameGetBodyId(std::string_view frame, const Robot & robot, std::string_view body)
 {
-  if(!robot->hasBody(body))
+  if(!robot.hasBody(body))
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("Failed to create frame {}: no body named {} in {}", frame, body,
-                                                     robot->name());
+                                                     robot.name());
   }
-  return robot->bodyIndexByName(body);
+  return robot.bodyIndexByName(body);
 }
 } // namespace details
 
-Frame::Frame(ctor_token, std::string_view name, RobotPtr robot, std::string_view body, sva::PTransformd X_b_f)
-: name_(name), robot_(robot), bodyId_(details::frameGetBodyId(name, robot, body)), jac_(robot->mb(), std::string(body)),
-  X_b_f_(std::move(X_b_f)), jacTmp_(6, jac_.dof()), jacobian_(6, robot->mb().nrDof()), jacDot_(6, robot->mb().nrDof())
+Frame::Frame(ctor_token, std::string_view name, Robot & robot, std::string_view body, sva::PTransformd X_b_f)
+: name_(name), robot_(robot), bodyId_(details::frameGetBodyId(name, robot, body)), jac_(robot.mb(), std::string(body)),
+  X_b_f_(std::move(X_b_f)), jacTmp_(6, jac_.dof()), jacobian_(6, robot.mb().nrDof()), jacDot_(6, robot.mb().nrDof())
 {
   // clang-format off
   registerUpdates(
@@ -68,44 +68,44 @@ Frame::Frame(ctor_token tkn, std::string_view name, const Frame & frame, sva::PT
 
 const std::string & Frame::body() const noexcept
 {
-  return robot_->mb().body(static_cast<int>(bodyId_)).name();
+  return robot_.mb().body(static_cast<int>(bodyId_)).name();
 }
 
 
 void Frame::updatePosition()
 {
-  const auto & X_0_b = robot_->mbc().bodyPosW[bodyId_];
+  const auto & X_0_b = robot_.mbc().bodyPosW[bodyId_];
   position_ = X_b_f_ * X_0_b;
   h_ = -hat(X_0_b.rotation().transpose() * X_b_f_.translation());
 }
 
 void Frame::updateJacobian()
 {
-  assert(jacobian_.rows() == 6 && jacobian_.cols() == robot_->mb().nrDof());
-  const auto & partialJac = jac_.jacobian(robot_->mb(), robot_->mbc());
+  assert(jacobian_.rows() == 6 && jacobian_.cols() == robot_.mb().nrDof());
+  const auto & partialJac = jac_.jacobian(robot_.mb(), robot_.mbc());
   jacTmp_ = partialJac;
   jacTmp_.block(3, 0, 3, jac_.dof()).noalias() += h_ * partialJac.block(3, 0, 3, jac_.dof());
-  jac_.fullJacobian(robot_->mb(), jacTmp_, jacobian_);
+  jac_.fullJacobian(robot_.mb(), jacTmp_, jacobian_);
 
 }
 
 void Frame::updateVelocity()
 {
-  velocity_ = X_b_f_ * robot_->mbc().bodyVelW[bodyId_];
+  velocity_ = X_b_f_ * robot_.mbc().bodyVelW[bodyId_];
 }
 
 void Frame::updateNormalAcceleration()
 {
-  normalAcceleration_ = X_b_f_ * jac_.normalAcceleration(robot_->mb(), robot_->mbc(), robot_->normalAccB());
+  normalAcceleration_ = X_b_f_ * jac_.normalAcceleration(robot_.mb(), robot_.mbc(), robot_.normalAccB());
 }
 
 void Frame::updateJDot()
 {
-  assert(jacobian_.rows() == 6 && jacobian_.cols() == robot_->mb().nrDof());
-  const auto & partialJac = jac_.jacobianDot(robot_->mb(), robot_->mbc());
+  assert(jacobian_.rows() == 6 && jacobian_.cols() == robot_.mb().nrDof());
+  const auto & partialJac = jac_.jacobianDot(robot_.mb(), robot_.mbc());
   jacTmp_ = partialJac;
   jacTmp_.block(3, 0, 3, jac_.dof()).noalias() += h_ * partialJac.block(3, 0, 3, jac_.dof());
-  jac_.fullJacobian(robot_->mb(), jacTmp_, jacDot_);
+  jac_.fullJacobian(robot_.mb(), jacTmp_, jacDot_);
 
 }
 

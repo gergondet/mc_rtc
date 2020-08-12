@@ -43,6 +43,9 @@ public:
    */
   Convex(ctor_token, S_ObjectPtr object, FramePtr frame, sva::PTransformd X_f_c = sva::PTransformd::Identity());
 
+  Convex(const Convex &) = delete;
+  Convex & operator=(const Convex &) = delete;
+
   /** Access the underlying frame object */
   inline const Frame & frame() const noexcept
   {

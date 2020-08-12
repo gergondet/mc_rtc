@@ -5,7 +5,7 @@
 namespace mc_rbdyn
 {
 
-CoM::CoM(ctor_token, RobotPtr robot) : robot_(robot), jac_(robot_->mb())
+CoM::CoM(ctor_token, Robot & robot) : robot_(robot), jac_(robot_.mb())
 {
   // clang-format off
   registerUpdates(
@@ -38,32 +38,32 @@ CoM::CoM(ctor_token, RobotPtr robot) : robot_(robot), jac_(robot_->mb())
 
 void CoM::updateCoM()
 {
-  com_ = rbd::computeCoM(robot_->mb(), robot_->mbc());
+  com_ = rbd::computeCoM(robot_.mb(), robot_.mbc());
 }
 
 void CoM::updateVelocity()
 {
-  velocity_ = jac_.velocity(robot_->mb(), robot_->mbc());
+  velocity_ = jac_.velocity(robot_.mb(), robot_.mbc());
 }
 
 void CoM::updateNormalAcceleration()
 {
-  normalAcceleration_ = jac_.normalAcceleration(robot_->mb(), robot_->mbc());
+  normalAcceleration_ = jac_.normalAcceleration(robot_.mb(), robot_.mbc());
 }
 
 void CoM::updateAcceleration()
 {
-  acceleration_ = rbd::computeCoMAcceleration(robot_->mb(), robot_->mbc());
+  acceleration_ = rbd::computeCoMAcceleration(robot_.mb(), robot_.mbc());
 }
 
 void CoM::updateJacobian()
 {
-  jac_.jacobian(robot_->mb(), robot_->mbc());
+  jac_.jacobian(robot_.mb(), robot_.mbc());
 }
 
 void CoM::updateJDot()
 {
-  jac_.jacobianDot(robot_->mb(), robot_->mbc());
+  jac_.jacobianDot(robot_.mb(), robot_.mbc());
 }
 
 } // namespace mc_rbdyn

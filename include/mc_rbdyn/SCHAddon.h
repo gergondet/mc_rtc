@@ -22,7 +22,7 @@ namespace mc_rbdyn
 
 MC_RBDYN_DLLAPI void transform(S_Object & obj, const sva::PTransformd & t);
 
-MC_RBDYN_DLLAPI ::mc_rbdyn::S_ObjectPtr make_polyhedron(std::string_view filename);
+MC_RBDYN_DLLAPI ::mc_rbdyn::S_ObjectPtr make_polyhedron(const std::string & filename);
 
 MC_RBDYN_DLLAPI double distance(CD_Pair & pair, Eigen::Vector3d & p1, Eigen::Vector3d & p2);
 
