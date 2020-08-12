@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #include "mc_posture_controller.h"
@@ -19,15 +19,15 @@ namespace mc_control
 MCPostureController::MCPostureController(std::shared_ptr<mc_rbdyn::RobotModule> robot_module, double dt)
 : MCController(robot_module, dt)
 {
-  qpsolver->addConstraintSet(contactConstraint);
-  qpsolver->addConstraintSet(kinematicsConstraint);
-  qpsolver->addConstraintSet(selfCollisionConstraint);
-  qpsolver->addConstraintSet(*compoundJointConstraint);
-  qpsolver->addTask(postureTask.get());
-  qpsolver->setContacts({});
+  solver().addConstraint(kinematicsConstraint_);
+  solver().addConstraint(collisionConstraint_);
+  // FIXME
+  // solver().addConstraint(compoundJointConstraint_);
 
-  postureTask->stiffness(1.0);
-  mc_rtc::log::success("MCPostureController init done");
+  postureTask_->stiffness(5.0);
+  solver().addTask(postureTask_);
+
+  mc_rtc::log::success("Posture sample controller initialized");
 }
 
 bool MCPostureController::run()

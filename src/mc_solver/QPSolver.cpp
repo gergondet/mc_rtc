@@ -43,11 +43,13 @@ inline static Eigen::MatrixXd discretizedFrictionCone(double muI)
 
 } // namespace
 
-QPSolver::QPSolver(std::shared_ptr<mc_rbdyn::Robots> robots,
+QPSolver::QPSolver(mc_rbdyn::RobotsPtr robots,
+                   mc_rbdyn::RobotsPtr realRobots,
                    std::shared_ptr<mc_rtc::Logger> logger,
                    std::shared_ptr<mc_rtc::gui::StateBuilder> gui,
                    double timeStep)
-: robots_(robots), dt_(timeStep), solver_(tvm::solver::DefaultLSSolverOptions{}), logger_(logger), gui_(gui)
+: robots_(robots), realRobots_(realRobots), dt_(timeStep), solver_(tvm::solver::DefaultLSSolverOptions{}),
+  logger_(logger), gui_(gui)
 {
   if(timeStep <= 0)
   {
@@ -61,7 +63,6 @@ QPSolver::QPSolver(std::shared_ptr<mc_rbdyn::Robots> robots,
   {
     mc_rtc::log::error_and_throw<std::invalid_argument>("Logger cannot be null");
   }
-  realRobots_ = std::make_shared<mc_rbdyn::Robots>(*robots_);
 }
 
 std::vector<ConstraintPtr>::iterator QPSolver::getConstraint(ConstraintPtr & c)
@@ -337,6 +338,7 @@ void QPSolver::removeContact(const mc_rbdyn::Contact & contact)
 
 bool QPSolver::run(FeedbackType fType)
 {
+  auto start_t = mc_rtc::clock::now();
   bool success = false;
   switch(fType)
   {
@@ -356,6 +358,7 @@ bool QPSolver::run(FeedbackType fType)
       mc_rtc::log::error("FeedbackType set to unknown value");
       break;
   }
+  solve_dt_ = mc_rtc::clock::now() - start_t;
   return success;
 }
 

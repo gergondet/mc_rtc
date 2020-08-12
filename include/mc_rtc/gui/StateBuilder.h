@@ -341,6 +341,10 @@ private:
 
 } // namespace gui
 
+/** Convenient alias */
+using GUI = gui::StateBuilder;
+using GUIPtr = std::shared_ptr<GUI>;
+
 } // namespace mc_rtc
 
 #include "StateBuilder.hpp"

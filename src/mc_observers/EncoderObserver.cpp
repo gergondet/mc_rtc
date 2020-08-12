@@ -119,7 +119,7 @@ bool EncoderObserver::run(const mc_control::MCController & ctl)
     const auto & enc = robot.encoderValues();
     for(unsigned i = 0; i < enc.size(); ++i)
     {
-      encodersVelocity_[i] = (enc[i] - prevEncoders_[i]) / ctl.timeStep;
+      encodersVelocity_[i] = (enc[i] - prevEncoders_[i]) / ctl.solver().dt();
       prevEncoders_[i] = enc[i];
     }
   }
@@ -134,7 +134,7 @@ void EncoderObserver::update(mc_control::MCController & ctl)
   const auto & q = robot.encoderValues();
 
   // Set all joint values and velocities from encoders
-  size_t nJoints = realRobot.refJointOrder().size();
+  size_t nJoints = robot.module().ref_joint_order().size();
   for(size_t i = 0; i < nJoints; ++i)
   {
     const auto joint_index = robot.jointIndexInMBC(i);
@@ -219,19 +219,18 @@ void EncoderObserver::addToLogger(const mc_control::MCController & ctl,
     }
     else if(velUpdate_ == VelUpdate::Control)
     {
-      std::vector<double> alpha(ctl.robot(robot_).refJointOrder().size(), 0);
-      logger.addLogEntry(category + "_controlVelocities", this,
-                         [this, &ctl, alpha]() mutable -> const std::vector<double> & {
-                           for(size_t i = 0; i < alpha.size(); ++i)
-                           {
-                             auto jIdx = ctl.robot(robot_).jointIndexInMBC(i);
-                             if(jIdx != -1)
-                             {
-                               alpha[i] = ctl.robot(robot_).mbc().alpha[static_cast<size_t>(jIdx)][0];
-                             }
-                           }
-                           return alpha;
-                         });
+      std::vector<double> alpha(ctl.robot(robot_).module().ref_joint_order().size(), 0);
+      logger.addLogEntry(category + "_controlVelocities", [this, &ctl, alpha]() mutable -> const std::vector<double> & {
+        for(size_t i = 0; i < alpha.size(); ++i)
+        {
+          auto jIdx = ctl.robot(robot_).jointIndexInMBC(i);
+          if(jIdx != -1)
+          {
+            alpha[i] = ctl.robot(robot_).mbc().alpha[static_cast<size_t>(jIdx)][0];
+          }
+        }
+        return alpha;
+      });
     }
   }
 }

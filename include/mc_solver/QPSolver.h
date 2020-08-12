@@ -12,6 +12,7 @@
 #include <mc_rbdyn/Robots.h>
 
 #include <mc_rtc/pragma.h>
+#include <mc_rtc/time.h>
 
 #include <tvm/ControlProblem.h>
 #include <tvm/LinearizedControlProblem.h>
@@ -68,14 +69,16 @@ struct MC_SOLVER_DLLAPI QPSolver
 {
 public:
   /** Constructor
-   * \param robot Set of robots managed by this solver
+   * \param robots Set of robots managed by this solver
+   * \param realRobots Set of robots managed by this solver
    * \param logger Logger associated to this solver
    * \param gui GUI server associated to this solver
    * \param timeStep Timestep of the solver
    *
    * \note The real robots will be created by copying the provided robots
    */
-  QPSolver(std::shared_ptr<mc_rbdyn::Robots> robots,
+  QPSolver(mc_rbdyn::RobotsPtr robots,
+           mc_rbdyn::RobotsPtr realRobots,
            std::shared_ptr<mc_rtc::Logger> logger,
            std::shared_ptr<mc_rtc::gui::StateBuilder> gui,
            double timeStep);
@@ -200,6 +203,12 @@ public:
     return problem_;
   }
 
+  /** Returns the duration of the latest run call */
+  const mc_rtc::duration_ms & solveTime() noexcept
+  {
+    return solve_dt_;
+  }
+
 private:
   /** Controlled robots */
   std::shared_ptr<mc_rbdyn::Robots> robots_;
@@ -239,6 +248,8 @@ private:
   std::shared_ptr<mc_rtc::Logger> logger_ = nullptr;
   /** Pointer to the GUI helper */
   std::shared_ptr<mc_rtc::gui::StateBuilder> gui_ = nullptr;
+  /** Runtime of the latest run call */
+  mc_rtc::duration_ms solve_dt_{0};
 
   /** Common part of control loop */
   bool runCommon();
@@ -286,5 +297,7 @@ private:
                             const Eigen::MatrixXd & frictionCone,
                             double dir);
 };
+
+using SolverPtr = std::shared_ptr<mc_solver::QPSolver>;
 
 } // namespace mc_solver

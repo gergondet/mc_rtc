@@ -110,4 +110,6 @@ private:
   void toggleCollisionMonitor(QPSolver & solver, CollisionData & data, Monitoring monitoring);
 };
 
+using CollisionsConstraintPtr = std::shared_ptr<CollisionsConstraint>;
+
 } // namespace mc_solver

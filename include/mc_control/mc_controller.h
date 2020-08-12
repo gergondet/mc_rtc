@@ -47,7 +47,7 @@
       CONTROLLER_MODULE_API mc_control::MCController * create(const std::string &,                                  \
                                                               const std::shared_ptr<mc_rbdyn::RobotModule> & robot, \
                                                               const double & dt,                                    \
-                                                              const mc_control::Configuration & conf)               \
+                                                              const mc_rtc::Configuration & conf)                   \
       {                                                                                                             \
         return new TYPE(robot, dt, conf);                                                                           \
       }                                                                                                             \
@@ -73,7 +73,7 @@
       CONTROLLER_MODULE_API mc_control::MCController * create(const std::string &,                                  \
                                                               const std::shared_ptr<mc_rbdyn::RobotModule> & robot, \
                                                               const double & dt,                                    \
-                                                              const mc_control::Configuration &)                    \
+                                                              const mc_rtc::Configuration &)                        \
       {                                                                                                             \
         return new TYPE(robot, dt);                                                                                 \
       }                                                                                                             \
@@ -83,17 +83,17 @@
 
 #  include <mc_control/ControllerLoader.h>
 
-#  define CONTROLLER_CONSTRUCTOR(NAME, TYPE)                                                             \
-    namespace                                                                                            \
-    {                                                                                                    \
-    static auto registered = []() {                                                                      \
-      using fn_t = std::function<TYPE *(const std::shared_ptr<mc_rbdyn::RobotModule> &, const double &,  \
-                                        const mc_control::Configuration &)>;                             \
-      mc_control::ControllerLoader::loader().register_object(                                            \
-          NAME, fn_t([](const std::shared_ptr<mc_rbdyn::RobotModule> & robot, const double & dt,         \
-                        const mc_control::Configuration & conf) { return new TYPE(robot, dt, conf); })); \
-      return true;                                                                                       \
-    }();                                                                                                 \
+#  define CONTROLLER_CONSTRUCTOR(NAME, TYPE)                                                            \
+    namespace                                                                                           \
+    {                                                                                                   \
+    static auto registered = []() {                                                                     \
+      using fn_t = std::function<TYPE *(const std::shared_ptr<mc_rbdyn::RobotModule> &, const double &, \
+                                        const mc_rtc::Configuration &)>;                                \
+      mc_control::ControllerLoader::loader().register_object(                                           \
+          NAME, fn_t([](const std::shared_ptr<mc_rbdyn::RobotModule> & robot, const double & dt,        \
+                        const mc_rtc::Configuration & conf) { return new TYPE(robot, dt, conf); }));    \
+      return true;                                                                                      \
+    }();                                                                                                \
     }
 
 #  define SIMPLE_CONTROLLER_CONSTRUCTOR(NAME, TYPE)                                                     \
@@ -101,10 +101,10 @@
     {                                                                                                   \
     static auto registered = []() {                                                                     \
       using fn_t = std::function<TYPE *(const std::shared_ptr<mc_rbdyn::RobotModule> &, const double &, \
-                                        const mc_control::Configuration &)>;                            \
+                                        const mc_rtc::Configuration &)>;                                \
       mc_control::ControllerLoader::loader().register_object(                                           \
           NAME, fn_t([](const std::shared_ptr<mc_rbdyn::RobotModule> & robot, const double & dt,        \
-                        const mc_control::Configuration &) { return new TYPE(robot, dt); }));           \
+                        const mc_rtc::Configuration &) { return new TYPE(robot, dt); }));               \
       return true;                                                                                      \
     }();                                                                                                \
     }

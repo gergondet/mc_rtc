@@ -68,8 +68,8 @@ public:
 protected:
   void addToGUI(mc_rtc::gui::StateBuilder &) override;
   void addToLogger(mc_rtc::Logger & logger) override;
-
-private:
 };
+
+using CoMTaskPtr = std::shared_ptr<CoMTask>;
 
 } // namespace mc_tasks

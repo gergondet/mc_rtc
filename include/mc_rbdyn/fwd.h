@@ -21,6 +21,7 @@ namespace mc_rbdyn
 {
 
 struct Robots;
+using RobotsPtr = std::shared_ptr<Robots>;
 
 struct Robot;
 using RobotPtr = std::shared_ptr<Robot>;
