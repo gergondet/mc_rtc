@@ -35,6 +35,13 @@ bool MCPostureController::run()
   return mc_control::MCController::run();
 }
 
+void MCPostureController::reset(const ControllerResetData & reset_data)
+{
+  MCController::reset(reset_data);
+  solver().addContact({robot().name(), "ground", "LeftFoot", "AllGround"});
+  solver().addContact({robot().name(), "ground", "RightFoot", "AllGround"});
+}
+
 } // namespace mc_control
 
 SIMPLE_CONTROLLER_CONSTRUCTOR("Posture", mc_control::MCPostureController);

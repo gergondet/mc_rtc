@@ -24,7 +24,9 @@ CoMTask::CoMTask(mc_rbdyn::Robot & robot, double stiffness, double weight) : Tra
 void CoMTask::reset()
 {
   TrajectoryTaskGeneric::reset();
-  com(robot_->com().com());
+  com(rbd::computeCoM(robot_->mb(), robot_->mbc()));
+  // FIXME Look into robot.updateKinematics issue
+  // com(robot_->com().com());
 }
 
 void CoMTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & config)

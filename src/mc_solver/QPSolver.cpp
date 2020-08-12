@@ -128,7 +128,7 @@ bool QPSolver::addDynamicsConstraint(const DynamicsConstraintPtr & cs)
         s2Points.reserve(s1Points.size());
         auto X_b2_b1 = r1.mbc().bodyPosW[r1.bodyIndexByName(s1.frame().body())]
                        * r2.mbc().bodyPosW[r2.bodyIndexByName(s2.frame().body())].inv();
-        std::transform(s1Points.begin(), s2Points.end(), std::back_inserter(s2Points),
+        std::transform(s1Points.begin(), s1Points.end(), std::back_inserter(s2Points),
                        [&](const auto & X_b1_p) { return X_b1_p * X_b2_b1; });
         addContactToDynamics(contact.r2, f2, s2Points, data.f2_, data.f2Constraints_, C, 2.0);
       }
@@ -267,7 +267,7 @@ void QPSolver::addContact(const mc_rbdyn::Contact & contact)
   {
     contacts_.push_back(contact);
   }
-  auto & data = idx < contacts_.size() ? contactsData_[idx] : contactsData_.emplace_back();
+  auto & data = idx < contactsData_.size() ? contactsData_[idx] : contactsData_.emplace_back();
   auto & r1 = robots_->robot(contact.r1);
   auto & r2 = robots_->robot(contact.r2);
   auto & s1 = r1.surface(contact.r1Surface);
@@ -275,11 +275,11 @@ void QPSolver::addContact(const mc_rbdyn::Contact & contact)
   auto & f1 = s1.frame();
   auto & f2 = s2.frame();
   // FIXME Currently ignore dof...
-  if(data.contactConstraint_) // New contact
+  if(!data.contactConstraint_) // New contact
   {
     auto contact_fn = std::make_shared<mc_tvm::ContactFunction>(f1, f2);
-    data.contactConstraint_ =
-        problem_.add(contact_fn == 0., tvm::task_dynamics::PD(1.), {tvm::requirements::PriorityLevel(0)});
+    data.contactConstraint_ = problem_.add(contact_fn == 0., tvm::task_dynamics::PD(1.0 / dt_, 1.0 / dt_),
+                                           {tvm::requirements::PriorityLevel(0)});
   }
   // FIXME Let the user decide how much the friction cone should be discretized
   auto C = discretizedFrictionCone(contact.friction);
@@ -293,13 +293,15 @@ void QPSolver::addContact(const mc_rbdyn::Contact & contact)
     addContactToDynamics(robot, frame, points, forces, constraints, C, dir);
   };
   // FIXME These points computation are a waste of time if they are not needed
-  auto s1Points = mc_rbdyn::intersection(s1, s2);
+  // FIXME Debug mc_rbdyn::intersection
+  // auto s1Points = mc_rbdyn::intersection(s1, s2);
+  auto s1Points = s1.points();
   addContactForce(contact.r1, f1, s1Points, data.f1_, data.f1Constraints_, 1.0);
   std::vector<sva::PTransformd> s2Points;
   s2Points.reserve(s1Points.size());
   auto X_b2_b1 = r1.mbc().bodyPosW[r1.bodyIndexByName(s1.frame().body())]
                  * r2.mbc().bodyPosW[r2.bodyIndexByName(s2.frame().body())].inv();
-  std::transform(s1Points.begin(), s2Points.end(), std::back_inserter(s2Points),
+  std::transform(s1Points.begin(), s1Points.end(), std::back_inserter(s2Points),
                  [&](const auto & X_b1_p) { return X_b1_p * X_b2_b1; });
   addContactForce(contact.r2, f2, s2Points, data.f2_, data.f2Constraints_, -1.0);
   mc_rtc::log::info("Added contact {}::{}/{}::{} (dof: {}, friction: {})", contact.r1, contact.r1Surface, contact.r2,
