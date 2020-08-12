@@ -56,7 +56,7 @@ public:
    *
    * \param X_b_f Static transformation from the body to the frame
    */
-  Frame(ctor_token, std::string_view name, RobotPtr robot, std::string_view body, sva::PTransformd X_b_f);
+  Frame(ctor_token, std::string_view name, Robot & robot, std::string_view body, sva::PTransformd X_b_f);
 
   /** Constructor
    *
@@ -69,6 +69,9 @@ public:
    * \param X_f1_f2 Static transformation from the original frame to the new one
    */
   Frame(ctor_token, std::string_view name, const Frame & frame, sva::PTransformd X_f1_f2);
+
+  Frame(const Frame &) = delete;
+  Frame & operator=(const Frame &) = delete;
 
   /** Get a copy of the internal RBDyn Jacobian object
    *
@@ -96,13 +99,13 @@ public:
   /** The robot to which this frame belongs */
   inline const Robot & robot() const noexcept
   {
-    return *robot_;
+    return robot_;
   }
 
   /** The robot to which this frame belongs */
   inline Robot & robot() noexcept
   {
-    return *robot_;
+    return robot_;
   }
 
   /** The frame's position in world coordinates */
@@ -135,7 +138,7 @@ public:
 
 private:
   std::string name_;
-  RobotPtr robot_;
+  Robot & robot_;
   unsigned int bodyId_;
   rbd::Jacobian jac_;
   sva::PTransformd X_b_f_;

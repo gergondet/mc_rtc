@@ -19,6 +19,9 @@ struct MC_RBDYN_DLLAPI Surface : public mc_rtc::shared<Surface>
 
   virtual ~Surface() noexcept = default;
 
+  Surface(const Surface &) = delete;
+  Surface & operator=(const Surface &) = delete;
+
   /** Name of the surface */
   inline const std::string & name() const noexcept
   {

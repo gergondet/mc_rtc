@@ -49,7 +49,7 @@ public:
    * \param robot Robot to which the frame is attached
    *
    */
-  CoM(ctor_token, RobotPtr robot);
+  CoM(ctor_token, Robot & robot);
 
   inline const Eigen::Vector3d & com() const noexcept
   {
@@ -83,7 +83,7 @@ public:
 
   inline const Robot & robot() const noexcept
   {
-    return *robot_;
+    return robot_;
   }
 
   /** Access the underlying CoMJacobian object to perform computations */
@@ -93,7 +93,7 @@ public:
   }
 
 private:
-  RobotPtr robot_;
+  Robot & robot_;
   rbd::CoMJacobian jac_;
 
   Eigen::Vector3d com_;

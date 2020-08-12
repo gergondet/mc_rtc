@@ -16,6 +16,7 @@ DynamicsConstraint::DynamicsConstraint(mc_rbdyn::Robot & robot,
                                        double velocityPercent)
 : KinematicsConstraint(robot, damper, velocityPercent), dynamic_(std::make_shared<mc_tvm::DynamicFunction>(robot_))
 {
+  name_ = fmt::format("DynamicsConstraint::{}", robot.name());
 }
 
 void DynamicsConstraint::addToSolver(QPSolver & solver)

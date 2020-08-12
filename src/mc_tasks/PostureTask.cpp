@@ -17,6 +17,7 @@ namespace mc_tasks
 PostureTask::PostureTask(mc_rbdyn::Robot & robot, double stiffness, double weight)
 : TrajectoryBase(robot, stiffness, weight)
 {
+  finalize(robot);
   type_ = "posture";
   name_ = "posture_" + robot.name();
   for(const auto & j : robot.mb().joints())

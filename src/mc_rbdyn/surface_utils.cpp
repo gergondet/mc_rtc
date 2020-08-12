@@ -58,7 +58,7 @@ void try_push_surface(Robot & robot,
     mc_rtc::log::error("Robot {} already has a surface named {}, discarding this surface loading");
     return;
   }
-  auto frame = robot.makeFrame(name, body, X_b_s * robot.bodyTransform(body));
+  auto & frame = robot.makeFrame(name, body, X_b_s * robot.bodyTransform(body));
   surfaces.push_back(std::make_shared<SurfT>(name, frame, std::forward<Args>(args)...));
 }
 

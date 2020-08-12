@@ -1,10 +1,9 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #include <mc_rbdyn/GripperSurface.h>
 #include <mc_rbdyn/Robots.h>
-#include <mc_rbdyn/contact_transform.h>
 
 namespace mc_rbdyn
 {

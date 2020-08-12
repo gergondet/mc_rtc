@@ -104,12 +104,12 @@ MC_RTC_diagnostic_push;
 MC_RTC_diagnostic_ignored(GCC, "-Wsign-conversion", ClangOnly, "-Wshorten-64-to-32");
 
 Robot::Robot(make_shared_token,
-             RobotModule module,
+             RobotModule moduleIn,
              std::string_view name,
              bool loadFiles,
              const std::optional<sva::PTransformd> & base,
              const std::optional<std::string_view> & bName)
-: name_(name), module_(std::move(module)), normalAccB_(module_.mb.nrDof()), fd_(module_.mb)
+: name_(name), module_(std::move(moduleIn)), normalAccB_(module_.mbc.bodyAccB.size()), fd_(module_.mb)
 {
   kinematicsInputs_ = std::make_shared<tvm::graph::internal::Inputs>();
   kinematicsInputs_->addInput(*this, Output::FK);
@@ -162,6 +162,7 @@ Robot::Robot(make_shared_token,
         "The bounds of robotmodule \"{}\" have a size of {} instead of 6 (ql, qu, vl, vu, tl, tu).", module_.name,
         module_.bounds().size());
   }
+
   initBound("lower position", limits_.ql, mb().nrParams(), &rbd::Joint::params, module_.bounds()[0], -inf, -inf);
   initBound("upper position", limits_.qu, mb().nrParams(), &rbd::Joint::params, module_.bounds()[1], inf, inf);
   initBound("lower velocity", limits_.vl, mb().nrDof(), &rbd::Joint::dof, module_.bounds()[2], -inf, -inf);
@@ -406,7 +407,7 @@ Robot::Robot(make_shared_token,
 
   mass_ = std::accumulate(mb().bodies().begin(), mb().bodies().end(), 0.0,
                           [](double m, const auto & body) { return m + body.inertia().mass(); });
-  com_ = std::make_shared<CoM>(CoM::ctor_token{}, shared_from_this());
+  com_ = std::make_shared<CoM>(CoM::ctor_token{}, *this);
   kinematicsInputs_->addInput(*com_, CoM::Output::CoM);
 
   // Create TVM variables
@@ -485,8 +486,7 @@ Frame & Robot::makeFrame(std::string_view name, std::string_view body, sva::PTra
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("A frame named {} already exists in {}", name, this->name());
   }
-  auto out = frames_.emplace(
-      name, std::make_shared<Frame>(Frame::ctor_token{}, name, shared_from_this(), body, std::move(X_b_f)));
+  auto out = frames_.emplace(name, std::make_shared<Frame>(Frame::ctor_token{}, name, *this, body, std::move(X_b_f)));
   kinematicsInputs_->addInput(*out.first->second, Frame::Output::Position);
   return updateFrameForceSensors(*out.first->second);
 }
@@ -497,7 +497,7 @@ Frame & Robot::makeFrame(std::string_view name, const Frame & parent, sva::PTran
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("A frame named {} already exists in {}", name, this->name());
   }
-  if(parent.robot_.get() != this)
+  if(&parent.robot_ != this)
   {
     mc_rtc::log::error_and_throw<std::runtime_error>(
         "Parent frame {} provided to build frame {} in {} belong to a different robot {}", parent.name(), name,
@@ -1075,7 +1075,7 @@ RobotPtr Robot::copy(std::string_view name, const std::optional<Base> & base) co
 
 void mc_rbdyn::Robot::addSurface(SurfacePtr surface, bool overwrite)
 {
-  if(surface->frame().robot_.get() != this)
+  if(&surface->frame().robot_ != this)
   {
     mc_rtc::log::warning("Trying to add surface {} to {} but this surface is attached to {}", surface->name(),
                          this->name(), surface->frame().robot().name());
