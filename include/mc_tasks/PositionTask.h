@@ -11,11 +11,7 @@
 namespace mc_tasks
 {
 
-/*! \brief Control the position of a body
-
- * This task is thin wrapper around the appropriate tasks in Tasks.
- *
- */
+/*! \brief Control the position of a frame */
 struct MC_TASKS_DLLAPI PositionTask : public TrajectoryTaskGeneric<mc_tvm::PositionFunction>
 {
 public:

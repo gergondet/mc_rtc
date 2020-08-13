@@ -38,7 +38,7 @@ public:
   }
 
   /** Set the objective */
-  inline void position(const sva::PTransformd & pose) noexcept
+  inline void pose(const sva::PTransformd & pose) noexcept
   {
     pose_ = pose;
   }
@@ -65,6 +65,12 @@ public:
   inline void refAccel(const Eigen::Vector6d & refAccel) noexcept
   {
     refAccel_ = refAccel;
+  }
+
+  /** Get the frame */
+  inline const mc_rbdyn::Frame & frame() const noexcept
+  {
+    return *frame_;
   }
 
 protected:

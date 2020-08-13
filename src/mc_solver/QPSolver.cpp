@@ -342,7 +342,6 @@ void QPSolver::removeContact(const mc_rbdyn::Contact & contact)
 
 bool QPSolver::run(FeedbackType fType)
 {
-  auto start_t = mc_rtc::clock::now();
   bool success = false;
   switch(fType)
   {
@@ -362,7 +361,6 @@ bool QPSolver::run(FeedbackType fType)
       mc_rtc::log::error("FeedbackType set to unknown value");
       break;
   }
-  solve_dt_ = mc_rtc::clock::now() - start_t;
   return success;
 }
 
@@ -376,7 +374,10 @@ bool QPSolver::runCommon()
   {
     t->update(*this);
   }
-  return solver_.solve(problem_);
+  auto start_t = mc_rtc::clock::now();
+  auto r = solver_.solve(problem_);
+  solve_dt_ = mc_rtc::clock::now() - start_t;
+  return r;
 }
 
 bool QPSolver::runOpenLoop()

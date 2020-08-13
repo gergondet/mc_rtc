@@ -11,11 +11,7 @@
 namespace mc_tasks
 {
 
-/*! \brief Control the orientation of a body
- *
- * This task is thin wrapper around the appropriate tasks in Tasks.
- *
- */
+/*! \brief Control the orientation of a frame */
 struct MC_TASKS_DLLAPI OrientationTask : public TrajectoryTaskGeneric<mc_tvm::OrientationFunction>
 {
 public:
