@@ -34,6 +34,9 @@ CoM::CoM(ctor_token, Robot & robot) : robot_(robot), jac_(robot_.mb())
 
   addOutputDependency(Output::JDot, Update::JDot);
   addInputDependency(Update::JDot, robot_, Robot::Output::FV);
+
+  addInternalDependency(Update::Velocity, Update::Jacobian);
+  addInternalDependency(Update::NormalAcceleration, Update::Jacobian);
 }
 
 void CoM::updateCoM()
@@ -48,7 +51,7 @@ void CoM::updateVelocity()
 
 void CoM::updateNormalAcceleration()
 {
-  normalAcceleration_ = jac_.normalAcceleration(robot_.mb(), robot_.mbc());
+  normalAcceleration_ = jac_.normalAcceleration(robot_.mb(), robot_.mbc(), robot_.normalAccB());
 }
 
 void CoM::updateAcceleration()

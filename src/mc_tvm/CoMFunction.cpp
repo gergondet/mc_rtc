@@ -12,9 +12,13 @@ namespace mc_tvm
 CoMFunction::CoMFunction(mc_rbdyn::RobotPtr robot) : tvm::function::abstract::Function(3), comAlgo_(robot->com())
 {
   reset();
-  registerUpdates(Update::Value, &CoMFunction::updateValue, Update::Velocity, &CoMFunction::updateVelocity,
-                  Update::Jacobian, &CoMFunction::updateJacobian, Update::NormalAcceleration,
-                  &CoMFunction::updateNormalAcceleration, Update::JDot, &CoMFunction::updateJDot);
+  // clang-format off
+  registerUpdates(Update::Value, &CoMFunction::updateValue,
+                  Update::Velocity, &CoMFunction::updateVelocity,
+                  Update::Jacobian, &CoMFunction::updateJacobian,
+                  Update::NormalAcceleration, &CoMFunction::updateNormalAcceleration,
+                  Update::JDot, &CoMFunction::updateJDot);
+  // clang-format on
   addOutputDependency<CoMFunction>(Output::Value, Update::Value);
   addOutputDependency<CoMFunction>(Output::Velocity, Update::Velocity);
   addOutputDependency<CoMFunction>(Output::Jacobian, Update::Jacobian);
