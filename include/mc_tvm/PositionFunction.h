@@ -65,6 +65,12 @@ public:
     refAccel_ = refAccel;
   }
 
+  /** Get the frame */
+  inline const mc_rbdyn::Frame & frame() const noexcept
+  {
+    return *frame_;
+  }
+
 protected:
   void updateValue();
   void updateVelocity();
