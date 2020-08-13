@@ -52,7 +52,7 @@ void TrajectoryTaskGeneric<T>::addToSolver(mc_solver::QPSolver & solver)
   if(!task_)
   {
     auto addTask = [&, this](auto & error) {
-      task_ = solver.problem().add(error == 0., tvm::task_dynamics::ProportionalDerivative(stiffness_, damping_),
+      task_ = solver.problem().add(error == 0., tvm::task_dynamics::PD(stiffness_, damping_),
                                    {tvm::requirements::PriorityLevel(1), tvm::requirements::Weight(weight_)});
     };
     if(selectorT_)
