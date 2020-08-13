@@ -1,10 +1,12 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
 
 #include <mc_tasks/TrajectoryTaskGeneric.h>
+
+#include <mc_tvm/PositionFunction.h>
 
 namespace mc_tasks
 {
@@ -14,79 +16,43 @@ namespace mc_tasks
  * This task is thin wrapper around the appropriate tasks in Tasks.
  *
  */
-struct MC_TASKS_DLLAPI PositionTask : public TrajectoryTaskGeneric<tasks::qp::PositionTask>
+struct MC_TASKS_DLLAPI PositionTask : public TrajectoryTaskGeneric<mc_tvm::PositionFunction>
 {
 public:
-  friend struct EndEffectorTask;
+  using TrajectoryBase = TrajectoryTaskGeneric<mc_tvm::PositionFunction>;
 
   /*! \brief Constructor
    *
-   * \param bodyName Name of the body to control
-   *
-   * \param robots Robots controlled by this task
-   *
-   * \param robotIndex Index of the robot controlled by this task
+   * \param frame Frame to control
    *
    * \param stiffness Task stiffness
    *
    * \param weight Task weight
    *
    */
-  PositionTask(const std::string & bodyName,
-               const mc_rbdyn::Robots & robots,
-               unsigned int robotIndex,
-               double stiffness = 2.0,
-               double weight = 500);
-
-  /*! \brief Constructor
-   *
-   * @see PositionTask
-   *
-   * \param bodyPoint Point on the body being controlled, in body coordinates
-   *
-   */
-  PositionTask(const std::string & bodyName,
-               const Eigen::Vector3d & bodyPoint,
-               const mc_rbdyn::Robots & robots,
-               unsigned int robotIndex,
-               double stiffness = 2.0,
-               double weight = 500);
+  PositionTask(mc_rbdyn::Frame & frame, double stiffness = 2.0, double weight = 500);
 
   virtual ~PositionTask() = default;
 
-  /*! \brief Reset the task
-   *
-   * Set the task objective to the current body position
-   */
-  void reset() override;
-
   /*! \brief Get the body position target */
-  Eigen::Vector3d position();
+  inline const Eigen::Vector3d & position() noexcept
+  {
+    return errorT_->position();
+  }
 
   /*! \brief Set the body position target
    *
    * \param pos Body position in world frame
    *
    */
-  void position(const Eigen::Vector3d & pos);
-
-  /*! \brief Get the body point being controlled
-   */
-  Eigen::Vector3d bodyPoint() const;
-
-  /*! \brief Set the body point being controlled
-   *
-   * \param bodyPoint point position in body frame
-   *
-   */
-  void bodyPoint(const Eigen::Vector3d & bodyPoint);
-
-  void addToGUI(mc_rtc::gui::StateBuilder & gui) override;
+  inline void position(const Eigen::Vector3d & pos) noexcept
+  {
+    errorT_->position(pos);
+  }
 
 protected:
-  std::string bodyName;
-  unsigned int bIndex;
   void addToLogger(mc_rtc::Logger & logger) override;
+  void addToGUI(mc_rtc::gui::StateBuilder & gui) override;
 };
 
 } // namespace mc_tasks

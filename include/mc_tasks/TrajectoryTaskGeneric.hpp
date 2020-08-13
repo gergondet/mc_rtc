@@ -69,6 +69,7 @@ void TrajectoryTaskGeneric<T>::addToSolver(mc_solver::QPSolver & solver)
 template<typename T>
 void TrajectoryTaskGeneric<T>::reset()
 {
+  errorT_->reset();
   if constexpr(hasRefVel)
   {
     refVel(Eigen::VectorXd::Zero(refVel().size()));
