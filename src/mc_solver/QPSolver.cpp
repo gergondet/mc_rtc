@@ -384,14 +384,9 @@ bool QPSolver::runOpenLoop()
     for(auto & robot : *robots_)
     {
       auto & mb = robot->mb();
-      auto & mbc = robot->mbc();
       if(mb.nrDof() > 0)
       {
-        rbd::vectorToParam(robot->tau()->value(), robot->mbc().jointTorque);
-        rbd::vectorToParam(tvm::dot(robot->q(), 2).value(), robot->mbc().alphaD);
-        rbd::eulerIntegration(mb, mbc, dt_);
-        // FIXME We update the kinematics here for logging and display purpose mostly
-        robot->updateKinematics();
+        updateRobot(*robot);
       }
     }
     return true;
@@ -455,6 +450,14 @@ bool QPSolver::runJointsFeedback(bool wVelocity)
       robot.forwardKinematics();
       robot.forwardVelocity();
       robot.forwardAcceleration();
+
+      // Set optimization varibles accordingly
+      auto alpha = tvm::dot(robot.q()).value();
+      rbd::paramToVector(robot.mbc().alpha, alpha);
+      tvm::dot(robot.q()).value(alpha);
+      auto q = robot.q().value();
+      rbd::paramToVector(robot.mbc().q, q);
+      robot.q().value(q);
     }
   }
   if(runCommon())
@@ -468,11 +471,7 @@ bool QPSolver::runJointsFeedback(bool wVelocity)
       mbc.alpha = control_alpha_[i];
       if(mb.nrDof() > 0)
       {
-        rbd::vectorToParam(robot->tau()->value(), robot->mbc().jointTorque);
-        rbd::vectorToParam(tvm::dot(robot->q(), 2).value(), robot->mbc().alphaD);
-        rbd::eulerIntegration(mb, mbc, dt_);
-        // FIXME We update the kinematics here for logging and display purpose mostly
-        robot->updateKinematics();
+        updateRobot(*robot);
       }
     }
     return true;
@@ -503,6 +502,14 @@ bool QPSolver::runClosedLoop()
     robot.forwardKinematics();
     robot.forwardVelocity();
     robot.forwardAcceleration();
+
+    // Set variable values accordingly
+    auto alpha = tvm::dot(robot.q()).value();
+    rbd::paramToVector(robot.mbc().alpha, alpha);
+    tvm::dot(robot.q()).value(alpha);
+    auto q = robot.q().value();
+    rbd::paramToVector(robot.mbc().q, q);
+    robot.q().value(q);
   }
 
   // Solve QP and integrate
@@ -523,6 +530,23 @@ bool QPSolver::runClosedLoop()
     return true;
   }
   return false;
+}
+
+void QPSolver::updateRobot(mc_rbdyn::Robot & robot)
+{
+  auto & mb = robot.mb();
+  auto & mbc = robot.mbc();
+  rbd::vectorToParam(robot.tau()->value(), mbc.jointTorque);
+  rbd::vectorToParam(tvm::dot(robot.q(), 2).value(), mbc.alphaD);
+  rbd::eulerIntegration(mb, mbc, dt_);
+  auto alpha = tvm::dot(robot.q()).value();
+  rbd::paramToVector(mbc.alpha, alpha);
+  tvm::dot(robot.q()).value(alpha);
+  auto q = robot.q().value();
+  rbd::paramToVector(mbc.q, q);
+  robot.q().value(q);
+  // FIXME We update the kinematics here for logging and display purpose mostly
+  robot.updateKinematics();
 }
 
 } // namespace mc_solver
