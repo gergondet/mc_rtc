@@ -1,10 +1,12 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
 
 #include <mc_tasks/TrajectoryTaskGeneric.h>
+
+#include <mc_tvm/OrientationFunction.h>
 
 namespace mc_tasks
 {
@@ -14,56 +16,44 @@ namespace mc_tasks
  * This task is thin wrapper around the appropriate tasks in Tasks.
  *
  */
-struct MC_TASKS_DLLAPI OrientationTask : public TrajectoryTaskGeneric<tasks::qp::OrientationTask>
+struct MC_TASKS_DLLAPI OrientationTask : public TrajectoryTaskGeneric<mc_tvm::OrientationFunction>
 {
 public:
-  friend struct EndEffectorTask;
+  using TrajectoryBase = TrajectoryTaskGeneric<mc_tvm::OrientationFunction>;
 
   /*! \brief Constructor
    *
-   * \param bodyName Name of the body to control
-   *
-   * \param robots Robots controlled by this task
-   *
-   * \param robotIndex Index of the robot controlled by this task
+   * \param frame Frame to control
    *
    * \param stiffness Task stiffness
    *
    * \param weight Task weight
    *
    */
-  OrientationTask(const std::string & bodyName,
-                  const mc_rbdyn::Robots & robots,
-                  unsigned int robotIndex,
-                  double stiffness = 2.0,
-                  double weight = 500);
-
-  /*! \brief Reset the task
-   *
-   * Set the task objective to the current body orientation
-   */
-  void reset() override;
+  OrientationTask(mc_rbdyn::Frame & frame, double stiffness = 2.0, double weight = 500);
 
   /*! \brief Set the body orientation target
    *
    * \param ori Body orientation in world frame
    *
    */
-  void orientation(const Eigen::Matrix3d & ori);
+  inline void orientation(const Eigen::Matrix3d & ori) noexcept
+  {
+    errorT_->orientation(ori);
+  }
 
   /*! \brief Get the current body orientation target
    *
    * \returns The body orientation target in world frame
    *
    */
-  Eigen::Matrix3d orientation();
+  inline const Eigen::Matrix3d & orientation() noexcept
+  {
+    return errorT_->orientation();
+  }
 
 protected:
   void addToGUI(mc_rtc::gui::StateBuilder & gui) override;
-
-public:
-  std::string bodyName;
-  unsigned int bIndex;
   void addToLogger(mc_rtc::Logger & logger) override;
 };
 

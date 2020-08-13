@@ -383,7 +383,7 @@ set(mc_tasks_SRC
 #mc_tasks/MomentumTask.cpp
 mc_tasks/PositionTask.cpp
 #mc_tasks/SurfaceTransformTask.cpp
-#mc_tasks/OrientationTask.cpp
+mc_tasks/OrientationTask.cpp
 #mc_tasks/VectorOrientationTask.cpp
 #mc_tasks/EndEffectorTask.cpp
 #mc_tasks/RelativeEndEffectorTask.cpp
