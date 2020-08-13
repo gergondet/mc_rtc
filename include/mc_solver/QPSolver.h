@@ -277,6 +277,9 @@ private:
    */
   bool runClosedLoop();
 
+  /** Update a robot from the optimization result */
+  void updateRobot(mc_rbdyn::Robot & robot);
+
   /** Feedback data */
   std::vector<std::vector<double>> prev_encoders_{};
   std::vector<std::vector<double>> encoders_alpha_{};
