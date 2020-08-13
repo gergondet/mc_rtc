@@ -117,7 +117,9 @@ bool QPSolver::addDynamicsConstraint(const DynamicsConstraintPtr & cs)
       auto & f1 = s1.frame();
       auto & f2 = s2.frame();
       auto C = discretizedFrictionCone(contact.friction);
-      auto s1Points = mc_rbdyn::intersection(s1, s2);
+      // FIXME Debug mc_rbdyn::intersection
+      // auto s1Points = mc_rbdyn::intersection(s1, s2);
+      auto s1Points = s1.points();
       if(isR1)
       {
         addContactToDynamics(contact.r1, f1, s1Points, data.f1_, data.f1Constraints_, C, 1.0);
@@ -245,7 +247,7 @@ void QPSolver::addContactToDynamics(const std::string & robot,
   }
   for(auto & f : forces)
   {
-    constraints.push_back(problem_.add(dir * frictionCone * f >= 0, {tvm::requirements::PriorityLevel(0)}));
+    constraints.push_back(problem_.add(dir * frictionCone * f >= 0.0, {tvm::requirements::PriorityLevel(0)}));
   }
 }
 

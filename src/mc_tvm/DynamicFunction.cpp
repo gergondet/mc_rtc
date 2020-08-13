@@ -30,11 +30,11 @@ DynamicFunction::ForceContact::ForceContact(mc_rbdyn::Frame & frame, std::vector
 : frame_(frame), points_(std::move(points)), dir_(dir), force_jac_(6, frame.rbdJacobian().dof()),
   full_jac_(6, frame.robot().mb().nrDof())
 {
-  for(size_t i = 0; i < points.size(); ++i)
+  for(size_t i = 0; i < points_.size(); ++i)
   {
     forces_.add(tvm::Space(3).createVariable("force" + std::to_string(i)));
   }
-  forces_.value(Eigen::VectorXd::Zero(3 * static_cast<Eigen::DenseIndex>(points.size())));
+  forces_.value(Eigen::VectorXd::Zero(3 * static_cast<Eigen::DenseIndex>(points_.size())));
 }
 
 void DynamicFunction::ForceContact::updateJacobians(DynamicFunction & parent)
@@ -47,7 +47,7 @@ void DynamicFunction::ForceContact::updateJacobians(DynamicFunction & parent)
     const auto & point = points_[static_cast<size_t>(i)];
     frame_->rbdJacobian().translateBodyJacobian(bodyJac, robot.mbc(), point.translation(), force_jac_);
     frame_->rbdJacobian().fullJacobian(robot.mb(), force_jac_, full_jac_);
-    parent.jacobian_[force.get()].noalias() = dir_ * full_jac_.block(3, 0, 3, robot.mb().nrDof()).transpose();
+    parent.jacobian_[force.get()].noalias() = -dir_ * full_jac_.block(3, 0, 3, robot.mb().nrDof()).transpose();
   }
 }
 
