@@ -16,9 +16,9 @@ struct MC_CONTROL_DLLAPI MCCoMController : public MCController
 {
   MCCoMController(std::shared_ptr<mc_rbdyn::RobotModule> robot, double dt);
 
-  void reset(const ControllerResetData & reset_data) override;
-
   bool run() override;
+
+  void reset(const ControllerResetData & reset_data) override;
 
 private:
   mc_tasks::CoMTaskPtr comTask_;
