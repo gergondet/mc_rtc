@@ -6,7 +6,7 @@
 namespace mc_tvm
 {
 
-TransformFunction::TransformFunction(mc_rbdyn::Frame & frame) : tvm::function::abstract::Function(3), frame_(frame)
+TransformFunction::TransformFunction(mc_rbdyn::Frame & frame) : tvm::function::abstract::Function(6), frame_(frame)
 {
   reset();
   // clang-format off
@@ -31,6 +31,8 @@ TransformFunction::TransformFunction(mc_rbdyn::Frame & frame) : tvm::function::a
 void TransformFunction::reset()
 {
   pose_ = frame_->position();
+  refVel_.setZero();
+  refAccel_.setZero();
 }
 
 void TransformFunction::updateValue()
