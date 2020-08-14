@@ -47,7 +47,7 @@ bool VisualToConvex(mc_rbdyn::Robot & robot,
   if(robot.hasConvex(cName))
   {
     mc_rtc::log::warning("While loading {}, a convex was already provided for collision geometry specified in URDF",
-                         robot);
+                         robot.name());
     return false;
   }
   auto fromBox = [&]() {
