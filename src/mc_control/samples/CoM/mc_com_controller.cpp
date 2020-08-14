@@ -4,10 +4,11 @@
 
 #include "mc_com_controller.h"
 
-#include <mc_filter/utils/clamp.h>
 #include <mc_rbdyn/Surface.h>
+
+#include <mc_filter/utils/clamp.h>
+
 #include <mc_rtc/logging.h>
-#include <mc_tasks/SurfaceTransformTask.h>
 
 namespace mc_control
 {

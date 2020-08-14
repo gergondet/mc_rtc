@@ -21,7 +21,7 @@ namespace mc_solver
 {
 
 CollisionsConstraint::CollisionData::CollisionData(uint64_t id, const mc_rbdyn::Collision & col)
-: id(id), collision(col), function(nullptr), task(nullptr), monitored(false)
+: id(id), collision(col), function(nullptr), task(nullptr), monitored(Monitoring::OFF)
 {
 }
 
@@ -89,7 +89,7 @@ void CollisionsConstraint::addCollision(QPSolver & solver, const mc_rbdyn::Colli
   }
   else
   {
-    auto & data = data_.emplace_back(col);
+    auto & data = data_.emplace_back(nextId_++, col);
     data.function = std::make_shared<mc_tvm::CollisionFunction>(c1, c2, solver.dt());
     if(inSolver_)
     {
@@ -106,7 +106,7 @@ void CollisionsConstraint::addMonitorButton(QPSolver & solver, CollisionData & d
   auto id = data.id;
   solver.gui().addElement(
       {"Collisions", cat, "Monitors"},
-      mc_rtc::gui::Checkbox(name, [id, this]() { return getData(id).monitored; },
+      mc_rtc::gui::Checkbox(name, [id, this]() { return getData(id).monitored != Monitoring::OFF; },
                             [id, &solver, this]() { toggleCollisionMonitor(solver, getData(id), Monitoring::USER); }));
 }
 
