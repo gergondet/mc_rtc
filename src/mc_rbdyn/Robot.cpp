@@ -228,6 +228,7 @@ Robot::Robot(make_shared_token,
   {
     const auto & b = mb().body(static_cast<int>(i));
     bodyTransforms_[i] = bbts.at(b.name());
+    makeFrame(b.name(), b.name(), sva::PTransformd::Identity());
   }
 
   if(loadFiles)
