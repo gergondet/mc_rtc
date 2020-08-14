@@ -240,14 +240,22 @@ void QPSolver::addContactToDynamics(const std::string & robot,
       problem_.remove(c.get());
     }
     constraints.clear();
+    gui_->removeCategory({"Forces", robot, std::string(frame.name())});
   }
   else
   {
     forces = it->second->dynamic().addContact(frame, points, dir);
   }
-  for(auto & f : forces)
+  for(int i = 0; i < forces.numberOfVariables(); ++i)
   {
+    auto & f = forces[i];
+    auto point = points[i];
     constraints.push_back(problem_.add(dir * frictionCone * f >= 0.0, {tvm::requirements::PriorityLevel(0)}));
+    gui_->addElement(
+        {"Forces", robot, std::string(frame.name())},
+        mc_rtc::gui::Force(f->name(), mc_rtc::gui::ForceConfig(mc_rtc::gui::Color::Red),
+                           [f]() { return sva::ForceVecd(Eigen::Vector3d::Zero(), f->value()); },
+                           [&frame, point]() { return point * frame.robot().frame(frame.body()).position(); }));
   }
 }
 
