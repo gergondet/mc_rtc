@@ -160,7 +160,7 @@ void CollisionsConstraint::addCollisions(QPSolver & solver, const mc_rbdyn::Coll
   }
 }
 
-void CollisionsConstraint::removeCollisions(QPSolver & solver, const std::vector<mc_rbdyn::Collision> & cols)
+void CollisionsConstraint::removeCollisions(QPSolver & solver, const mc_rbdyn::CollisionVector & cols)
 {
   for(const auto & col : cols)
   {
@@ -172,6 +172,20 @@ void CollisionsConstraint::removeCollisions(QPSolver & solver, const std::vector
     removeCollision(solver, *it);
     data_.erase(it);
   }
+}
+
+void CollisionsConstraint::removeCollisions(QPSolver & solver, std::string_view r1, std::string_view r2)
+{
+  auto remove = [&](auto & d) {
+    auto & col = d.collision;
+    if((col.robot1 == r1 && col.robot2 == r2) || (col.robot1 == r2 && col.robot2 == r1))
+    {
+      removeCollision(solver, d);
+      return true;
+    }
+    return false;
+  };
+  std::remove_if(data_.begin(), data_.end(), [&](auto & d) { return remove(d); });
 }
 
 void CollisionsConstraint::reset(QPSolver & solver)
