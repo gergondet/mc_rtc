@@ -58,7 +58,17 @@ public:
    *
    * \param cols List of collisions to remove
    */
-  void removeCollisions(QPSolver & solver, const std::vector<mc_rbdyn::Collision> & cols);
+  void removeCollisions(QPSolver & solver, const mc_rbdyn::CollisionVector & cols);
+
+  /** Remove all collisions between two robots
+   *
+   * Note: this will remove collision that were added for (r1, r2) as well as (r2, r1)
+   *
+   * \param r1 First robot involved
+   *
+   * \param r2 Second robot involved
+   */
+  void removeCollisions(QPSolver & solver, std::string_view r1, std::string_view r2);
 
   /** Remove all collisions from the constraint */
   void reset(QPSolver & solver);

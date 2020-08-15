@@ -165,14 +165,13 @@ mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::Collision>::save(const mc_rb
   return config;
 }
 
-mc_rbdyn::CollisionVector::CollisionDescription
-    ConfigurationLoader<mc_rbdyn::CollisionVector::CollisionDescription>::load(const mc_rtc::Configuration & config)
+mc_rbdyn::CollisionDescription ConfigurationLoader<mc_rbdyn::CollisionDescription>::load(
+    const mc_rtc::Configuration & config)
 {
   return {config("object1"), config("object2"), config("iDist"), config("sDist"), config("damping")};
 }
 
-mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::CollisionVector::CollisionDescription>::save(
-    const mc_rbdyn::CollisionVector::CollisionDescription & c)
+mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::CollisionDescription>::save(const mc_rbdyn::CollisionDescription & c)
 {
   mc_rtc::Configuration config;
   config.add("object1", c.object1);

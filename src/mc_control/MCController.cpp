@@ -323,6 +323,11 @@ void MCController::supported_robots(std::vector<std::string> & out) const
   out = {};
 }
 
+bool MCController::hasContact(const mc_rbdyn::Contact & c) const
+{
+  return std::find(contacts().begin(), contacts().end(), c) != contacts().end();
+}
+
 void MCController::stop() {}
 
 } // namespace mc_control

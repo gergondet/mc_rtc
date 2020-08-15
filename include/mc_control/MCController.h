@@ -110,6 +110,62 @@ public:
    */
   virtual bool resetObserverPipelines();
 
+  /** Add a contact
+   *
+   * If the contact is already active it updates the contact friction or DoF if
+   * different from the existing one
+   */
+  inline void addContact(const mc_rbdyn::Contact & c)
+  {
+    solver().addContact(c);
+  }
+
+  /** Remove a contact
+   *
+   * If the const is not active this has no effect
+   */
+  inline void removeContact(const mc_rbdyn::Contact & c)
+  {
+    solver().removeContact(c);
+  }
+
+  /** Access all contacts currently active */
+  const std::vector<mc_rbdyn::Contact> & contacts() const noexcept
+  {
+    return solver().contacts();
+  }
+
+  /** Check if a contact is already present */
+  bool hasContact(const mc_rbdyn::Contact & c) const;
+
+  /** Add collisions-pair between two robots */
+  inline void addCollisions(std::string_view r1,
+                            std::string_view r2,
+                            const std::vector<mc_rbdyn::CollisionDescription> & cols)
+  {
+    collisionConstraint_->addCollisions(solver(), {r1, r2, cols});
+  }
+
+  /** Remove collisions-pair pair between two robots */
+  inline void removeCollisions(std::string_view r1,
+                               std::string_view r2,
+                               const std::vector<mc_rbdyn::CollisionDescription> & cols)
+  {
+    collisionConstraint_->removeCollisions(solver(), {r1, r2, cols});
+  }
+
+  /** Remove all collisions-pair between two robots */
+  inline void removeCollisions(std::string_view r1, std::string_view r2)
+  {
+    collisionConstraint_->removeCollisions(solver(), r1, r2);
+  }
+
+  /** Returns true if the robot is part of the controller */
+  inline bool hasRobot(std::string_view robot) const
+  {
+    return robots().hasRobot(robot);
+  }
+
   /** Whether this controller contains a pipeline with the provided name
    *
    * \param name Name of the pipeline
