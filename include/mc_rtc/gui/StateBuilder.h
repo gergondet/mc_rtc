@@ -41,53 +41,29 @@ struct MC_RTC_GUI_DLLAPI StateBuilder
   /** Constructor */
   StateBuilder();
 
-  /** Add a given element
+  /** Add the provided elements to a category
    *
-   * T must derive from Element
-   *
-   * \param category Category of the element
-   *
-   * \param element Element added to the GUI
-   */
-  template<typename T>
-  void addElement(const std::vector<std::string> & category, T element);
-
-  /** Add multiple elements to the same category at once
+   * Each element must derive from the Element class
    *
    * \param category Category of the elements
    *
-   * \param element Element added to the GUI
-   *
-   * \param args Other elements added to the GUI
+   * \param elements Elements that will be added to the GUI
    */
-  template<typename T, typename... Args>
-  void addElement(const std::vector<std::string> & category, T element, Args... args);
+  template<typename... Elements>
+  void addElement(const std::vector<std::string> & category, Elements... elements);
 
-  /** Add a given element and specify stacking
+  /** Add the provided elements to a category with a specific stacking
    *
-   * T must derive from Element
-   *
-   * \param category Category of the element
-   *
-   * \param stacking Stacking direction
-   *
-   * \param element Element added to the GUI
-   */
-  template<typename T>
-  void addElement(const std::vector<std::string> & category, ElementsStacking stacking, T element);
-
-  /** Add multiple elements to the same category at once with a specific stacking
+   * Each element must derive from the Element class
    *
    * \param category Category of the elements
    *
-   * \param element Element added to the GUI
-   *
    * \param stacking Stacking direction
    *
-   * \param args Other elements added to the GUI
+   * \param elements Elements that will be added to the GUI
    */
-  template<typename T, typename... Args>
-  void addElement(const std::vector<std::string> & category, ElementsStacking stacking, T element, Args... args);
+  template<typename... Elements>
+  void addElement(const std::vector<std::string> & category, ElementsStacking stacking, Elements... elements);
 
   /** Checks if an element is already in the GUI
    *
@@ -252,9 +228,6 @@ struct MC_RTC_GUI_DLLAPI StateBuilder
   }
 
 private:
-  template<typename T>
-  void addElementImpl(const std::vector<std::string> & category, ElementsStacking stacking, T element, size_t rem = 0);
-
   /** Holds static data for the GUI */
   mc_rtc::Configuration data_;
   /** Callback used to write plot data into the GUI message */
@@ -306,6 +279,10 @@ private:
     }
   };
   Category elements_;
+
+  /** Actual implementation for adding an element into the GUI */
+  template<typename T>
+  void addElementImpl(const std::vector<std::string> & cateogry, Category & cat, ElementsStacking stacking, T element);
 
   /** Get a category
    *

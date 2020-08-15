@@ -14,25 +14,12 @@ namespace gui
 {
 
 template<typename T>
-void StateBuilder::addElement(const std::vector<std::string> & category, T element)
-{
-  addElement(category, ElementsStacking::Vertical, element);
-}
-
-template<typename T>
-void StateBuilder::addElement(const std::vector<std::string> & category, ElementsStacking stacking, T element)
-{
-  addElementImpl(category, stacking, element);
-}
-
-template<typename T>
 void StateBuilder::addElementImpl(const std::vector<std::string> & category,
+                                  Category & cat,
                                   ElementsStacking stacking,
-                                  T element,
-                                  size_t rem)
+                                  T element)
 {
-  static_assert(std::is_base_of<Element, T>::value, "You can only add elements that derive from the Element class");
-  Category & cat = getCategory(category);
+  static_assert(std::is_base_of_v<Element, T>, "You can only add elements that derive from the Element class");
   auto it = std::find_if(cat.elements.begin(), cat.elements.end(),
                          [&element](const ElementStore & el) { return el().name() == element.name(); });
   if(it != cat.elements.end())
@@ -42,27 +29,22 @@ void StateBuilder::addElementImpl(const std::vector<std::string> & category,
     return;
   }
   cat.elements.emplace_back(element, cat, stacking);
-  if(rem == 0)
-  {
-    cat.id += 1;
-  }
 }
 
-template<typename T, typename... Args>
-void StateBuilder::addElement(const std::vector<std::string> & category, T element, Args... args)
+template<typename... Elements>
+void StateBuilder::addElement(const std::vector<std::string> & category, Elements... elements)
 {
-  addElement(category, ElementsStacking::Vertical, element, args...);
+  addElement(category, ElementsStacking::Vertical, elements...);
 }
 
-template<typename T, typename... Args>
+template<typename... Elements>
 void StateBuilder::addElement(const std::vector<std::string> & category,
                               ElementsStacking stacking,
-                              T element,
-                              Args... args)
+                              Elements... elements)
 {
-  size_t rem = stacking == ElementsStacking::Vertical ? 0 : sizeof...(args);
-  addElementImpl(category, stacking, element, rem);
-  addElement(category, stacking, args...);
+  Category & cat = getCategory(category);
+  (addElementImpl(category, cat, stacking, elements), ...);
+  cat.id += 1;
 }
 
 template<typename T>
