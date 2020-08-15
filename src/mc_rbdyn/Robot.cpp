@@ -1018,7 +1018,7 @@ void Robot::accW(const sva::MotionVecd & acc)
     alphaD[0][3] = aB.linear().x();
     alphaD[0][4] = aB.linear().y();
     alphaD[0][5] = aB.linear().z();
-    rbd::forwardAcceleration(mb(), mbc());
+    forwardAcceleration();
   }
   else
   {
