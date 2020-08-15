@@ -110,29 +110,16 @@ private:
   /** Reset all posture tasks */
   void resetPostures();
 
-  /** Update the contacts (or their DoFs) if needed */
-  void updateContacts();
-
   /** Start the idle state */
   void startIdleState();
 
   /** Teardown the idle state */
   void teardownIdleState();
 
-protected:
-  /** Map robots' names to index */
-  std::map<std::string, size_t> robots_idx_;
-
+private:
   /** Holds dynamics, kinematics and contact constraints that are added
    * from the start by the controller */
-  std::vector<mc_solver::ConstraintSetPtr> constraints_;
-
-  /** Keep track of the contact constraint */
-  std::shared_ptr<mc_solver::ContactConstraint> contact_constraint_ = nullptr;
-
-  /** Collision managers for robot-pair (r1, r2), if r1 == r2 this is
-   * effectively a self-collision manager */
-  std::map<std::pair<std::string, std::string>, std::shared_ptr<mc_solver::CollisionsConstraint>> collision_constraints_;
+  std::vector<mc_solver::ConstraintPtr> constraints_;
 
   /** Creates a posture task for each actuated robots
    * (i.e. robot.dof() - robot.joint(0).dof() > 0 ) */
@@ -140,12 +127,7 @@ protected:
   std::map<std::string, double> saved_posture_weights_;
 
   /** Creates a free-flyer end-effector task for each robot with a free flyer */
-  std::map<std::string, std::shared_ptr<mc_tasks::EndEffectorTask>> ff_tasks_;
-
-  /** FSM contacts */
-  ContactSet contacts_;
-  /** True if contacts were changed in the previous round */
-  bool contacts_changed_;
+  std::map<std::string, std::shared_ptr<mc_tasks::TransformTask>> ff_tasks_;
 
   /** State factory */
 #ifndef MC_RTC_BUILD_STATIC
@@ -161,23 +143,8 @@ protected:
   bool running_ = false;
   /** Main executor */
   Executor executor_;
-
-  using duration_ms = std::chrono::duration<double, std::milli>;
-  /** Monitor updateContacts runtime */
-  duration_ms updateContacts_dt_{0};
 };
 
 } // namespace fsm
 
 } // namespace mc_control
-
-namespace mc_rtc
-{
-
-template<>
-struct MC_CONTROL_FSM_DLLAPI ConfigurationLoader<mc_control::fsm::Contact>
-{
-  static mc_control::fsm::Contact load(const mc_rtc::Configuration & config);
-};
-
-} // namespace mc_rtc

@@ -10,6 +10,10 @@
 
 #include <mc_rtc/logging.h>
 
+#include <mc_tasks/OrientationTask.h>
+#include <mc_tasks/PositionTask.h>
+#include <mc_tasks/TransformTask.h>
+
 namespace mc_control
 {
 
@@ -63,6 +67,9 @@ void MCCoMController::reset(const ControllerResetData & reset_data)
     mc_rtc::log::error_and_throw<std::runtime_error>("CoM sample controller does not support this robot {}",
                                                      robot().name());
   }
+  solver().addTask(std::make_shared<mc_tasks::OrientationTask>(robot().frame("WAIST_R_S")));
+  solver().addTask(std::make_shared<mc_tasks::TransformTask>(robot().frame("l_wrist")));
+  solver().addTask(std::make_shared<mc_tasks::TransformTask>(robot().frame("r_wrist")));
   solver().addConstraint(dynamicsConstraint_);
   solver().addConstraint(collisionConstraint_);
   // FIXME

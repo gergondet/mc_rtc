@@ -140,10 +140,13 @@ MCController::MCController(const std::vector<mc_rbdyn::RobotModulePtr> & modules
 
 MCController::~MCController() {}
 
-mc_rbdyn::Robot & MCController::loadRobot(mc_rbdyn::RobotModulePtr rm, std::string_view name)
+mc_rbdyn::Robot & MCController::loadRobot(mc_rbdyn::RobotModulePtr rm,
+                                          std::string_view name,
+                                          const sva::PTransformd & posW)
 {
   assert(rm);
   auto & r = internal::loadRobot(*robots_, *gui_, rm, name);
+  r.posW(posW);
   realRobots_->robotCopy(r, r.name());
   return r;
 }
@@ -306,6 +309,38 @@ void MCController::reset(const ControllerResetData & reset_data)
   robot().mbc().q = reset_data.q;
   postureTask_->posture(reset_data.q);
   robot().updateKinematics();
+  gui_->removeCategory({"Contacts"});
+  gui_->addElement({"Contacts"}, mc_rtc::gui::Label("Contacts", [this]() {
+                     std::string ret;
+                     for(const auto & c : contacts())
+                     {
+                       ret += fmt::format("{}::{}/{}::{} | {} | {}\n", c.r1, c.r1Surface, c.r2, c.r2Surface,
+                                          c.dof.transpose(), c.friction);
+                     }
+                     if(ret.size())
+                     {
+                       ret.pop_back();
+                     }
+                     return ret;
+                   }));
+  gui_->addElement(
+      {"Contacts", "Add"},
+      mc_rtc::gui::Form("Add contact",
+                        [this](const mc_rtc::Configuration & data) {
+                          std::string r1 = data("R1");
+                          std::string r2 = data("R2");
+                          std::string r1Surface = data("R1 surface");
+                          std::string r2Surface = data("R2 surface");
+                          double friction = data("Friction", mc_rbdyn::Contact::defaultFriction);
+                          Eigen::Vector6d dof = data("dof", Eigen::Vector6d::Ones().eval());
+                          addContact({r1, r2, r1Surface, r2Surface, friction, dof});
+                        },
+                        mc_rtc::gui::FormDataComboInput{"R1", true, {"robots"}},
+                        mc_rtc::gui::FormDataComboInput{"R1 surface", true, {"surfaces", "$R1"}},
+                        mc_rtc::gui::FormDataComboInput{"R2", true, {"robots"}},
+                        mc_rtc::gui::FormDataComboInput{"R2 surface", true, {"surfaces", "$R2"}},
+                        mc_rtc::gui::FormNumberInput{"Friction", false, mc_rbdyn::Contact::defaultFriction},
+                        mc_rtc::gui::FormArrayInput<Eigen::Vector6d>{"dof", false, Eigen::Vector6d::Ones()}));
 }
 
 const mc_rbdyn::Robot & MCController::realRobot(std::string_view name) const

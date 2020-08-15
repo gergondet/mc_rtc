@@ -4,13 +4,9 @@
 
 #include "mc_posture_controller.h"
 
-#include <mc_rtc/logging.h>
-
-#include <RBDyn/EulerIntegration.h>
-#include <RBDyn/FK.h>
-#include <RBDyn/FV.h>
-
-/* Note all service calls except for controller switches are implemented in mc_global_controller_services.cpp */
+#include <mc_tasks/CoMTask.h>
+#include <mc_tasks/OrientationTask.h>
+#include <mc_tasks/PositionTask.h>
 
 namespace mc_control
 {
@@ -25,6 +21,7 @@ MCPostureController::MCPostureController(std::shared_ptr<mc_rbdyn::RobotModule> 
   // solver().addConstraint(compoundJointConstraint_);
 
   postureTask_->stiffness(5.0);
+  postureTask_->weight(1.0);
   solver().addTask(postureTask_);
 
   mc_rtc::log::success("Posture sample controller initialized");
@@ -38,8 +35,14 @@ bool MCPostureController::run()
 void MCPostureController::reset(const ControllerResetData & reset_data)
 {
   MCController::reset(reset_data);
-  solver().addContact({robot().name(), "ground", "LeftFoot", "AllGround"});
-  solver().addContact({robot().name(), "ground", "RightFoot", "AllGround"});
+  if(robot().hasSurface("LeftFoot"))
+  {
+    auto comT = std::make_shared<mc_tasks::CoMTask>(robot());
+    comT->weight(1000.0);
+    solver().addTask(comT);
+    solver().addContact({robot().name(), "ground", "LeftFoot", "AllGround"});
+    solver().addContact({robot().name(), "ground", "RightFoot", "AllGround"});
+  }
 }
 
 } // namespace mc_control

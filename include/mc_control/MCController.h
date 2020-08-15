@@ -384,10 +384,14 @@ public:
    *
    * \param name Name of the robot
    *
+   * \param posW Initial position of the robot
+   *
    * \return The loaded control robot.
    * You may access the corresponding real robot through realRobots().robot(name)
    */
-  mc_rbdyn::Robot & loadRobot(mc_rbdyn::RobotModulePtr rm, std::string_view name);
+  mc_rbdyn::Robot & loadRobot(mc_rbdyn::RobotModulePtr rm,
+                              std::string_view name,
+                              const sva::PTransformd & posW = sva::PTransformd::Identity());
 
   /** Remove a robot from the controller
    *
