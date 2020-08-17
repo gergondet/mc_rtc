@@ -205,6 +205,28 @@ mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::CollisionVector>::save(const
   return out;
 }
 
+mc_rbdyn::Contact ConfigurationLoader<mc_rbdyn::Contact>::load(const mc_rtc::Configuration & config)
+{
+  return {config("r1"),
+          config("r2"),
+          config("r1Surface"),
+          config("r2Surface"),
+          config("friction", mc_rbdyn::Contact::defaultFriction),
+          config("dof", Eigen::Vector6d::Ones().eval())};
+}
+
+mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::Contact>::save(const mc_rbdyn::Contact & c)
+{
+  mc_rtc::Configuration out;
+  out.add("r1", c.r1);
+  out.add("r1Surface", c.r1Surface);
+  out.add("r2", c.r2);
+  out.add("r2Surface", c.r2Surface);
+  out.add("dof", c.dof);
+  out.add("friction", c.friction);
+  return out;
+}
+
 mc_rbdyn::Flexibility ConfigurationLoader<mc_rbdyn::Flexibility>::load(const mc_rtc::Configuration & config)
 {
   return {config("jointName"), config("K"), config("C"), config("O")};

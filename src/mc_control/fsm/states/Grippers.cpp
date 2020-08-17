@@ -20,23 +20,17 @@ void Grippers::configure(const mc_rtc::Configuration & config)
 
 void Grippers::start(Controller & ctl)
 {
-  unsigned int rIndex = 0;
   config_("keepSafetyConfig", keepSafetyConfig_);
-  if(config_.has("robot"))
+  std::string_view robotName = config_("robot", std::string_view{});
+  if(!ctl.hasRobot(robotName))
   {
-    if(!ctl.robots().hasRobot(config_("robot")))
-    {
-      std::string robot = config_("robot");
-      mc_rtc::log::warning("[FSM::{}] Configured for robot {} but this robot is not part of the controller", name(),
-                           robot);
-      return;
-    }
-    rIndex = ctl.robots().robotIndex(config_("robot"));
+    mc_rtc::log::warning("[FSM::{}] Configured for robot {} but this robot is not part of the controller", name(),
+                         robotName);
   }
   if(config_.has("grippers"))
   {
     auto grippers = config_("grippers");
-    auto & ctl_grippers = ctl.robots().robot(rIndex).grippersByName();
+    auto & ctl_grippers = ctl.robots().robot(robotName).grippersByName();
     for(const auto & g : grippers.keys())
     {
       if(ctl_grippers.count(g) == 0)

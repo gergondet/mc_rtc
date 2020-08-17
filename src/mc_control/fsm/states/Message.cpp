@@ -72,8 +72,8 @@ void MessageState::start(Controller & ctl)
   if(gui_)
   {
     labelName_ = prefix_.size() ? prefix_ : name();
-    ctl.gui()->addElement(guiCategory_,
-                          mc_rtc::gui::Label(labelName_, [this]() -> const std::string & { return message_; }));
+    ctl.gui().addElement(guiCategory_,
+                         mc_rtc::gui::Label(labelName_, [this]() -> const std::string & { return message_; }));
   }
   output("OK");
 }
@@ -87,7 +87,7 @@ void MessageState::teardown(Controller & ctl)
 {
   if(gui_)
   {
-    ctl.gui()->removeElement(guiCategory_, labelName_);
+    ctl.gui().removeElement(guiCategory_, labelName_);
   }
 }
 
