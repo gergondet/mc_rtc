@@ -7,7 +7,7 @@
 #include <mc_rbdyn/RobotLoader.h>
 #include <mc_rbdyn/configuration_io.h>
 
-#include <mc_solver/ConstraintSetLoader.h>
+#include <mc_solver/ConstraintLoader.h>
 
 #include <mc_tasks/MetaTaskLoader.h>
 
@@ -84,7 +84,7 @@ Controller::Controller(std::shared_ptr<mc_rbdyn::RobotModule> rm, double dt, con
     auto config_constraints = config("constraints", std::vector<mc_rtc::Configuration>{});
     for(const auto & cc : config_constraints)
     {
-      constraints_.emplace_back(mc_solver::ConstraintSetLoader::load(solver(), cc));
+      constraints_.emplace_back(mc_solver::ConstraintLoader::load(solver(), cc));
       solver().addConstraint(*constraints_.back());
     }
   }
@@ -125,7 +125,7 @@ Controller::Controller(std::shared_ptr<mc_rbdyn::RobotModule> rm, double dt, con
           robot_config("posture")("weight", weight);
         }
       }
-      auto t = std::make_shared<mc_tasks::PostureTask>(robot, stiffness, weight);
+      auto t = std::make_shared<mc_tasks::PostureTask>(*robot, stiffness, weight);
       t->name("FSM_" + t->name());
       posture_tasks_[robot->name()] = t;
       solver().addTask(t);

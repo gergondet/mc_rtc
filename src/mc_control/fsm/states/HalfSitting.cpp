@@ -44,7 +44,7 @@ void HalfSittingState::start(Controller & ctl)
   }
   /* Set the halfSitPose in posture Task */
   const auto & halfSit = ctl.robot().module().stance();
-  const auto & ref_joint_order = ctl.robot().refJointOrder();
+  const auto & ref_joint_order = ctl.robot().module().ref_joint_order();
   auto posture = postureTask->posture();
   for(unsigned int i = 0; i < ref_joint_order.size(); ++i)
   {

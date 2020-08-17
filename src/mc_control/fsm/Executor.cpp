@@ -39,30 +39,27 @@ void Executor::init(Controller & ctl,
     transition_triggered_ = true;
     next_state_ = transition_map_.initState();
   }
-  auto gui = ctl.gui();
-  if(gui)
+  auto & gui = ctl.gui();
+  if(category.size())
   {
-    if(category.size())
-    {
-      category_ = category;
-    }
-    else
-    {
-      category_ = {"FSM"};
-      if(name.size())
-      {
-        category_.push_back(name);
-      }
-    }
-    gui->addElement(category_, mc_rtc::gui::Button("Interrupt", [this]() { interrupt(); }),
-                    mc_rtc::gui::Label("Current state", [this]() { return state(); }),
-                    mc_rtc::gui::Label("Next state ready", [this]() { return ready(); }),
-                    mc_rtc::gui::Label("Next state", [this]() { return next_state(); }),
-                    mc_rtc::gui::Button("Start next state", [this]() { next(); }),
-                    mc_rtc::gui::Form("Force transition",
-                                      [this](const mc_rtc::Configuration & c) { this->resume(c("State")); },
-                                      mc_rtc::gui::FormDataComboInput("State", true, {"states"})));
+    category_ = category;
   }
+  else
+  {
+    category_ = {"FSM"};
+    if(name.size())
+    {
+      category_.push_back(name);
+    }
+  }
+  gui.addElement(category_, mc_rtc::gui::Button("Interrupt", [this]() { interrupt(); }),
+                 mc_rtc::gui::Label("Current state", [this]() { return state(); }),
+                 mc_rtc::gui::Label("Next state ready", [this]() { return ready(); }),
+                 mc_rtc::gui::Label("Next state", [this]() { return next_state(); }),
+                 mc_rtc::gui::Button("Start next state", [this]() { next(); }),
+                 mc_rtc::gui::Form("Force transition",
+                                   [this](const mc_rtc::Configuration & c) { this->resume(c("State")); },
+                                   mc_rtc::gui::FormDataComboInput("State", true, {"states"})));
   std::string log_entry = "Executor";
   if(name_.size())
   {
@@ -158,10 +155,7 @@ void Executor::teardown(Controller & ctl)
     state_->teardown_(ctl);
     state_ = nullptr;
   }
-  if(ctl.gui())
-  {
-    ctl.gui()->removeCategory(category_);
-  }
+  ctl.gui().removeCategory(category_);
   ctl.logger().removeLogEntries(this);
 }
 
@@ -216,17 +210,14 @@ void Executor::next(Controller & ctl)
     state_ = ctl.factory().create(next_state_, ctl);
     state_create_dt_ = clock::now() - state_create_start;
   }
-  auto gui = ctl.gui();
-  if(gui)
+  auto & gui = ctl.gui();
+  for(const auto & s : transition_map_.transitions(curr_state_))
   {
-    for(const auto & s : transition_map_.transitions(curr_state_))
-    {
-      gui->removeElement(category_, "Force transition to " + s);
-    }
-    for(const auto & s : transition_map_.transitions(next_state_))
-    {
-      gui->addElement(category_, mc_rtc::gui::Button("Force transition to " + s, [this, s]() { this->resume(s); }));
-    }
+    gui.removeElement(category_, "Force transition to " + s);
+  }
+  for(const auto & s : transition_map_.transitions(next_state_))
+  {
+    gui.addElement(category_, mc_rtc::gui::Button("Force transition to " + s, [this, s]() { this->resume(s); }));
   }
   curr_state_ = next_state_;
   next_state_ = "";

@@ -12,6 +12,7 @@
 #include <mc_rbdyn/Base.h>
 #include <mc_rbdyn/BodySensor.h>
 #include <mc_rbdyn/Collision.h>
+#include <mc_rbdyn/Contact.h>
 #include <mc_rbdyn/Flexibility.h>
 #include <mc_rbdyn/ForceSensor.h>
 #include <mc_rbdyn/PolygonInterpolator.h>
@@ -58,6 +59,7 @@ DECLARE_IO(mc_rbdyn::BodySensor)
 DECLARE_IO(mc_rbdyn::Collision)
 DECLARE_IO(mc_rbdyn::CollisionDescription)
 DECLARE_IO(mc_rbdyn::CollisionVector)
+DECLARE_IO(mc_rbdyn::Contact)
 DECLARE_IO(mc_rbdyn::Flexibility)
 DECLARE_IO(mc_rbdyn::ForceSensor)
 DECLARE_IO(mc_rbdyn::Plane)

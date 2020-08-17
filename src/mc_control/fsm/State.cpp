@@ -75,6 +75,7 @@ void State::configure_(const mc_rtc::Configuration & config)
 
 void State::start_(Controller & ctl)
 {
+  using ContactSet = std::unordered_set<mc_rbdyn::Contact>;
   if(remove_contacts_config_.size())
   {
     ContactSet removeContacts = remove_contacts_config_;
@@ -103,7 +104,7 @@ void State::start_(Controller & ctl)
       }
       if(c.has("collisions"))
       {
-        std::vector<mc_rbdyn::Collision> collisions = c("collisions");
+        std::vector<mc_rbdyn::CollisionDescription> collisions = c("collisions");
         ctl.removeCollisions(r1, r2, collisions);
       }
       else
@@ -122,7 +123,7 @@ void State::start_(Controller & ctl)
       {
         r2 = static_cast<std::string>(c("r2"));
       }
-      std::vector<mc_rbdyn::Collision> collisions = c("collisions");
+      std::vector<mc_rbdyn::CollisionDescription> collisions = c("collisions");
       ctl.addCollisions(r1, r2, collisions);
     }
   }
@@ -187,6 +188,7 @@ void State::start_(Controller & ctl)
 
 void State::teardown_(Controller & ctl)
 {
+  using ContactSet = std::unordered_set<mc_rbdyn::Contact>;
   for(const auto & pt : postures_)
   {
     ctl.solver().addTask(pt);
@@ -219,7 +221,7 @@ void State::teardown_(Controller & ctl)
       }
       if(c.has("collisions"))
       {
-        std::vector<mc_rbdyn::Collision> collisions = c("collisions");
+        std::vector<mc_rbdyn::CollisionDescription> collisions = c("collisions");
         ctl.removeCollisions(r1, r2, collisions);
       }
       else
@@ -238,7 +240,7 @@ void State::teardown_(Controller & ctl)
       {
         r2 = static_cast<std::string>(c("r2"));
       }
-      std::vector<mc_rbdyn::Collision> collisions = c("collisions");
+      std::vector<mc_rbdyn::CollisionDescription> collisions = c("collisions");
       ctl.addCollisions(r1, r2, collisions);
     }
   }
