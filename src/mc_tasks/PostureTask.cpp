@@ -126,8 +126,8 @@ void PostureTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
       continue;
     }
     auto jIndex = robot_->jointIndexByName(j.name());
-    auto jIndexInDof = robot_->mb().jointPosInDof(jIndex);
-    bool isContinuous = robot_->limits().ql[jIndexInDof] == -std::numeric_limits<double>::infinity();
+    auto jIndexInParam = robot_->mb().jointPosInParam(jIndex);
+    bool isContinuous = robot_->limits().ql[jIndexInParam] == -std::numeric_limits<double>::infinity();
     auto updatePosture = [this](unsigned int jIndex, double v) {
       auto posture_ = this->posture();
       posture_[jIndex][0] = v;
@@ -153,7 +153,7 @@ void PostureTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
       gui.addElement({"Tasks", name_, "Target"},
                      mc_rtc::gui::NumberSlider(j.name(), [this, jIndex]() { return posture()[jIndex][0]; },
                                                [jIndex, updatePosture](double v) { updatePosture(jIndex, v); },
-                                               robot_->limits().ql[jIndexInDof], robot_->limits().qu[jIndexInDof]));
+                                               robot_->limits().ql[jIndexInParam], robot_->limits().qu[jIndexInParam]));
     }
   }
 }
