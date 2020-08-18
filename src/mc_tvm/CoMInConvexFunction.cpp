@@ -66,16 +66,15 @@ void CoMInConvexFunction::updateJacobian()
   const auto & qFF = com_->robot().qFloatingBase();
   int qFFSize = qFF->space().tSize();
   const auto & qJoints = com_->robot().qJoints();
-  int qJointsSize = qJoints->space().tSize();
   for(const auto & p : planes_)
   {
     if(qFFSize)
     {
       jacobian_[qFF.get()].row(i).noalias() = p->normal().transpose() * jac.middleCols(0, qFFSize);
     }
-    if(qJointsSize)
+    for(const auto & qJ : qJoints)
     {
-      jacobian_[qJoints.get()].row(i).noalias() = p->normal().transpose() * jac.middleCols(qFFSize, qJointsSize);
+      jacobian_[qJ.get()].row(i).noalias() = p->normal().transpose() * jac.middleCols(qFFSize, qJ->space().tSize());
     }
     ++i;
   }

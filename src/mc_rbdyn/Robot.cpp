@@ -412,15 +412,151 @@ Robot::Robot(make_shared_token,
   kinematicsInputs_->addInput(*com_, CoM::Output::CoM);
 
   // Create TVM variables
-  if(mb().nrJoints() > 0 && mb().joint(0).type() == rbd::Joint::Free)
   {
-    q_fb_ = tvm::Space(6, 7, 6).createVariable(name_ + "_qFloatingBase");
-    q_joints_ = tvm::Space(mb().nrDof() - 6, mb().nrParams() - 7, mb().nrDof() - 6).createVariable(name_ + "_qJoints");
-  }
-  else
-  {
-    q_fb_ = tvm::Space(0).createVariable(name_ + "_qFloatingBase");
-    q_joints_ = tvm::Space(mb().nrDof(), mb().nrParams(), mb().nrDof()).createVariable(name_ + "_qJoints");
+    size_t j0 = 0;
+    if(mb().nrJoints() > 0 && mb().joint(0).type() == rbd::Joint::Free)
+    {
+      j0 = 1;
+      q_fb_ = tvm::Space(6, 7, 6).createVariable(name_ + "_qFloatingBase");
+    }
+    else
+    {
+      q_fb_ = tvm::Space(0).createVariable(name_ + "_qFloatingBase");
+    }
+    int nParams = 0;
+    int nDof = 0;
+    bool mimicBlock = false;
+    size_t startIdx = j0;
+    size_t endIdx = 0;
+    size_t leaderIdx = 0;
+    Eigen::VectorXd mimicMultiplier = Eigen::VectorXd(0);
+    mc_rtc::map<size_t, tvm::VariablePtr> mimicLeaders;
+    mc_rtc::map<size_t, mimic_variables_t> mimicFollowers;
+    // Returns true if the provided joint is a leader in a mimic relationship
+    auto isMimicLeader = [&](std::string_view jName) {
+      return std::find_if(mb().joints().begin(), mb().joints().end(),
+                          [&](const auto & j) { return j.isMimic() && j.mimicName() == jName; })
+             != mb().joints().end();
+    };
+    // Create a variable based on a joint range
+    auto makeQVar = [&](size_t startIdx, size_t endIdx, int nParams, int nDof, size_t leaderIdx, bool isLeader) {
+      if(nParams == 0)
+      {
+        return;
+      }
+      auto vName = fmt::format("{}_q_{}", name_, mb().joints()[startIdx].name());
+      if(startIdx != endIdx)
+      {
+        vName = fmt::format("{}...{}", vName, mb().joints()[endIdx].name());
+      }
+      tvm::VariablePtr var = tvm::Space(nDof, nParams, nDof).createVariable(vName);
+      if(isLeader)
+      {
+        mimicLeaders[leaderIdx] = var;
+      }
+      else if(leaderIdx < mb().joints().size())
+      {
+        if(!mimicFollowers.count(leaderIdx))
+        {
+          mimicFollowers[leaderIdx].second.resize(0);
+        }
+        mimicFollowers[leaderIdx].first.add(var);
+        auto & mult = mimicFollowers[leaderIdx].second;
+        auto newM = Eigen::VectorXd(mult.size() + mimicMultiplier.size());
+        newM << mult, mimicMultiplier;
+        mult = newM;
+      }
+      q_joints_.add(var);
+    };
+    size_t nJoints = mb().joints().size();
+    for(size_t jIdx = j0; jIdx < nJoints; ++jIdx)
+    {
+      const auto & j = mb().joints()[jIdx];
+      if(j.isMimic())
+      {
+        if(!mimicBlock) // Enter a new mimic block
+        {
+          mimicBlock = true;
+          if(jIdx != 0 && startIdx != jIdx) // The mimic is not the first joint and the previous joint was not a leader
+          {
+            makeQVar(startIdx, endIdx, nParams, nDof, nJoints, false);
+          }
+          startIdx = jIdx;
+          leaderIdx = mb().jointIndexByName(j.mimicName());
+          nParams = 0;
+          nDof = 0;
+          mimicMultiplier.resize(0);
+        }
+        else
+        {
+          // Maybe we are entering a mimic block for another leader
+          size_t nLeaderIdx = mb().jointIndexByName(j.mimicName());
+          if(nLeaderIdx != leaderIdx)
+          {
+            makeQVar(startIdx, endIdx, nParams, nDof, leaderIdx, false);
+            startIdx = jIdx;
+            leaderIdx = nLeaderIdx;
+            nParams = 0;
+            nDof = 0;
+            mimicMultiplier.resize(0);
+          }
+        }
+        nParams += j.params();
+        nDof += j.dof();
+        endIdx = jIdx;
+        mimicMultiplier.conservativeResize(mimicMultiplier.size() + 1);
+        mimicMultiplier(mimicMultiplier.size() - 1) = j.mimicMultiplier();
+      }
+      else
+      {
+        if(mimicBlock) // end of a mimic block
+        {
+          makeQVar(startIdx, endIdx, nParams, nDof, leaderIdx, false);
+          startIdx = jIdx;
+          nParams = 0;
+          nDof = 0;
+        }
+        if(isMimicLeader(j.name()))
+        {
+          if(!mimicBlock) // we didn't create a variable block before
+          {
+            makeQVar(startIdx, endIdx, nParams, nDof, nJoints, false);
+            nParams = 0;
+            nDof = 0;
+          }
+          makeQVar(jIdx, jIdx, j.params(), j.dof(), jIdx, true);
+          startIdx = jIdx + 1;
+          endIdx = jIdx + 1;
+        }
+        else if(j.dof() != 0) // This avoids having unactuated joints in the variable names
+        {
+          if(nParams == 0) // Didn't encounter an active joint yet
+          {
+            startIdx = jIdx;
+          }
+          endIdx = jIdx;
+        }
+        mimicBlock = false;
+        nParams += j.params();
+        nDof += j.dof();
+      }
+    }
+    if(mimicBlock) // ended the loop inside a block of mimic joints
+    {
+      const auto & leaderIdx = mb().jointIndexByName(mb().joints()[startIdx].mimicName());
+      makeQVar(startIdx, nJoints - 1, nParams, nDof, leaderIdx, false);
+    }
+    else
+    {
+      if(startIdx < nJoints && nParams != 0)
+      {
+        makeQVar(startIdx, endIdx, nParams, nDof, nJoints, false);
+      }
+    }
+    for(auto & m : mimicLeaders)
+    {
+      mimics_[m.second] = mimicFollowers[m.first];
+    }
   }
   tau_ = tvm::Space(mb().nrDof()).createVariable(name_ + "_tau");
   q_.add(q_fb_);

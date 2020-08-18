@@ -73,6 +73,8 @@ struct MC_RBDYN_DLLAPI Robot : public tvm::graph::abstract::Node<Robot>, mc_rtc:
   friend struct Robots;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
+  using mimic_variables_t = std::pair<tvm::VariableVector, Eigen::VectorXd>;
+
 private:
   struct make_shared_token
   {
@@ -300,14 +302,25 @@ public:
   }
 
   /** Access joints variable (const) */
-  inline const tvm::VariablePtr & qJoints() const noexcept
+  inline const tvm::VariableVector & qJoints() const noexcept
   {
     return q_joints_;
   }
   /** Access joints variable */
-  inline tvm::VariablePtr & qJoints() noexcept
+  inline tvm::VariableVector & qJoints() noexcept
   {
     return q_joints_;
+  }
+
+  /** Access mimics' variable map (const) */
+  inline const mc_rtc::map<tvm::VariablePtr, mimic_variables_t> & mimics() const noexcept
+  {
+    return mimics_;
+  }
+  /** Access mimics' variable map */
+  inline mc_rtc::map<tvm::VariablePtr, mimic_variables_t> & mimics() noexcept
+  {
+    return mimics_;
   }
 
   /** Access tau variable (const) */
@@ -890,9 +903,11 @@ private:
   /** Floating-base variable */
   tvm::VariablePtr q_fb_;
   /** Joints variable */
-  tvm::VariablePtr q_joints_;
+  tvm::VariableVector q_joints_;
   /** Generalized configuration variable */
   tvm::VariableVector q_;
+  /** Map mimic leader joint to their followers */
+  mc_rtc::map<tvm::VariablePtr, mimic_variables_t> mimics_;
   /** Derivative of q */
   tvm::VariableVector dq_;
   /** Double derivative of q */

@@ -7,7 +7,7 @@ namespace mc_tvm
 {
 
 PostureFunction::PostureFunction(mc_rbdyn::Robot & robot)
-: tvm::function::abstract::Function(robot.qJoints()->space().tSize()), robot_(robot),
+: tvm::function::abstract::Function(robot.qJoints().totalSize()), robot_(robot),
   j0_(robot_->mb().joint(0).type() == rbd::Joint::Free ? 1 : 0)
 {
   // clang-format off
@@ -19,9 +19,14 @@ PostureFunction::PostureFunction(mc_rbdyn::Robot & robot)
   addInputDependency<PostureFunction>(Update::Value, robot_, mc_rbdyn::Robot::Output::FK);
   addInputDependency<PostureFunction>(Update::Velocity, robot_, mc_rbdyn::Robot::Output::FK);
   addVariable(robot_->qJoints(), false);
-  jacobian_[robot_->qJoints().get()].setIdentity();
-  jacobian_[robot_->qJoints().get()].properties({tvm::internal::MatrixProperties::IDENTITY});
-  JDot_[robot_->qJoints().get()].setZero();
+  int startIdx = 0;
+  for(const auto & v : robot.qJoints().variables())
+  {
+    auto & jac = jacobian_[v.get()];
+    jac.block(startIdx, 0, v->space().tSize(), v->space().tSize()).setIdentity();
+    JDot_[v.get()].setZero();
+    startIdx += v->space().tSize();
+  }
   normalAcceleration_.setZero();
   value_.setZero();
   velocity_.setZero();
