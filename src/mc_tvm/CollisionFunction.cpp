@@ -1,5 +1,7 @@
 #include <mc_tvm/CollisionFunction.h>
 
+#include <mc_tvm/utils.h>
+
 #include <mc_rbdyn/Frame.h>
 #include <mc_rbdyn/Robot.h>
 #include <mc_rbdyn/SCHAddon.h>
@@ -126,14 +128,14 @@ void CollisionFunction::updateJacobian()
         (sign * normVecDist_).transpose() * jac.block(3, 0, 3, d.jac_.dof());
     d.jac_.fullJacobian(r.mb(), distJac_.block(0, 0, 1, d.jac_.dof()), fullJac_);
     int ffSize = r.qFloatingBase()->space().tSize();
-    int jSize = r.qJoints()->space().tSize();
+    int jSize = r.qJoints().totalSize();
     if(ffSize)
     {
       jacobian_[r.qFloatingBase().get()].block(0, 0, 1, ffSize) += fullJac_.block(0, 0, 1, ffSize);
     }
     if(jSize)
     {
-      jacobian_[r.qJoints().get()].block(0, 0, 1, jSize) += fullJac_.block(0, ffSize, 1, jSize);
+      mc_tvm::splitAddJacobian(fullJac_.block(0, ffSize, 1, jSize), r.qJoints(), jacobian_);
     }
     sign = -1.0;
     object = std::ref(c2_);

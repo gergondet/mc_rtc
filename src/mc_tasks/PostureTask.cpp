@@ -80,9 +80,9 @@ void PostureTask::target(const mc_rtc::map<std::string, std::vector<double>> & j
         {
           for(const auto & m : mimics_[j.first])
           {
-            const auto & j = mb.joint(m);
+            const auto & mimic = mb.joint(m);
             std::transform(q[jIdx].begin(), q[jIdx].end(), q[m].begin(),
-                           [&](const auto & ji) { return j.mimicMultiplier() * ji + j.mimicOffset(); });
+                           [&](const auto & ji) { return mimic.mimicMultiplier() * ji + mimic.mimicOffset(); });
           }
         }
       }

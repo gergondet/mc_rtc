@@ -46,14 +46,20 @@ JVRC1RobotModule::JVRC1RobotModule(bool fixed) : RobotModule(std::string(JVRC_VA
       }
     }
   }
-  std::vector<double> default_q = {-0.38, -0.01, 0., 0.72, -0.01, -0.33,  -0.38, 0.02, 0.,    0.72, -0.02, -0.33, 0.,
-                                   0.13,  0.,    0., 0.,   0.,    -0.052, -0.17, 0.,   -0.52, 0.,   0.,    0.,    0.,
-                                   0.,    0.,    0., 0.,   0.,    -0.052, 0.17,  0.,   -0.52, 0.,   0.,    0.,    0.,
-                                   0.,    0.,    0., 0.,   0.,    0.,     0.,    0.,   0.,    0.,   0.};
+  // clang-format off
+  std::vector<double> default_q = {-0.38, -0.01, 0., 0.72, -0.01, -0.33,
+                                   -0.38,  0.02, 0., 0.72, -0.02, -0.33,
+                                   0., 0.13, 0.,
+                                   0., 0.,   0.,
+                                   -0.052, -0.17, 0., -0.52, 0., 0., 0.,
+                                   0., 0., 0.,  0., 0., 0.,
+                                   -0.052, 0.17,  0., -0.52, 0., 0., 0.,
+                                   0., 0., 0., 0., 0., 0.};
+  // clang-format on
   const auto & rjo = ref_joint_order();
   for(size_t i = 0; i < rjo.size(); ++i)
   {
-    _stance[rjo[i]] = {default_q[i]};
+    _stance[rjo[i]] = {default_q.at(i)};
   }
   _default_attitude = {{1., 0., 0., 0., 0., 0., 0.8275}};
   _forceSensors.push_back(mc_rbdyn::ForceSensor("RightFootForceSensor", "R_ANKLE_P_S", sva::PTransformd::Identity()));

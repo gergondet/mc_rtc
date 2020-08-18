@@ -17,7 +17,10 @@ std::unique_ptr<JointsSelectorFunction> JointsSelectorFunction::ActiveJoints(
   auto useRobotVariable = [&](const tvm::VariablePtr & v) {
     return std::find(f->variables().begin(), f->variables().end(), v) != f->variables().end();
   };
-  if(!useRobotVariable(robot.qJoints()) || !useRobotVariable(robot.qFloatingBase()))
+  auto useRobotVariables = [&](const tvm::VariableVector & v) {
+    return std::any_of(v.begin(), v.end(), [&](const auto & vi) { return useRobotVariable(vi); });
+  };
+  if(!useRobotVariables(robot.qJoints()) || !useRobotVariable(robot.qFloatingBase()))
   {
     mc_rtc::log::error_and_throw<std::runtime_error>(
         "Cannot setup joint selector on the provided function as it doesn't use variables of {}", robot.name());
@@ -112,8 +115,11 @@ JointsSelectorFunction::JointsSelectorFunction(
   }
   if(activeIndex.size())
   {
-    addVariable(robot_->qJoints(), f_->linearIn(*robot_->qJoints()));
-    jacobian_.at(robot_->qJoints().get()).setZero();
+    for(const auto & qi : robot_->qJoints())
+    {
+      addVariable(qi, f_->linearIn(*qi));
+      jacobian_.at(qi.get()).setZero();
+    }
   }
 }
 
@@ -125,11 +131,26 @@ void JointsSelectorFunction::updateJacobian()
   }
   if(activeIndex_.size())
   {
-    const auto & jacIn = f_->jacobian(*robot_->qJoints());
-    for(const auto & p : activeIndex_)
+    int startIdx = 0;
+    for(const auto & qi : robot_->qJoints())
     {
-      jacobian_[robot_->qJoints().get()].middleCols(p.first, p.second) =
-          jacIn.block(0, p.first, jacIn.rows(), p.second);
+      const auto & jacIn = f_->jacobian(*qi);
+      int endIdx = startIdx + qi->space().tSize();
+      for(const auto & p : activeIndex_)
+      {
+        if(p.first >= endIdx)
+        {
+          break;
+        }
+        if(p.first + p.second < startIdx)
+        {
+          continue;
+        }
+        auto start = p.first - startIdx;
+        auto size = std::min<int>(p.second, qi->space().tSize());
+        jacobian_[qi.get()].middleCols(start, size) = jacIn.block(0, start, jacIn.rows(), size);
+      }
+      startIdx = endIdx;
     }
   }
 }
@@ -142,10 +163,26 @@ void JointsSelectorFunction::updateJDot()
   }
   if(activeIndex_.size())
   {
-    const auto & JDotIn = f_->JDot(*robot_->qJoints());
-    for(const auto & p : activeIndex_)
+    int startIdx = 0;
+    for(const auto & qi : robot_->qJoints())
     {
-      JDot_[robot_->qJoints().get()].middleCols(p.first, p.second) = JDotIn.block(0, p.first, JDotIn.rows(), p.second);
+      const auto & JDotIn = f_->JDot(*qi);
+      int endIdx = startIdx + qi->space().tSize();
+      for(const auto & p : activeIndex_)
+      {
+        if(p.first >= endIdx)
+        {
+          break;
+        }
+        if(p.first + p.second < startIdx)
+        {
+          continue;
+        }
+        auto start = p.first - startIdx;
+        auto size = std::min<int>(p.second, qi->space().tSize());
+        JDot_[qi.get()].middleCols(start, size) = JDotIn.block(0, start, JDotIn.rows(), size);
+      }
+      startIdx = endIdx;
     }
   }
 }
