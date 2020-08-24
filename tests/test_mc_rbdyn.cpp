@@ -17,7 +17,8 @@ mc_rbdyn::Robots & get_robots()
   auto rm = mc_rbdyn::RobotLoader::get_robot_module("JVRC1");
   auto env = mc_rbdyn::RobotLoader::get_robot_module("env", std::string(mc_rtc::MC_ENV_DESCRIPTION_PATH),
                                                      std::string("ground"));
-  robots_ptr = mc_rbdyn::loadRobots({rm, env});
+  robots_ptr->load(*rm, rm->name);
+  robots_ptr->load(*env, env->name);
   return *robots_ptr;
 }
 
