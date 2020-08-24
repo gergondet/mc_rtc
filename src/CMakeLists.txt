@@ -232,6 +232,7 @@ set(mc_tvm_HDR
   ${mc_tvm_HDR_DIR}/CoMInConvexFunction.h
   ${mc_tvm_HDR_DIR}/ContactFunction.h
   ${mc_tvm_HDR_DIR}/DynamicFunction.h
+  ${mc_tvm_HDR_DIR}/FrameVelocity.h
   ${mc_tvm_HDR_DIR}/JointsSelectorFunction.h
   ${mc_tvm_HDR_DIR}/OrientationFunction.h
   ${mc_tvm_HDR_DIR}/PositionFunction.h
@@ -245,6 +246,7 @@ set(mc_tvm_SRC
   mc_tvm/CoMInConvexFunction.cpp
   mc_tvm/ContactFunction.cpp
   mc_tvm/DynamicFunction.cpp
+  mc_tvm/FrameVelocity.cpp
   mc_tvm/JointsSelectorFunction.cpp
   mc_tvm/OrientationFunction.cpp
   mc_tvm/PositionFunction.cpp
@@ -308,7 +310,7 @@ install_mc_rtc_lib(mc_rtc_gui)
 add_subdirectory(mc_robots)
 
 set(mc_solver_SRC
-#mc_solver/BoundedSpeedConstr.cpp
+mc_solver/BoundedSpeedConstr.cpp
 mc_solver/CollisionsConstraint.cpp
 #mc_solver/CoMIncPlaneConstr.cpp
 #mc_solver/CompoundJointConstraint.cpp
