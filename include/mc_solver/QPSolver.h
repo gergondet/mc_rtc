@@ -32,7 +32,8 @@ struct Logger;
 namespace gui
 {
 struct StateBuilder;
-}
+using GUI = StateBuilder;
+} // namespace gui
 } // namespace mc_rtc
 
 namespace mc_solver

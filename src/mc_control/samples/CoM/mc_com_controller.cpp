@@ -14,6 +14,42 @@
 #include <mc_tasks/PositionTask.h>
 #include <mc_tasks/TransformTask.h>
 
+#include <mc_solver/CoMInConvexConstraint.h>
+
+/** Build a cube as a set of planes from a given origin and size */
+static std::vector<tvm::geometry::PlanePtr> makeCube(const Eigen::Vector3d & origin, double size)
+{
+  return {std::make_shared<tvm::geometry::Plane>(Eigen::Vector3d{1, 0, 0}, origin + Eigen::Vector3d{-size, 0, 0}),
+          std::make_shared<tvm::geometry::Plane>(Eigen::Vector3d{-1, 0, 0}, origin + Eigen::Vector3d{size, 0, 0}),
+          std::make_shared<tvm::geometry::Plane>(Eigen::Vector3d{0, 1, 0}, origin + Eigen::Vector3d{0, -size, 0}),
+          std::make_shared<tvm::geometry::Plane>(Eigen::Vector3d{0, -1, 0}, origin + Eigen::Vector3d{0, size, 0}),
+          std::make_shared<tvm::geometry::Plane>(Eigen::Vector3d{0, 0, 1}, origin + Eigen::Vector3d{0, 0, -size}),
+          std::make_shared<tvm::geometry::Plane>(Eigen::Vector3d{0, 0, -1}, origin + Eigen::Vector3d{0, 0, size})};
+}
+
+/** Build a cube to show in GUI */
+static std::vector<std::vector<Eigen::Vector3d>> makeCubePolygon(const Eigen::Vector3d & origin, double size)
+{
+  return {// Back-face
+          {origin + Eigen::Vector3d{-size, -size, -size}, origin + Eigen::Vector3d{-size, size, -size},
+           origin + Eigen::Vector3d{-size, size, size}, origin + Eigen::Vector3d{-size, size, -size}},
+          // Front-face
+          {origin + Eigen::Vector3d{size, -size, -size}, origin + Eigen::Vector3d{size, size, -size},
+           origin + Eigen::Vector3d{size, size, size}, origin + Eigen::Vector3d{size, -size, size}},
+          // Left-face
+          {origin + Eigen::Vector3d{-size, -size, -size}, origin + Eigen::Vector3d{size, -size, -size},
+           origin + Eigen::Vector3d{size, -size, size}, origin + Eigen::Vector3d{-size, -size, size}},
+          // Right-face
+          {origin + Eigen::Vector3d{-size, size, -size}, origin + Eigen::Vector3d{size, size, -size},
+           origin + Eigen::Vector3d{size, size, size}, origin + Eigen::Vector3d{-size, size, size}},
+          // Bottom-face
+          {origin + Eigen::Vector3d{-size, -size, -size}, origin + Eigen::Vector3d{size, -size, -size},
+           origin + Eigen::Vector3d{size, size, -size}, origin + Eigen::Vector3d{size, -size, -size}},
+          // Top-face
+          {origin + Eigen::Vector3d{-size, -size, size}, origin + Eigen::Vector3d{size, -size, size},
+           origin + Eigen::Vector3d{size, size, size}, origin + Eigen::Vector3d{size, -size, size}}};
+}
+
 namespace mc_control
 {
 
@@ -74,6 +110,14 @@ void MCCoMController::reset(const ControllerResetData & reset_data)
   solver().addConstraint(collisionConstraint_);
   // FIXME
   // solver().addConstraint(compoundJointConstraint_);
+
+  auto comInConvexCstr = std::make_shared<mc_solver::CoMInConvexConstraint>(robot());
+  comInConvexCstr->setPlanes(solver(), makeCube(robot().com().com(), 0.1));
+  solver().addConstraint(comInConvexCstr);
+  // Draw the corresponding box
+  auto poly = makeCubePolygon(robot().com().com(), 0.1);
+  gui().addElement({"CoM constraint"},
+                   mc_rtc::gui::Polygon("polygon", mc_rtc::gui::Color::Red, [p = std::move(poly)]() { return p; }));
 }
 
 bool MCCoMController::run()

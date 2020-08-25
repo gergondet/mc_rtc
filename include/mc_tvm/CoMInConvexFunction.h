@@ -6,8 +6,8 @@
 
 #include <mc_tvm/api.h>
 
+#include <mc_rbdyn/CoM.h>
 #include <mc_rbdyn/fwd.h>
-#include <mc_rbdyn/polygon_utils.h>
 
 #include <tvm/function/abstract/Function.h>
 #include <tvm/geometry/Plane.h>
@@ -46,6 +46,12 @@ public:
 
   /** Remove all planes */
   void reset();
+
+  /** Access the robot this function uses */
+  inline const mc_rbdyn::Robot & robot() const noexcept
+  {
+    return com_->robot();
+  }
 
   /** Access the planes currently in the function */
   inline const std::vector<tvm::geometry::PlanePtr> & planes() const noexcept
