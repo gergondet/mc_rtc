@@ -15,6 +15,7 @@
 #include <mc_rtc/log/Logger.h>
 
 #include <mc_solver/CollisionsConstraint.h>
+#include <mc_solver/CompoundJointConstraint.h>
 #include <mc_solver/DynamicsConstraint.h>
 #include <mc_solver/KinematicsConstraint.h>
 #include <mc_solver/QPSolver.h>
@@ -539,8 +540,7 @@ protected:
   /** Self collisions constraint for the main robot */
   mc_solver::CollisionsConstraintPtr collisionConstraint_;
   /** Compound joint constraint for the main robot */
-  // FIXME Should be included again
-  // std::unique_ptr<mc_solver::CompoundJointConstraint> compoundJointConstraint_;
+  mc_solver::CompoundJointConstraintPtr compoundJointConstraint_;
   /** Posture task for the main robot */
   mc_tasks::PostureTaskPtr postureTask_;
   /* Controller's name */

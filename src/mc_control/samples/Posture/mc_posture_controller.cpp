@@ -17,8 +17,7 @@ MCPostureController::MCPostureController(std::shared_ptr<mc_rbdyn::RobotModule> 
 {
   solver().addConstraint(kinematicsConstraint_);
   solver().addConstraint(collisionConstraint_);
-  // FIXME
-  // solver().addConstraint(compoundJointConstraint_);
+  solver().addConstraint(compoundJointConstraint_);
 
   postureTask_->stiffness(5.0);
   postureTask_->weight(1.0);

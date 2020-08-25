@@ -132,8 +132,7 @@ MCController::MCController(const std::vector<mc_rbdyn::RobotModulePtr> & modules
   dynamicsConstraint_ = std::make_shared<mc_solver::DynamicsConstraint>(robot(), damper, 0.5);
   collisionConstraint_ = std::make_shared<mc_solver::CollisionsConstraint>();
   collisionConstraint_->addCollisions(solver(), {robot().name(), modules[0]->minimalSelfCollisions()});
-  // FIXME Implement CompoundJointConstraint
-  // compoundJointConstraint.reset(new mc_solver::CompoundJointConstraint(robots(), 0, timeStep));
+  compoundJointConstraint_ = std::make_shared<mc_solver::CompoundJointConstraint>(robot(), dt);
   postureTask_ = std::make_shared<mc_tasks::PostureTask>(robot());
   mc_rtc::log::info("MCController(base) ready");
 }
