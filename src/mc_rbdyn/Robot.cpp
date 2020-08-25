@@ -1380,4 +1380,47 @@ void Robot::updateKinematics()
   // kinematicsGraph_.execute();
 }
 
+std::tuple<tvm::VariablePtr, int, int> Robot::qJoint(size_t jIdx)
+{
+  if(jIdx == 0 && q_fb_->size() != 0)
+  {
+    return {q_fb_, 0, 0};
+  }
+  if(jIdx > mb().joints().size())
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("{} has no joint at index {}", name_, jIdx);
+  }
+  if(mb().joints()[jIdx].dof() == 0)
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("{} is not actuated in {}", mb().joints()[jIdx].name(), name_);
+  }
+  auto qInParam = mb().jointPosInParam(jIdx);
+  int startParam = q_fb_->size();
+  for(auto & q : q_joints_)
+  {
+    if(startParam + q->size() < qInParam)
+    {
+      startParam += q->size();
+      continue;
+    }
+    // Find the joint index that will bring us to the param start
+    size_t rootIdx = jIdx;
+    while(mb().jointPosInParam(rootIdx) != startParam)
+    {
+      rootIdx--;
+    }
+    int paramOffset = 0;
+    int dofOffset = 0;
+    while(rootIdx != jIdx)
+    {
+      const auto & j = mb().joint(rootIdx);
+      paramOffset += j.params();
+      dofOffset += j.dof();
+      rootIdx++;
+    }
+    return {q, paramOffset, dofOffset};
+  }
+  mc_rtc::log::error_and_throw<std::runtime_error>("Impossible");
+}
+
 } // namespace mc_rbdyn
