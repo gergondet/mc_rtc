@@ -312,7 +312,7 @@ add_subdirectory(mc_robots)
 set(mc_solver_SRC
 mc_solver/BoundedSpeedConstr.cpp
 mc_solver/CollisionsConstraint.cpp
-#mc_solver/CoMIncPlaneConstr.cpp
+mc_solver/CoMInConvexConstraint.cpp
 #mc_solver/CompoundJointConstraint.cpp
 mc_solver/ConstraintLoader.cpp
 mc_solver/DynamicsConstraint.cpp
@@ -325,7 +325,7 @@ set(mc_solver_HDR
 ../include/mc_solver/api.h
 ../include/mc_solver/BoundedSpeedConstr.h
 ../include/mc_solver/CollisionsConstraint.h
-../include/mc_solver/CoMIncPlaneConstr.h
+../include/mc_solver/CoMInConvexConstraint.h
 ../include/mc_solver/CompoundJointConstraint.h
 ../include/mc_solver/Constraint.h
 ../include/mc_solver/ConstraintLoader.h
