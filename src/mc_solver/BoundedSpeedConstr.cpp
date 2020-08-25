@@ -136,6 +136,11 @@ void BoundedSpeedConstr::removeBoundedSpeed(QPSolver & solver, BoundedSpeedData 
   solver.problem().remove(data.task.get());
 }
 
+auto BoundedSpeedConstr::getData(const mc_rbdyn::Frame & frame) -> std::vector<BoundedSpeedData>::iterator
+{
+  return std::find_if(data_.begin(), data_.end(), [&](const auto & d) { return d.fn->frame() == frame; });
+}
+
 } // namespace mc_solver
 
 namespace
