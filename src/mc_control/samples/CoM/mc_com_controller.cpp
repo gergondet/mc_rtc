@@ -108,8 +108,7 @@ void MCCoMController::reset(const ControllerResetData & reset_data)
   solver().addTask(std::make_shared<mc_tasks::TransformTask>(robot().frame("r_wrist")));
   solver().addConstraint(dynamicsConstraint_);
   solver().addConstraint(collisionConstraint_);
-  // FIXME
-  // solver().addConstraint(compoundJointConstraint_);
+  solver().addConstraint(compoundJointConstraint_);
 
   auto comInConvexCstr = std::make_shared<mc_solver::CoMInConvexConstraint>(robot());
   comInConvexCstr->setPlanes(solver(), makeCube(robot().com().com(), 0.1));

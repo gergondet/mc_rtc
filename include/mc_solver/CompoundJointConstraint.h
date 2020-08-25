@@ -34,4 +34,6 @@ private:
   std::vector<tvm::TaskWithRequirementsPtr> constraints_;
 };
 
+using CompoundJointConstraintPtr = std::shared_ptr<CompoundJointConstraint>;
+
 } // namespace mc_solver
