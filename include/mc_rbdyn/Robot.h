@@ -312,6 +312,26 @@ public:
     return q_joints_;
   }
 
+  /** Given a joint index, returns the TVM variable it belongs to and the index
+   * of the joint in this variable and it s derivative (param, dof)
+   *
+   * \param jIdx Joint index
+   *
+   * \throws If the joint index is out of bounds or the joint is not actuated
+   */
+  std::tuple<tvm::VariablePtr, int, int> qJoint(size_t jIdx);
+
+  /** Given a joint name, returns the TVM variable it belongs to and the index of the joint in this variable
+   *
+   * \param jName Joint name
+   *
+   * \throws If the robot does not have such a joint or the joint is not actuated
+   */
+  inline std::tuple<tvm::VariablePtr, int, int> qJoint(std::string_view jName)
+  {
+    return qJoint(jointIndexByName(jName));
+  }
+
   /** Access mimics' variable map (const) */
   inline const mc_rtc::map<tvm::VariablePtr, mimic_variables_t> & mimics() const noexcept
   {

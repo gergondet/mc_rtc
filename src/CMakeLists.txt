@@ -230,6 +230,7 @@ set(mc_tvm_HDR
   ${mc_tvm_HDR_DIR}/CollisionFunction.h
   ${mc_tvm_HDR_DIR}/CoMFunction.h
   ${mc_tvm_HDR_DIR}/CoMInConvexFunction.h
+  ${mc_tvm_HDR_DIR}/CompoundJointFunction.h
   ${mc_tvm_HDR_DIR}/ContactFunction.h
   ${mc_tvm_HDR_DIR}/DynamicFunction.h
   ${mc_tvm_HDR_DIR}/FrameVelocity.h
@@ -244,6 +245,7 @@ set(mc_tvm_SRC
   mc_tvm/CollisionFunction.cpp
   mc_tvm/CoMFunction.cpp
   mc_tvm/CoMInConvexFunction.cpp
+  mc_tvm/CompoundJointFunction.cpp
   mc_tvm/ContactFunction.cpp
   mc_tvm/DynamicFunction.cpp
   mc_tvm/FrameVelocity.cpp
@@ -313,7 +315,7 @@ set(mc_solver_SRC
 mc_solver/BoundedSpeedConstr.cpp
 mc_solver/CollisionsConstraint.cpp
 mc_solver/CoMInConvexConstraint.cpp
-#mc_solver/CompoundJointConstraint.cpp
+mc_solver/CompoundJointConstraint.cpp
 mc_solver/ConstraintLoader.cpp
 mc_solver/DynamicsConstraint.cpp
 mc_solver/KinematicsConstraint.cpp
