@@ -6,6 +6,8 @@
 
 #include <mc_rbdyn/api.h>
 
+#include <mc_rbdyn/Robot.h>
+
 #include <mc_rtc/shared.h>
 
 #include <SpaceVecAlg/SpaceVecAlg>
@@ -135,6 +137,11 @@ public:
   }
 
   const std::string & body() const noexcept;
+
+  inline bool operator==(const Frame & rhs) const noexcept
+  {
+    return rhs.name_ == name_ && &rhs.robot_ == &robot_;
+  }
 
 private:
   std::string name_;
