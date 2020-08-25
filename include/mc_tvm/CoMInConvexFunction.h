@@ -47,6 +47,12 @@ public:
   /** Remove all planes */
   void reset();
 
+  /** Access the planes currently in the function */
+  inline const std::vector<tvm::geometry::PlanePtr> & planes() const noexcept
+  {
+    return planes_;
+  }
+
 protected:
   void updateValue();
   void updateVelocity();
@@ -58,5 +64,7 @@ protected:
   /** Set of planes */
   std::vector<tvm::geometry::PlanePtr> planes_;
 };
+
+using CoMInConvexFunctionPtr = std::shared_ptr<CoMInConvexFunction>;
 
 } // namespace mc_tvm
