@@ -468,7 +468,7 @@ public:
     }
     else
     {
-      throw Configuration::Exception("Stored Json value is not an object");
+      throw Configuration::Exception("Stored Json value is not an object", v);
     }
   }
 
