@@ -325,7 +325,7 @@ Configuration::operator std::string_view() const
   {
     return std::string_view(value->GetString(), value->GetStringLength());
   }
-  throw Exception("Stored Json value is not a string");
+  throw Exception("Stored Json value is not a string", v);
 }
 
 Configuration::operator Eigen::Vector2d() const

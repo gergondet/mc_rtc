@@ -50,12 +50,6 @@ void error(Args &&... args)
 }
 
 template<typename... Args>
-void critical(Args &&... args)
-{
-  details::cerr().critical(std::forward<Args>(args)...);
-}
-
-template<typename... Args>
 void warning(Args &&... args)
 {
   details::cerr().warn(std::forward<Args>(args)...);
