@@ -11,11 +11,7 @@
 namespace mc_tasks
 {
 
-/*! \brief Control a robot's CoM
- *
- * This task is a thin wrapper above the appropriate Tasks types
- *
- */
+/*! \brief Control a robot's CoM */
 struct MC_TASKS_DLLAPI CoMTask : public TrajectoryTaskGeneric<mc_tvm::CoMFunction>
 {
   using TrajectoryBase = TrajectoryTaskGeneric<mc_tvm::CoMFunction>;
