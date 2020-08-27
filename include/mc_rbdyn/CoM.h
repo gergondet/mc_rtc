@@ -86,6 +86,11 @@ public:
     return robot_;
   }
 
+  inline Robot & robot() noexcept
+  {
+    return robot_;
+  }
+
   /** Access the underlying CoMJacobian object to perform computations */
   inline const rbd::CoMJacobian & comJacobian() const noexcept
   {

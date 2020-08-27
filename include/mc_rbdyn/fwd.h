@@ -55,6 +55,9 @@ using ConstCoMPtr = std::shared_ptr<const CoM>;
 using S_ObjectPtr = std::shared_ptr<sch::S_Object>;
 using ConstS_ObjectPtr = std::shared_ptr<const sch::S_Object>;
 
+struct Momentum;
+using MomentumPtr = std::shared_ptr<Momentum>;
+
 struct Contact;
 
 } // namespace mc_rbdyn
