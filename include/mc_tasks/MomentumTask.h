@@ -6,31 +6,27 @@
 
 #include <mc_tasks/TrajectoryTaskGeneric.h>
 
+#include <mc_tvm/MomentumFunction.h>
+
 namespace mc_tasks
 {
 
-/*! \brief Control the momentum of a robot
-
- * This task is thin wrapper around the appropriate tasks in Tasks.
- *
- */
-struct MC_TASKS_DLLAPI MomentumTask : public TrajectoryTaskGeneric<tasks::qp::MomentumTask>
+/*! \brief Control the momentum of a robot */
+struct MC_TASKS_DLLAPI MomentumTask : public TrajectoryTaskGeneric<mc_tvm::MomentumFunction>
 {
-  using TrajectoryBase = TrajectoryTaskGeneric<tasks::qp::MomentumTask>;
+  using TrajectoryBase = TrajectoryTaskGeneric<mc_tvm::MomentumFunction>;
 
 public:
   /*! \brief Constructor
    *
-   * \param robots Robots controlled by this task
-   *
-   * \param robotIndex Index of the robot controlled by this task
+   * \param robot Robot whose momentum is controlled by this task
    *
    * \param stiffness Task stiffness
    *
    * \param weight Task weight
    *
    */
-  MomentumTask(const mc_rbdyn::Robots & robots, unsigned int robotIndex, double stiffness = 2.0, double weight = 500);
+  MomentumTask(mc_rbdyn::Robot & robot, double stiffness = 2.0, double weight = 500);
 
   /*! \brief Reset the task
    *
@@ -40,22 +36,28 @@ public:
   void reset() override;
 
   /*! \brief Get the current target momentum */
-  sva::ForceVecd momentum() const;
+  inline const sva::ForceVecd & momentum() const noexcept
+  {
+    return errorT_->momentum();
+  }
 
   /*! \brief Set the target momentum
    *
    * \param target Target momentum
    *
    */
-  void momentum(const sva::ForceVecd & mom);
-
-  void addToLogger(mc_rtc::Logger & logger) override;
+  inline void momentum(const sva::ForceVecd & mom) noexcept
+  {
+    errorT_->momentum(mom);
+  }
 
   /*! \brief Load parameters from a Configuration object */
   void load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) override;
 
 protected:
   void addToGUI(mc_rtc::gui::StateBuilder & gui) override;
+  void addToLogger(mc_rtc::Logger & logger) override;
+  void removeFromLogger(mc_rtc::Logger & logger) override;
 };
 
 } // namespace mc_tasks
