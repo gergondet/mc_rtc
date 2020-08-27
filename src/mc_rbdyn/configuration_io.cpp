@@ -721,7 +721,7 @@ mc_rbdyn::RobotModule ConfigurationLoader<mc_rbdyn::RobotModule>::load(const mc_
     rm.mb = config("mb");
     rm.mbc = config("mbc");
     rm._bounds = config("bounds");
-    rm._visual = static_cast<mc_rtc::map<std::string, std::vector<rbd::parsers::Visual>>>(config("visuals"));
+    rm._visual = config("visuals");
     rm._collisionTransforms = config("collisionTransforms");
   }
   else

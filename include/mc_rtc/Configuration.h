@@ -461,7 +461,8 @@ public:
       assert(std::set<std::string>(keys.begin(), keys.end()).size() == keys.size());
       for(const auto & k : keys)
       {
-        ret.emplace(k, Configuration(v[k]));
+        T value = Configuration(v[k]);
+        ret.emplace(k, std::move(value));
       }
       return ret;
     }
