@@ -9,6 +9,7 @@
 #include <mc_rbdyn/Convex.h>
 #include <mc_rbdyn/Frame.h>
 #include <mc_rbdyn/Limits.h>
+#include <mc_rbdyn/Momentum.h>
 #include <mc_rbdyn/RobotModule.h>
 
 #include <mc_control/generic_gripper.h>
@@ -16,7 +17,6 @@
 #include <mc_rtc/map.h>
 #include <mc_rtc/shared.h>
 
-#include <RBDyn/CoM.h>
 #include <RBDyn/FD.h>
 #include <RBDyn/MultiBody.h>
 #include <RBDyn/MultiBodyConfig.h>
@@ -364,6 +364,24 @@ public:
   inline CoM & com() noexcept
   {
     return *com_;
+  }
+
+  /** Returns the momentum algorithm associated with this robot (const) */
+  inline const Momentum & momentumAlgo() const noexcept
+  {
+    return *momentum_;
+  }
+
+  /** Returns the momentum algorithm associated with this robot (const) */
+  inline Momentum & momentumAlgo() noexcept
+  {
+    return *momentum_;
+  }
+
+  /** Returns the current robot's momentum */
+  const sva::ForceVecd & momentum() const noexcept
+  {
+    return momentum_->momentum();
   }
 
   /** Returns the mass matrix */
@@ -940,8 +958,10 @@ private:
   std::vector<sva::MotionVecd> normalAccB_;
   /** Forward dynamics algorithm associated to this robot */
   rbd::ForwardDynamics fd_;
-  /** CoM of this robot */
+  /** CoM algorithm of this robot */
   CoMPtr com_;
+  /** Momentum algorithm of this robot */
+  MomentumPtr momentum_;
   /** List of body transformations */
   std::vector<sva::PTransformd> bodyTransforms_;
   /** List of frames available in this robot */

@@ -411,6 +411,9 @@ Robot::Robot(make_shared_token,
   com_ = std::make_shared<CoM>(CoM::ctor_token{}, *this);
   kinematicsInputs_->addInput(*com_, CoM::Output::CoM);
 
+  momentum_ = std::make_shared<Momentum>(Momentum::ctor_token{}, *com_);
+  kinematicsInputs_->addInput(*momentum_, Momentum::Output::Momentum);
+
   // Create TVM variables
   {
     size_t j0 = 0;

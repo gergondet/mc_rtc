@@ -171,6 +171,7 @@ mc_rbdyn/Frame.cpp
 mc_rbdyn/CoM.cpp
 mc_rbdyn/Convex.cpp
 mc_rbdyn/CollisionPair.cpp
+mc_rbdyn/Momentum.cpp
 )
 
 set(mc_rbdyn_HDR
@@ -210,6 +211,7 @@ set(mc_rbdyn_HDR
 ../include/mc_rbdyn/Convex.h
 ../include/mc_rbdyn/CollisionPair.h
 ../include/mc_rbdyn/Limits.h
+../include/mc_rbdyn/Momentum.h
 )
 
 add_library(mc_rbdyn SHARED ${mc_rbdyn_SRC} ${mc_rbdyn_HDR})
