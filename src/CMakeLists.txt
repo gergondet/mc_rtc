@@ -392,8 +392,8 @@ mc_tasks/ImpedanceTask.cpp
 #mc_tasks/GazeTask.cpp
 #mc_tasks/PositionBasedVisServoTask.cpp
 mc_tasks/PostureTask.cpp
-#mc_tasks/LookAtTask.cpp
-#mc_tasks/LookAtSurfaceTask.cpp
+mc_tasks/LookAtTask.cpp
+mc_tasks/LookAtFrameTask.cpp
 mc_tasks/MetaTaskLoader.cpp
 #mc_tasks/lipm_stabilizer/StabilizerTask.cpp
 #mc_tasks/lipm_stabilizer/StabilizerTask_log_gui.cpp
@@ -427,6 +427,7 @@ set(mc_tasks_HDR
 ../include/mc_tasks/PositionBasedVisServoTask.h
 ../include/mc_tasks/PostureTask.h
 ../include/mc_tasks/LookAtTask.h
+../include/mc_tasks/LookAtFrameTask.h
 ../include/mc_tasks/ExactCubicTrajectoryTask.h
 ../include/mc_tasks/lipm_stabilizer/StabilizerTask.h
 ../include/mc_tasks/lipm_stabilizer/Contact.h

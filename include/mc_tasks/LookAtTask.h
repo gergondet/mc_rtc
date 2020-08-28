@@ -1,8 +1,9 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
+
 #include <mc_tasks/VectorOrientationTask.h>
 
 namespace mc_tasks
@@ -14,34 +15,20 @@ namespace mc_tasks
 struct MC_TASKS_DLLAPI LookAtTask : public VectorOrientationTask
 {
   /*! \brief Constructor with user-specified target initialization
-   * \param bodyName Name of the body to control
-   * \param bodyVector Gaze vector for the body.
-        For instance [1., 0, 0] will try to align the x axis of the body with
-   the target direction.
-   * \param targetPos Position of target frame to look towards in world frame
-   * \param robots Robots controlled by this task
-   * \param robotIndex Index of the robot controlled by this task
+   *
+   * \param frame Frame controlled by this task
+   *
+   * \param frameVector Gaze vector for the frame. For instance [1., 0, 0] will
+   * try to align the x axis of the frame with the target direction.
+   *
    * \param stiffness Task stiffness
+   *
    * \param weight Task weight
    *
    */
-  LookAtTask(const std::string & bodyName,
-             const Eigen::Vector3d & bodyVector,
-             const Eigen::Vector3d & targetPos,
-             const mc_rbdyn::Robots & robots,
-             unsigned int robotIndex,
-             double stiffness = 2.0,
-             double weight = 500);
+  LookAtTask(mc_rbdyn::Frame & frame, const Eigen::Vector3d & frameVector, double stiffness = 2.0, double weight = 500);
 
-  /*! \brief Constructor with default target initialization */
-  LookAtTask(const std::string & bodyName,
-             const Eigen::Vector3d & bodyVector,
-             const mc_rbdyn::Robots & robots,
-             unsigned int robotIndex,
-             double stiffness = 2.0,
-             double weight = 500);
-
-  /*! \brief Reset the task */
+  /** Reset the task */
   void reset() override;
 
   /**
@@ -49,14 +36,18 @@ struct MC_TASKS_DLLAPI LookAtTask : public VectorOrientationTask
    *
    * \param pos Target position in world frame
    */
-  void target(const Eigen::Vector3d & pos);
+  void target(const Eigen::Vector3d & target_);
+
   /**
    * @brief Gets the target frame position
    * See targetVector() to obtain the gaze vector
    *
    * @return Target vector in world frame
    */
-  Eigen::Vector3d target() const;
+  inline const Eigen::Vector3d & target() const
+  {
+    return target_;
+  }
 
 private:
   void addToLogger(mc_rtc::Logger & logger) override;
@@ -64,7 +55,9 @@ private:
 
 private:
   /*! Target position in world frame */
-  Eigen::Vector3d target_pos_;
+  Eigen::Vector3d target_;
 };
+
+using LookAtTaskPtr = std::shared_ptr<LookAtTask>;
 
 } // namespace mc_tasks
