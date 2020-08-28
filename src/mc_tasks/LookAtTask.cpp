@@ -10,65 +10,36 @@
 
 namespace mc_tasks
 {
-LookAtTask::LookAtTask(const std::string & bodyName,
-                       const Eigen::Vector3d & bodyVector,
-                       const mc_rbdyn::Robots & robots,
-                       unsigned int robotIndex,
-                       double stiffness,
-                       double weight)
-: LookAtTask(bodyName, bodyVector, bodyVector, robots, robotIndex, stiffness, weight)
-{
-  reset();
-}
 
-LookAtTask::LookAtTask(const std::string & bodyName,
-                       const Eigen::Vector3d & bodyVector,
-                       const Eigen::Vector3d & targetPos,
-                       const mc_rbdyn::Robots & robots,
-                       unsigned int robotIndex,
-                       double stiffness,
-                       double weight)
-: VectorOrientationTask(bodyName, bodyVector, robots, robotIndex, stiffness, weight)
+LookAtTask::LookAtTask(mc_rbdyn::Frame & frame, const Eigen::Vector3d & frameVector, double stiffness, double weight)
+: VectorOrientationTask(frame, frameVector, stiffness, weight)
 {
-  const auto & robot = robots.robot(robotIndex);
-  bIndex = robot.bodyIndexByName(bodyName);
   type_ = "lookAt";
-  name_ = "look_at_" + robot.name() + "_" + bodyName;
-  target(targetPos);
+  name_ = fmt::format("{}_{}_{}", type_, robot().name(), frame.name());
 }
 
 void LookAtTask::reset()
 {
-  VectorOrientationTask::reset();
-  const auto & robot = robots.robot(rIndex);
-  target_pos_ = robot.bodyPosW()[bIndex].translation() + actual();
+  target(bodyPos() + frameVector());
 }
 
-void LookAtTask::target(const Eigen::Vector3d & pos)
+void LookAtTask::target(const Eigen::Vector3d & target)
 {
-  target_pos_ = pos;
-  const sva::PTransformd & X_0_b = robots.robot(rIndex).mbc().bodyPosW[bIndex];
-  auto target_ori = (pos - X_0_b.translation()).normalized();
+  target_ = target;
+  auto target_ori = (target - bodyPos()).normalized();
   VectorOrientationTask::targetVector(target_ori);
 }
 
-Eigen::Vector3d LookAtTask::target() const
-{
-  return target_pos_;
-}
 void LookAtTask::addToLogger(mc_rtc::Logger & logger)
 {
   VectorOrientationTask::addToLogger(logger);
   logger.addLogEntry(name_ + "_target_pos", this, [this]() -> const Eigen::Vector3d { return target(); });
-  logger.addLogEntry(name_ + "_current_pos", this, [this]() -> const Eigen::Vector3d & {
-    return robots.robot(rIndex).mbc().bodyPosW[bIndex].translation();
-  });
+  logger.addLogEntry(name_ + "_current_pos", this, [this]() -> const Eigen::Vector3d & { return bodyPos(); });
 }
 
 void LookAtTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
 {
   VectorOrientationTask::addToGUI(gui);
-
   gui.addElement({"Tasks", name_}, mc_rtc::gui::Point3D("Target Point", [this]() { return this->target(); },
                                                         [this](const Eigen::Vector3d & pos) { this->target(pos); }));
 }
@@ -79,26 +50,20 @@ namespace
 {
 static auto registered_lookat = mc_tasks::MetaTaskLoader::register_load_function(
     "lookAt",
-    [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) {
-      auto t = std::make_shared<mc_tasks::LookAtTask>(config("body"), config("bodyVector"), solver.robots(),
-                                                      robotIndexFromConfig(config, solver.robots(), "lookAt"));
-      if(config.has("weight"))
+    [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & configIn) {
+      auto config = configIn;
+      auto & robot = solver.robots().fromConfig(config, "LookAt");
+      if(config.has("body"))
       {
-        t->weight(config("weight"));
+        mc_rtc::log::warning("Deprecated use of body in VectorOrientationTask, use frame instead");
+        config.add("frame", config("body"));
       }
-      if(config.has("stiffness"))
+      if(config.has("bodyVector"))
       {
-        auto s = config("stiffness");
-        if(s.size())
-        {
-          Eigen::VectorXd st = s;
-          t->stiffness(st);
-        }
-        else
-        {
-          t->stiffness(static_cast<double>(s));
-        }
+        mc_rtc::log::warning("Deprecated use of bodyVector in VectorOrientationTask, use frameVector instead");
+        config.add("frameVector", config("bodyVector"));
       }
+      auto t = std::make_shared<mc_tasks::LookAtTask>(robot.frame(config("frame")), config("frameVector"));
       t->load(solver, config);
       if(config.has("targetPos"))
       {
@@ -110,7 +75,8 @@ static auto registered_lookat = mc_tasks::MetaTaskLoader::register_load_function
       }
       if(config.has("relativeVector"))
       {
-        auto bodyPos = solver.robots().robot(robotNameFromConfig(config, solver.robots(), t->name())).posW();
+        // FIXME Strange specification as this is the same robot
+        auto bodyPos = solver.robots().fromConfig(config, t->name()).posW();
         bodyPos.translation() = Eigen::Vector3d::Zero();
         Eigen::Vector3d v = config("relativeVector");
         sva::PTransformd target{v};
