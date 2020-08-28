@@ -21,12 +21,6 @@ CoMTask::CoMTask(mc_rbdyn::Robot & robot, double stiffness, double weight) : Tra
   name_ = "com_" + robot.name();
 }
 
-void CoMTask::reset()
-{
-  TrajectoryTaskGeneric::reset();
-  com(robot_->com().com());
-}
-
 void CoMTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & config)
 {
   TrajectoryBase::load(solver, config);

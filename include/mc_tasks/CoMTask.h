@@ -28,8 +28,6 @@ public:
    */
   CoMTask(mc_rbdyn::Robot & robot, double stiffness = 5.0, double weight = 100.);
 
-  void reset() override;
-
   /*! \brief Set the CoM target to a given position
    *
    * \param com New CoM target

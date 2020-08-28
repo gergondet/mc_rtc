@@ -1,110 +1,108 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
 
 #include <mc_tasks/TrajectoryTaskGeneric.h>
 
+#include <mc_tvm/VectorOrientationFunction.h>
+
 namespace mc_tasks
 {
 
-/*! \brief Control the orientation of a body
- *
- * This task is thin wrapper around the appropriate tasks in Tasks.
- *
- */
-struct MC_TASKS_DLLAPI VectorOrientationTask : public TrajectoryTaskGeneric<tasks::qp::VectorOrientationTask>
+/*! \brief Control the orientation of a body specified by vector orientation */
+struct MC_TASKS_DLLAPI VectorOrientationTask : public TrajectoryTaskGeneric<mc_tvm::VectorOrientationFunction>
 {
+  using TrajectoryBase = TrajectoryTaskGeneric<mc_tvm::VectorOrientationFunction>;
+
   /*! \brief Constructor with user-specified target
    *
-   * \param bodyName Name of the body to control
+   * \param frame Frame that will be controlled
    *
-   * \param bodyVector Vector to be controlled, expressed in the body frame
-   *
-   * \param targetVector Target for the controlled vector, expressed in the
-   * world frame
-   *
-   * \param robots Robots controlled by this task
-   *
-   * \param robotIndex Index of the robot controlled by this task
+   * \param frameVector Vector to be controlled, expressed in the frame's frame
    *
    * \param stiffness Task stiffness
    *
    * \param weight Task weight
    *
    */
-  VectorOrientationTask(const std::string & bodyName,
-                        const Eigen::Vector3d & bodyVector,
-                        const Eigen::Vector3d & targetVector,
-                        const mc_rbdyn::Robots & robots,
-                        unsigned int robotIndex,
+  VectorOrientationTask(mc_rbdyn::Frame & frame,
+                        const Eigen::Vector3d & frameVector,
                         double stiffness = 2.0,
                         double weight = 500);
 
-  /*! \brief Constructor with default target */
-  VectorOrientationTask(const std::string & bodyName,
-                        const Eigen::Vector3d & bodyVector,
-                        const mc_rbdyn::Robots & robots,
-                        unsigned int robotIndex,
-                        double stiffness = 2.0,
-                        double weight = 500);
-
-  /*! \brief Reset the task
-   *
-   * Set the task objective (i.e. target vector in the world frame) to the
-   * current body vector
-   */
-  void reset() override;
-
-  /*! \brief Set the body vector to be controlled
+  /*! \brief Set the frame vector to be controlled
    *
    * \param vector Vector to be controlled in the body frame
    *
    */
-  void bodyVector(const Eigen::Vector3d & vector);
+  inline void frameVector(const Eigen::Vector3d & vector) noexcept
+  {
+    errorT_->frameVector(vector);
+  }
 
-  /*! \brief Get the current controlled vector in the body frame
+  /*! \brief Get the current controlled vector in the reference frame
    *
    * \returns The body orientation target in world frame
    *
    */
-  const Eigen::Vector3d & bodyVector() const;
+  inline const Eigen::Vector3d & frameVector() const noexcept
+  {
+    return errorT_->frameVector();
+  }
 
   /*! \brief Set world target for the controlled vector
    *
    * \param vector Target vector in the world frame
    *
    */
-  void targetVector(const Eigen::Vector3d & vector);
+  inline void targetVector(const Eigen::Vector3d & vector) noexcept
+  {
+    errorT_->target(vector);
+  }
 
   /**
    * @brief Get the target orientation
    *
    * @return The target orientation in world frame
    */
-  const Eigen::Vector3d & targetVector() const;
+  inline const Eigen::Vector3d & targetVector() const noexcept
+  {
+    return errorT_->target();
+  }
 
   /**
    * @brief Get the current body orientation
    *
    * @return The current body orientation vector in world frame
    */
-  const Eigen::Vector3d & actual() const;
-
-  /*! \brief Return the controlled body */
-  std::string body()
+  inline const Eigen::Vector3d & actual() const noexcept
   {
-    return bodyName;
+    return errorT_->actual();
+  }
+
+  /*! \brief Return the controlled frame */
+  inline const mc_rbdyn::Frame & frame() const noexcept
+  {
+    return errorT_->frame();
+  }
+
+  /*! \brief Return the controlled robot */
+  inline const mc_rbdyn::Robot & robot() const noexcept
+  {
+    return errorT_->frame().robot();
   }
 
 protected:
   void addToGUI(mc_rtc::gui::StateBuilder & gui) override;
   void addToLogger(mc_rtc::Logger & logger) override;
 
-protected:
-  std::string bodyName;
-  unsigned int bIndex;
+  size_t bIndex_;
+  inline const Eigen::Vector3d & bodyPos() const noexcept
+  {
+    return robot().mbc().bodyPosW[bIndex_].translation();
+  }
 };
 
 } // namespace mc_tasks
