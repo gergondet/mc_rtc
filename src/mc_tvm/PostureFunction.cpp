@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
+ */
+
 #include <mc_tvm/PostureFunction.h>
 
 #include <mc_rbdyn/Frame.h>

@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
+ */
+
 #include <mc_tvm/CollisionFunction.h>
 
 #include <mc_tvm/utils.h>
