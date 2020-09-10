@@ -9,57 +9,31 @@
 #include <mc_trajectory/BSpline.h>
 #include <mc_trajectory/InterpolatedRotation.h>
 
+#include <mc_rbdyn/Surface.h>
+
 namespace mc_tasks
 {
 
 using BSpline = mc_trajectory::BSpline;
 
-BSplineTrajectoryTask::BSplineTrajectoryTask(const mc_rbdyn::Robots & robots,
-                                             unsigned int robotIndex,
-                                             const std::string & surfaceName,
+BSplineTrajectoryTask::BSplineTrajectoryTask(mc_rbdyn::Frame & frame,
                                              double duration,
                                              double stiffness,
                                              double weight,
                                              const sva::PTransformd & target,
                                              const waypoints_t & posWp,
                                              const std::vector<std::pair<double, Eigen::Matrix3d>> & oriWp)
-: SplineTrajectoryTask<BSplineTrajectoryTask>(robots,
-                                              robotIndex,
-                                              surfaceName,
-                                              duration,
-                                              stiffness,
-                                              weight,
-                                              target.rotation(),
-                                              oriWp),
-  bspline(duration,
-          robots.robot(robotIndex).surface(surfaceName_).X_0_s(robots.robot(robotIndex)).translation(),
-          target.translation(),
-          posWp)
+: SplineTrajectoryTask<BSplineTrajectoryTask>(frame, duration, stiffness, weight, target.rotation(), oriWp),
+  bspline_(duration, frame.position().translation(), target.translation(), posWp)
 {
-  const auto & robot = robots.robot(robotIndex);
   type_ = "bspline_trajectory";
-  name_ = "bspline_trajectory_" + robot.name() + "_" + surfaceName_;
-}
-
-void BSplineTrajectoryTask::posWaypoints(const BSpline::waypoints_t & posWp)
-{
-  bspline.waypoints(posWp);
-}
-
-void BSplineTrajectoryTask::targetPos(const Eigen::Vector3d & target)
-{
-  bspline.target(target);
-}
-
-const Eigen::Vector3d & BSplineTrajectoryTask::targetPos() const
-{
-  return bspline.target();
+  name_ = fmt::format("{}_{}_{}", type_, frame.robot().name(), frame.name());
 }
 
 void BSplineTrajectoryTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
 {
   SplineTrajectoryBase::addToGUI(gui);
-  bspline.addToGUI(gui, {"Tasks", name_});
+  bspline_.addToGUI(gui, {"Tasks", name_});
 }
 
 } // namespace mc_tasks
@@ -72,16 +46,15 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       sva::PTransformd finalTarget_;
       mc_tasks::BSplineTrajectoryTask::waypoints_t waypoints;
       std::vector<std::pair<double, Eigen::Matrix3d>> oriWp;
-      const auto robotIndex = robotIndexFromConfig(config, solver.robots(), "bspline_trajectory");
-
+      auto & robot = solver.robots().fromConfig(config, "BSplineTrajectoryTask");
       if(config.has("targetSurface"))
       { // Target defined from a target surface, with an offset defined
         // in the surface coordinates
         const auto & c = config("targetSurface");
         const auto & targetSurfaceName = c("surface");
-        const auto & robot = robotFromConfig(c, solver.robots(), "bspline_trajectory::targetSurface");
+        const auto & robot = solver.robots().fromConfig(c, "BSplineTrajectoryTask::targetSurface");
 
-        const sva::PTransformd & targetSurface = robot.surface(targetSurfaceName).X_0_s(robot);
+        const auto & targetSurface = robot.frame(targetSurfaceName).position();
         const Eigen::Vector3d trans = c("translation", Eigen::Vector3d::Zero().eval());
         const Eigen::Matrix3d rot = c("rotation", Eigen::Matrix3d::Identity().eval());
         sva::PTransformd offset(rot, trans);
@@ -131,8 +104,8 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       }
 
       std::shared_ptr<mc_tasks::BSplineTrajectoryTask> t = std::make_shared<mc_tasks::BSplineTrajectoryTask>(
-          solver.robots(), robotIndex, config("surface"), config("duration", 10.), config("stiffness", 100.),
-          config("weight", 500.), finalTarget_, waypoints, oriWp);
+          robot.frame(config("surface")), config("duration", 10.), config("stiffness", 100.), config("weight", 500.),
+          finalTarget_, waypoints, oriWp);
       t->load(solver, config);
       const auto displaySamples = config("displaySamples", t->displaySamples());
       t->displaySamples(displaySamples);

@@ -1,10 +1,13 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
 
 #include <mc_tasks/TrajectoryTaskGeneric.h>
+
+#include <mc_tvm/TransformFunction.h>
+
 #include <mc_trajectory/InterpolatedRotation.h>
 #include <mc_trajectory/SequenceInterpolator.h>
 
@@ -33,27 +36,28 @@ namespace mc_tasks
  *   the curve
  */
 template<typename Derived>
-struct SplineTrajectoryTask : public TrajectoryTaskGeneric<tasks::qp::TransformTask>
+struct SplineTrajectoryTask : public TrajectoryTaskGeneric<mc_tvm::TransformFunction>
 {
   using SplineTrajectoryBase = SplineTrajectoryTask<Derived>;
-  using TrajectoryTask = TrajectoryTaskGeneric<tasks::qp::TransformTask>;
+  using TrajectoryTask = TrajectoryTaskGeneric<mc_tvm::TransformFunction>;
   using SequenceInterpolator6d =
       mc_trajectory::SequenceInterpolator<Eigen::Vector6d, mc_trajectory::LinearInterpolation<Eigen::Vector6d>>;
 
   /*! \brief Constructor
    *
-   * \param robots Robots controlled by the task
-   * \param robotIndex Which robot is controlled
-   * \param surfaceName Surface controlled by the task (should belong to the controlled robot)
-   * \param duration Length of the movement
-   * \param stiffness Task stiffness (position and orientation)
-   * \param posW Task weight (position)
-   * \param oriW Task weight (orientation)
+   * \param frame Frame to control
+   *
+   * \param duration Duration of the motion
+   *
+   * \param stiffness Task stiffness
+   *
+   * \param weight Task weight
+   *
+   * \param target Target orientation
+   *
    * \param oriWp Optional orientation waypoints (pairs of [time, orientation])
    */
-  SplineTrajectoryTask(const mc_rbdyn::Robots & robots,
-                       unsigned int robotIndex,
-                       const std::string & surfaceName,
+  SplineTrajectoryTask(mc_rbdyn::Frame & frame,
                        double duration,
                        double stiffness,
                        double weight,
@@ -63,13 +67,21 @@ struct SplineTrajectoryTask : public TrajectoryTaskGeneric<tasks::qp::TransformT
   /*! \brief Load parameters from a Configuration object */
   void load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) override;
 
+  /** Get the frame controlled by this task */
+  inline const mc_rbdyn::Frame & frame() const noexcept
+  {
+    return errorT_->frame();
+  }
+
   /** Add support for the following entries
    *
-   * - timeElapsed: True when the task duration has elapsed
+   * - timeElapsed: True when the duration has elapsed (same as setting a timeout equal to \param duration)
+   *
    * - wrench: True when the force applied on the robot surface is higher than the provided threshold (6d vector, NaN
-   * value ignores the reading, negative values invert the condition). Ignored if the surface has no force-sensor
+   * value ignores the reading, negative values invert the condition). Throws if the surface has no force-sensor
    * attached.
-   *   @throws if the surface does not have an associated force sensor
+   *
+   * @throws if the frame does not have an associated force sensor and a wrench completion criteria is required
    */
   std::function<bool(const mc_tasks::MetaTask &, std::string &)> buildCompletionCriteria(
       double dt,
@@ -79,7 +91,10 @@ struct SplineTrajectoryTask : public TrajectoryTaskGeneric<tasks::qp::TransformT
    *
    * \param oriWp Orientation waypoints defined as pairs of [time, orientation]
    */
-  void oriWaypoints(const std::vector<std::pair<double, Eigen::Matrix3d>> & oriWp);
+  inline void oriWaypoints(const std::vector<std::pair<double, Eigen::Matrix3d>> & oriWp) noexcept
+  {
+    oriSpline_.waypoints(oriWp);
+  }
 
   /** @name Setters for the tasks gains and gain interpolation (dimWeight/Stiffnes/Damping)
    *
@@ -250,12 +265,15 @@ struct SplineTrajectoryTask : public TrajectoryTaskGeneric<tasks::qp::TransformT
    *
    * \returns True if the trajectory has finished
    */
-  bool timeElapsed() const;
+  inline bool timeElapsed() const noexcept
+  {
+    return currTime_ >= duration_;
+  }
 
   /*! \brief Returns the transformError between current robot surface pose and
    * its final target
    *
-   * \returns The error w.r.t the final target
+   * \returns The error w.r.t the final target affected by dimWeight
    */
   Eigen::VectorXd eval() const override;
 
@@ -263,7 +281,7 @@ struct SplineTrajectoryTask : public TrajectoryTaskGeneric<tasks::qp::TransformT
    * \brief Returns the trajectory tracking error: transformError between the current robot surface pose
    * and its next desired pose along the trajectory error
    *
-   * \return The trajectory tracking error
+   * \return The trajectory tracking error affected by dimWeight
    */
   virtual Eigen::VectorXd evalTracking() const;
 
@@ -273,29 +291,31 @@ struct SplineTrajectoryTask : public TrajectoryTaskGeneric<tasks::qp::TransformT
    *
    * \param target Target pose for the curve
    */
-  void target(const sva::PTransformd & target);
+  inline void target(const sva::PTransformd & target);
+
   /*! \brief Gets the target pose (position/orientation)
    *
    * \returns target pose
    */
-  const sva::PTransformd target() const;
-
-  /*! \brief Get the control points of the trajectory's b-spline
-   *
-   * \returns The list of control points in the spline
-   */
-  std::vector<Eigen::Vector3d> controlPoints();
+  const sva::PTransformd target() const noexcept;
 
   /*! \brief Number of points to sample on the spline for the gui display
    *
    * \param s number of samples
    */
-  void displaySamples(unsigned s);
+  void displaySamples(unsigned int s) noexcept
+  {
+    samples_ = s;
+  }
+
   /*! \brief Number of samples for displaying the spline
    *
    * \return number of samples
    */
-  unsigned displaySamples() const;
+  unsigned int displaySamples() const noexcept
+  {
+    return samples_;
+  }
 
   /**
    * @brief Allows to pause the task
@@ -350,8 +370,8 @@ protected:
 
   /* Hide parent's refVel and refAccel implementation as the Spline tasks
    * are overriding these at every iteration according to the underlying curve */
-  using TrajectoryTaskGeneric<tasks::qp::TransformTask>::refVel;
-  using TrajectoryTaskGeneric<tasks::qp::TransformTask>::refAccel;
+  using TrajectoryTask::refAccel;
+  using TrajectoryTask::refVel;
 
   /*! \brief Add task controls to the GUI.
    * Interactive controls for the trajectory waypoints and end-endpoints
@@ -372,20 +392,16 @@ protected:
   void interpolateGains();
 
 protected:
-  unsigned int rIndex_ = 0;
-  std::string surfaceName_;
-  double duration_ = 0;
+  double duration_;
   mc_trajectory::InterpolatedRotation oriSpline_;
   // Linear interpolation for gains
   SequenceInterpolator6d dimWeightInterpolator_;
   SequenceInterpolator6d stiffnessInterpolator_;
   SequenceInterpolator6d dampingInterpolator_;
-
   bool paused_ = false;
 
-  double currTime_ = 0.;
-  unsigned samples_ = 20;
-  bool inSolver_ = false;
+  double currTime_ = 0;
+  unsigned int samples_ = 20;
 };
 } // namespace mc_tasks
 
