@@ -139,7 +139,10 @@ public:
   void removeContact(const mc_rbdyn::Contact & contact);
 
   /** Returns the MetaTasks currently in the solver */
-  const std::vector<mc_tasks::MetaTaskPtr> & tasks() const;
+  inline const std::vector<mc_tasks::MetaTaskPtr> & tasks() const noexcept
+  {
+    return tasks_;
+  }
 
   /** Desired resultant of contact force in robot surface frame
    * \param contact Contact for which the force is desired.
