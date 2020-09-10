@@ -117,6 +117,23 @@ void MCCoMController::reset(const ControllerResetData & reset_data)
   auto poly = makeCubePolygon(robot().com().com(), 0.1);
   gui().addElement({"CoM constraint"},
                    mc_rtc::gui::Polygon("polygon", mc_rtc::gui::Color::Red, [p = std::move(poly)]() { return p; }));
+  auto findLWristTask = [this]() -> mc_tasks::MetaTaskPtr {
+    for(const auto & t : solver().tasks())
+    {
+      if(t->name() == fmt::format("transform_jvrc1_l_wrist"))
+      {
+        return t;
+      }
+    }
+    return nullptr;
+  };
+  gui().addElement({}, mc_rtc::gui::Button("Remove l_wrist task", [=]() { solver().removeTask(findLWristTask()); }),
+                   mc_rtc::gui::Button("Add l_wrist task", [=]() {
+                     if(!findLWristTask())
+                     {
+                       solver().addTask(std::make_shared<mc_tasks::TransformTask>(robot().frame("l_wrist")));
+                     }
+                   }));
 }
 
 bool MCCoMController::run()
