@@ -25,7 +25,7 @@ void KinematicInertialObserver::configure(const mc_control::MCController & ctl, 
     auto lConfig = config("log");
     lConfig("velocity", logVelocity_);
   }
-  double cutoff = config("cutoff", 2 * ctl.timeStep);
+  double cutoff = config("cutoff", 2 * ctl.solver().dt());
   velFilter_.cutoffPeriod(cutoff);
   desc_ = fmt::format("{} (sensor={}, cutoff={:.3f})", name_, imuSensor_, velFilter_.cutoffPeriod());
 }
@@ -49,7 +49,7 @@ bool KinematicInertialObserver::run(const mc_control::MCController & ctl)
   const sva::PTransformd posW = KinematicInertialPoseObserver::posW();
   if(!anchorFrameJumped_)
   {
-    sva::MotionVecd errVel = sva::transformError(posWPrev_, posW) / ctl.timeStep;
+    sva::MotionVecd errVel = sva::transformError(posWPrev_, posW) / ctl.solver().dt();
     velFilter_.update(errVel);
     velW_ = velFilter_.eval();
   }
@@ -117,11 +117,11 @@ void KinematicInertialObserver::addToGUI(const mc_control::MCController & ctl,
       mc_rtc::gui::NumberInput(
           "Cutoff Period", [this]() -> double { return velFilter_.cutoffPeriod(); },
           [this, &ctl](double cutoff) {
-            if(cutoff < 2 * ctl.timeStep)
+            if(cutoff < 2 * ctl.solver().dt())
             {
               mc_rtc::log::warning(
                   "[{}] cutoff period must be at least twice the timestep (>={}), keeping the current value ({})",
-                  name(), 2 * ctl.timeStep, velFilter_.cutoffPeriod());
+                  name(), 2 * ctl.solver().dt(), velFilter_.cutoffPeriod());
               return;
             }
             velFilter_.cutoffPeriod(cutoff);

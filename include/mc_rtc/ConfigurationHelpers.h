@@ -59,8 +59,9 @@ std::vector<T> fromVectorOrElement(const mc_rtc::Configuration & config,
     notAVec.silence();
     try
     {
-      T elem = c;
-      return {elem};
+      std::vector<T> out;
+      out.push_back(c);
+      return out;
     }
     catch(mc_rtc::Configuration::Exception & notAnElem)
     { // If that fails as well, return the default

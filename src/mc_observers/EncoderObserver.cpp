@@ -189,19 +189,18 @@ void EncoderObserver::addToLogger(const mc_control::MCController & ctl,
     }
     else if(posUpdate_ == PosUpdate::Control)
     {
-      std::vector<double> qOut(ctl.robot(robot_).refJointOrder().size(), 0);
-      logger.addLogEntry(category + "_controlValues", this,
-                         [this, &ctl, qOut]() mutable -> const std::vector<double> & {
-                           for(size_t i = 0; i < qOut.size(); ++i)
-                           {
-                             auto jIdx = ctl.robot(robot_).jointIndexInMBC(i);
-                             if(jIdx != -1)
-                             {
-                               qOut[i] = ctl.robot(robot_).mbc().alpha[static_cast<size_t>(jIdx)][0];
-                             }
-                           }
-                           return qOut;
-                         });
+      std::vector<double> qOut(ctl.robot(robot_).module().ref_joint_order().size(), 0);
+      logger.addLogEntry(category + "_controlValues", [this, &ctl, qOut]() mutable -> const std::vector<double> & {
+        for(size_t i = 0; i < qOut.size(); ++i)
+        {
+          auto jIdx = ctl.robot(robot_).jointIndexInMBC(i);
+          if(jIdx != -1)
+          {
+            qOut[i] = ctl.robot(robot_).mbc().alpha[static_cast<size_t>(jIdx)][0];
+          }
+        }
+        return qOut;
+      });
     }
   }
 

@@ -560,6 +560,24 @@ public:
     return controller_->robot();
   }
 
+  /*! \brief Access to a real robot instance.
+   *
+   * @throws if no real robot with that name exist
+   */
+  inline mc_rbdyn::Robot & robot(std::string_view name)
+  {
+    return controller_->robots().robot(name);
+  }
+
+  /*! \brief Const access to a real robot instance.
+   *
+   * @throws if no real robot named with that name exist
+   **/
+  inline const mc_rbdyn::Robot & robot(std::string_view name) const
+  {
+    return controller_->robots().robot(name);
+  }
+
   inline mc_rbdyn::Robots & realRobots() noexcept
   {
     return controller_->realRobots();
@@ -575,13 +593,19 @@ public:
    *
    * @throws if no real robot with that name exist
    */
-  mc_rbdyn::Robot & realRobot(const std::string & name);
+  inline mc_rbdyn::Robot & realRobot(std::string_view name)
+  {
+    return controller_->realRobots().robot(name);
+  }
 
   /*! \brief Const access to a real robot instance.
    *
    * @throws if no real robot named with that name exist
    **/
-  const mc_rbdyn::Robot & realRobot(const std::string & name) const;
+  inline const mc_rbdyn::Robot & realRobot(std::string_view name) const
+  {
+    return controller_->realRobots().robot(name);
+  }
 
   /*! \brief Get the controller timestep */
   inline double timestep() const noexcept
