@@ -57,7 +57,7 @@ struct TrajectoryTaskGeneric : public MetaTask
    */
   TrajectoryTaskGeneric(mc_rbdyn::Robot & robot, double stiffness, double weight);
 
-  virtual ~TrajectoryTaskGeneric();
+  ~TrajectoryTaskGeneric() override;
 
   /*! \brief Reset task target velocity and acceleration to zero
    *
@@ -241,7 +241,7 @@ struct TrajectoryTaskGeneric : public MetaTask
 
   void dimWeight(const Eigen::VectorXd & dimW) override;
 
-  virtual const Eigen::VectorXd & dimWeight() const noexcept override
+  const Eigen::VectorXd & dimWeight() const noexcept override
   {
     return dimWeight_;
   }
@@ -335,6 +335,12 @@ struct TrajectoryTaskGeneric : public MetaTask
   }
 
   void load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) override;
+
+  /** Access the robot used by this task */
+  inline const mc_rbdyn::Robot & robot() const noexcept
+  {
+    return *robot_;
+  }
 
 protected:
   /*! This function should be called to finalize the task creation, it will

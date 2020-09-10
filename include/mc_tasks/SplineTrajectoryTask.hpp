@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
@@ -14,28 +14,19 @@ namespace mc_tasks
 {
 
 template<typename Derived>
-SplineTrajectoryTask<Derived>::SplineTrajectoryTask(const mc_rbdyn::Robots & robots,
-                                                    unsigned int robotIndex,
-                                                    const std::string & surfaceName,
+SplineTrajectoryTask<Derived>::SplineTrajectoryTask(mc_rbdyn::Frame & frame,
                                                     double duration,
                                                     double stiffness,
                                                     double weight,
                                                     const Eigen::Matrix3d & target,
                                                     const std::vector<std::pair<double, Eigen::Matrix3d>> & oriWp)
-: TrajectoryTaskGeneric<tasks::qp::TransformTask>(robots, robotIndex, stiffness, weight), rIndex_(robotIndex),
-  surfaceName_(surfaceName), duration_(duration),
-  oriSpline_(duration,
-             robots.robot(robotIndex).surface(surfaceName).X_0_s(robots.robot(robotIndex)).rotation(),
-             target,
-             oriWp),
+: TrajectoryTask(frame.robot(), stiffness, weight), duration_(duration),
+  oriSpline_(duration, frame.position().rotation(), target, oriWp),
   dimWeightInterpolator_(), stiffnessInterpolator_(), dampingInterpolator_()
 {
-  const auto & robot = robots.robot(robotIndex);
-  const auto & surface = robot.surface(surfaceName);
+  finalize(frame);
   type_ = "trajectory";
-  name_ = "trajectory_" + robot.name() + "_" + surface.name();
-
-  finalize(robots.mbs(), static_cast<int>(robotIndex), surface.bodyName(), surface.X_0_s(robot), surface.X_b_s());
+  name_ = fmt::format("{}_{}_{}", type_, frame.robot().name(), frame.name());
 }
 
 template<typename Derived>
@@ -79,7 +70,7 @@ std::function<bool(const mc_tasks::MetaTask &, std::string &)> SplineTrajectoryT
     }
     return [dof, target](const mc_tasks::MetaTask & t, std::string & out) {
       const auto & self = static_cast<const SplineTrajectoryTask &>(t);
-      Eigen::Vector6d w = self.robots.robot(self.rIndex).surfaceWrench(self.surfaceName_).vector();
+      Eigen::Vector6d w = self.robot().frameWrench(self.frame().name()).vector();
       for(int i = 0; i < 6; ++i)
       {
         if(dof(i) * fabs(w(i)) < target(i))
@@ -333,7 +324,7 @@ void SplineTrajectoryTask<Derived>::target(const sva::PTransformd & target)
 }
 
 template<typename Derived>
-const sva::PTransformd SplineTrajectoryTask<Derived>::target() const
+const sva::PTransformd SplineTrajectoryTask<Derived>::target() const noexcept
 {
   const auto & derived = static_cast<const Derived &>(*this);
   return sva::PTransformd(oriSpline_.target(), derived.targetPos());
@@ -342,9 +333,8 @@ const sva::PTransformd SplineTrajectoryTask<Derived>::target() const
 template<typename Derived>
 Eigen::VectorXd SplineTrajectoryTask<Derived>::eval() const
 {
-  const auto & robot = robots.robot(rIndex_);
-  sva::PTransformd X_0_s = robot.surface(surfaceName_).X_0_s(robot);
-  return sva::transformError(X_0_s, target()).vector();
+  const auto & frame = errorT_->frame();
+  return sva::transformError(frame.position(), target()).vector();
 }
 
 template<typename Derived>
@@ -354,46 +344,25 @@ Eigen::VectorXd SplineTrajectoryTask<Derived>::evalTracking() const
 }
 
 template<typename Derived>
-bool SplineTrajectoryTask<Derived>::timeElapsed() const
-{
-  return currTime_ >= duration_;
-}
-
-template<typename Derived>
-void SplineTrajectoryTask<Derived>::displaySamples(unsigned s)
-{
-  samples_ = s;
-}
-
-template<typename Derived>
-unsigned SplineTrajectoryTask<Derived>::displaySamples() const
-{
-  return samples_;
-}
-
-template<typename Derived>
 void SplineTrajectoryTask<Derived>::refPose(const sva::PTransformd & target)
 {
-  errorT->target(target);
+  errorT_->pose(target);
 }
 
 template<typename Derived>
 const sva::PTransformd & SplineTrajectoryTask<Derived>::refPose() const
 {
-  return errorT->target();
+  return errorT_->pose();
 }
 
 template<typename Derived>
 void SplineTrajectoryTask<Derived>::addToLogger(mc_rtc::Logger & logger)
 {
   TrajectoryBase::addToLogger(logger);
-  logger.addLogEntry(name_ + "_surfacePose", this, [this]() {
-    const auto & robot = this->robots.robot(rIndex_);
-    return robot.surfacePose(surfaceName_);
-  });
-  MC_RTC_LOG_GETTER(name_ + "_targetPose", target);
-  MC_RTC_LOG_GETTER(name_ + "_refPose", refPose);
-  MC_RTC_LOG_HELPER(name_ + "_speed", speed);
+  logger.addLogEntry(name_ + "_pose", this, [this]() -> const sva::PTransformd & { return errorT_->frame().position(); });
+  logger.addLogEntry(name_ + "_targetPose", this, [this]() { return this->target(); });
+  logger.addLogEntry(name_ + "_refPose", this, [this]() -> const sva::PTransformd & { return this->refPose(); });
+  logger.addLogEntry(name_ + "_speed", this, [this]() { return this->speed(); });
 }
 
 template<typename Derived>
@@ -404,9 +373,8 @@ void SplineTrajectoryTask<Derived>::addToGUI(mc_rtc::gui::StateBuilder & gui)
   auto & spline = static_cast<Derived &>(*this).spline();
   gui.addElement({"Tasks", name_},
                  mc_rtc::gui::Checkbox("Paused", [this]() { return paused_; }, [this]() { paused_ = !paused_; }));
-  gui.addElement({"Tasks", name_}, mc_rtc::gui::Transform("Surface pose", [this]() {
-                   const auto & robot = this->robots.robot(rIndex_);
-                   return robot.surface(surfaceName_).X_0_s(robot);
+  gui.addElement({"Tasks", name_}, mc_rtc::gui::Transform("Surface pose", [this]() -> const sva::PTransformd {
+                   return errorT_->frame().position();
                  }));
 
   gui.addElement({"Tasks", name_}, mc_rtc::gui::Rotation("Target Rotation", [this]() { return this->target(); },

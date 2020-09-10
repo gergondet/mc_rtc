@@ -111,6 +111,11 @@ void TrajectoryTaskGeneric<T>::weight(double w)
 template<typename T>
 void TrajectoryTaskGeneric<T>::dimWeight(const Eigen::VectorXd & w)
 {
+  if(dimWeight_.size() != errorT_->size())
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("{} wrong size provided to dimWeight, expected {} elements got {}",
+                                                     errorT_->size(), dimWeight_.size());
+  }
   dimWeight_ = w;
   if(task_)
   {
