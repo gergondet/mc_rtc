@@ -138,7 +138,6 @@ void MCCoMController::reset(const ControllerResetData & reset_data)
 
 bool MCCoMController::run()
 {
-  updateAnchorFrame();
   return MCController::run();
 }
 

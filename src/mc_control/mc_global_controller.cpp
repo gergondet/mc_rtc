@@ -631,7 +631,7 @@ bool MCGlobalController::run()
       {
         if(controller_->gui_)
         {
-          pipeline.removeFromGUI(*controller_->gui());
+          pipeline.removeFromGUI(controller_->gui());
         }
         pipeline.removeFromLogger(controller_->logger());
       }
@@ -669,13 +669,13 @@ bool MCGlobalController::run()
   {
     const auto & robots = controller_->robots().robots();
 
-    auto start_observers_run_t = clock::now();
+    auto start_observers_run_t = mc_rtc::clock::now();
     controller_->runObserverPipelines();
-    observers_run_dt = clock::now() - start_observers_run_t;
+    observers_run_dt = mc_rtc::clock::now() - start_observers_run_t;
 
-    auto start_controller_run_t = clock::now();
+    auto start_controller_run_t = mc_rtc::clock::now();
     bool r = controller_->run();
-    auto end_controller_run_t = clock::now();
+    auto end_controller_run_t = mc_rtc::clock::now();
 
     pre_gripper_mbcs_.resize(robots.size());
     std::transform(robots.begin(), robots.end(), pre_gripper_mbcs_.begin(),
