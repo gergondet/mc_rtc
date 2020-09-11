@@ -386,7 +386,7 @@ mc_tasks/VectorOrientationTask.cpp
 mc_tasks/CoMTask.cpp
 mc_tasks/ImpedanceTask.cpp
 mc_tasks/MomentumTask.cpp
-#mc_tasks/AddRemoveContactTask.cpp
+mc_tasks/AddRemoveContactTask.cpp
 mc_tasks/BSplineTrajectoryTask.cpp
 mc_tasks/ExactCubicTrajectoryTask.cpp
 #mc_tasks/ComplianceTask.cpp

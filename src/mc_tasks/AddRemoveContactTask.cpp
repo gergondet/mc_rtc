@@ -1,188 +1,56 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
-#include <mc_rbdyn/Contact.h>
-#include <mc_rbdyn/Surface.h>
-#include <mc_rbdyn/configuration_io.h>
-#include <mc_rtc/logging.h>
 #include <mc_tasks/AddRemoveContactTask.h>
+
 #include <mc_tasks/MetaTaskLoader.h>
 
 namespace mc_tasks
 {
 
-AddRemoveContactTask::AddRemoveContactTask(mc_rbdyn::Robots & robots,
-                                           std::shared_ptr<mc_solver::BoundedSpeedConstr> constSpeedConstr,
-                                           mc_rbdyn::Contact & contact,
-                                           double direction,
-                                           double _speed,
-                                           double stiffness,
-                                           double weight,
-                                           Eigen::Vector3d * userT_0_s)
-: robots(robots), robot(robots.robot(contact.r1Index())), env(robots.robot(contact.r2Index())),
-  constSpeedConstr(constSpeedConstr), robotSurf(contact.r1Surface()),
-  robotBodyIndex(robot.bodyIndexByName(robotSurf->bodyName())), targetTf(contact.X_0_r1s(robots)),
-  bodyId(robotSurf->bodyName()), dofMat(Eigen::MatrixXd::Zero(5, 6)), speedMat(Eigen::VectorXd::Zero(5)),
-  stiffness_(stiffness), weight_(weight)
+AddRemoveContactTask::AddRemoveContactTask(mc_rbdyn::Frame & frame, double speed, double stiffness, double weight)
+: constraint_(std::make_shared<mc_solver::BoundedSpeedConstr>()),
+  task_(std::make_shared<mc_tasks::VelocityTask>(frame, stiffness, weight)), speed_(speed)
 {
-  type_ = std::string(direction > 0 ? "removeContact" : "addContact");
-  name_ = std::string(direction > 0 ? "remove" : "add") + "_contact_" + robot.name() + "_" + contact.r1Surface()->name()
-          + "_" + env.name() + "_" + contact.r2Surface()->name();
-  for(int i = 0; i < 5; ++i)
-  {
-    dofMat(i, i) = 1;
-  }
-  normal = targetTf.rotation().row(2);
-
-  if(userT_0_s)
-  {
-    normal = (*userT_0_s - targetTf.translation()).normalized();
-    auto normalBody = robot.mbc().bodyPosW[robotBodyIndex].rotation() * normal;
-    Eigen::Vector3d v1(normalBody.y(), -normalBody.x(), 0);
-    Eigen::Vector3d v2(-normalBody.z(), 0, normalBody.x());
-    Eigen::Vector3d T = (v1 + v2).normalized();
-    Eigen::Vector3d B = normalBody.cross(T);
-    for(int i = 3; i < 6; ++i)
-    {
-      dofMat(3, i) = T[i - 3];
-      dofMat(4, i) = B[i - 3];
-    }
-  }
-
-  direction_ = direction;
-  this->speed_ = _speed;
-  targetSpeed = direction * normal * speed_;
-  linVelTask.reset(new tasks::qp::LinVelocityTask(robots.mbs(), 0, robotSurf->bodyName(), targetSpeed,
-                                                  robotSurf->X_b_s().translation())),
-      linVelTaskPid.reset(new tasks::qp::PIDTask(robots.mbs(), 0, linVelTask.get(), stiffness, 0, 0, 0));
-  linVelTaskPid->error(velError());
-  linVelTaskPid->errorI(Eigen::Vector3d(0, 0, 0));
-  linVelTaskPid->errorD(Eigen::Vector3d(0, 0, 0));
-  targetVelWeight = weight;
+  type_ = "add_remove_contact";
+  name_ = fmt::format("{}_{}", type_, frame.name());
+  task_->name(fmt::format("{}_task", name_));
+  constraint_->name(fmt::format("{}_constraint", name_));
+  Eigen::Vector6d dimW = Eigen::Vector6d::Zero();
+  dimW(5) = 1.0;
+  task_->dimWeight(dimW);
+  dimW(5) = speed_;
+  task_->refVel(dimW);
 }
 
-AddRemoveContactTask::AddRemoveContactTask(mc_solver::QPSolver & solver,
-                                           mc_rbdyn::Contact & contact,
-                                           double direction,
-                                           double _speed,
-                                           double stiffness,
-                                           double weight,
-                                           Eigen::Vector3d * userT_0_s)
-: AddRemoveContactTask(solver.robots(), nullptr, contact, direction, _speed, stiffness, weight, userT_0_s)
+void AddRemoveContactTask::addToSolver(mc_solver::QPSolver & solver)
 {
-  manageConstraint = true;
-  constSpeedConstr = std::make_shared<mc_solver::BoundedSpeedConstr>(solver.robots(), contact.r1Index(), solver.dt());
+  Eigen::Vector6d dof = Eigen::Vector6d::Ones();
+  dof(5) = 0.0;
+  constraint_->addBoundedSpeed(solver, task_->frame(), dof, Eigen::Vector6d::Zero());
+  solver.addConstraint(constraint_);
+  MetaTask::addToSolver(*task_, solver);
 }
 
-void AddRemoveContactTask::direction(double direction)
+void AddRemoveContactTask::removeFromSolver(mc_solver::QPSolver & solver)
 {
-  direction_ = direction;
-  targetSpeed = direction_ * normal * speed_;
+  solver.removeConstraint(constraint_);
+  MetaTask::removeFromSolver(*task_, solver);
 }
 
 void AddRemoveContactTask::speed(double s)
 {
   speed_ = s;
-  targetSpeed = direction_ * normal * speed_;
+  auto vel = task_->refVel();
+  vel(5) = s;
+  task_->refVel(vel);
 }
 
-Eigen::Vector3d AddRemoveContactTask::velError()
+void AddRemoveContactTask::addToGUI(mc_rtc::GUI & gui)
 {
-  Eigen::Vector3d T_b_s = robotSurf->X_b_s().translation();
-  Eigen::Matrix3d E_0_b = robot.mbc().bodyPosW[robotBodyIndex].rotation();
-
-  sva::PTransformd pts(E_0_b.transpose(), T_b_s);
-  sva::MotionVecd surfVelB = pts * robot.mbc().bodyVelB[robotBodyIndex];
-  return targetSpeed - surfVelB.linear();
-}
-
-void AddRemoveContactTask::addToSolver(mc_solver::QPSolver & solver)
-{
-  solver.addTask(linVelTaskPid.get());
-  if(manageConstraint)
-  {
-    solver.addConstraintSet(*constSpeedConstr);
-  }
-  constSpeedConstr->addBoundedSpeed(solver, bodyId, robotSurf->X_b_s().translation(), dofMat, speedMat);
-}
-
-void AddRemoveContactTask::removeFromSolver(mc_solver::QPSolver & solver)
-{
-  solver.removeTask(linVelTaskPid.get());
-  if(manageConstraint)
-  {
-    solver.removeConstraintSet(*constSpeedConstr);
-  }
-  constSpeedConstr->removeBoundedSpeed(solver, bodyId);
-}
-
-void AddRemoveContactTask::update(mc_solver::QPSolver &)
-{
-  linVelTaskPid->error(velError());
-  linVelTaskPid->weight(std::min(linVelTaskPid->weight() + 0.5, targetVelWeight));
-}
-
-void AddRemoveContactTask::dimWeight(const Eigen::VectorXd & dimW)
-{
-  linVelTaskPid->dimWeight(dimW);
-}
-
-Eigen::VectorXd AddRemoveContactTask::dimWeight() const
-{
-  return linVelTaskPid->dimWeight();
-}
-
-Eigen::VectorXd AddRemoveContactTask::eval() const
-{
-  return linVelTask->eval();
-}
-
-Eigen::VectorXd AddRemoveContactTask::speed() const
-{
-  return linVelTask->speed();
-}
-
-AddContactTask::AddContactTask(mc_rbdyn::Robots & robots,
-                               std::shared_ptr<mc_solver::BoundedSpeedConstr> constSpeedConstr,
-                               mc_rbdyn::Contact & contact,
-                               double speed,
-                               double stiffness,
-                               double weight,
-                               Eigen::Vector3d * userT_0_s)
-: AddRemoveContactTask(robots, constSpeedConstr, contact, -1.0, speed, stiffness, weight, userT_0_s)
-{
-}
-
-AddContactTask::AddContactTask(mc_solver::QPSolver & solver,
-                               mc_rbdyn::Contact & contact,
-                               double speed,
-                               double stiffness,
-                               double weight,
-                               Eigen::Vector3d * userT_0_s)
-: AddRemoveContactTask(solver, contact, -1.0, speed, stiffness, weight, userT_0_s)
-{
-}
-
-RemoveContactTask::RemoveContactTask(mc_rbdyn::Robots & robots,
-                                     std::shared_ptr<mc_solver::BoundedSpeedConstr> constSpeedConstr,
-                                     mc_rbdyn::Contact & contact,
-                                     double speed,
-                                     double stiffness,
-                                     double weight,
-                                     Eigen::Vector3d * userT_0_s)
-: AddRemoveContactTask(robots, constSpeedConstr, contact, 1.0, speed, stiffness, weight, userT_0_s)
-{
-}
-
-RemoveContactTask::RemoveContactTask(mc_solver::QPSolver & solver,
-                                     mc_rbdyn::Contact & contact,
-                                     double speed,
-                                     double stiffness,
-                                     double weight,
-                                     Eigen::Vector3d * userT_0_s)
-: AddRemoveContactTask(solver, contact, 1.0, speed, stiffness, weight, userT_0_s)
-{
+  gui.addElement({"Tasks", name_},
+                 mc_rtc::gui::NumberInput("Speed", [this]() { return speed_; }, [this](double s) { speed(s); }));
 }
 
 } // namespace mc_tasks
@@ -190,26 +58,25 @@ RemoveContactTask::RemoveContactTask(mc_solver::QPSolver & solver,
 namespace
 {
 
-template<typename T>
-mc_tasks::MetaTaskPtr load_add_remove_contact_task(mc_solver::QPSolver & solver, const mc_rtc::Configuration & config)
+template<bool Negative>
+mc_tasks::AddRemoveContactTaskPtr load_add_remove_contact_task(mc_solver::QPSolver & solver,
+                                                               const mc_rtc::Configuration & config)
 {
-  auto contact = mc_rbdyn::Contact::load(solver.robots(), config("contact"));
-  Eigen::Vector3d T_0_s;
-  Eigen::Vector3d * userT_0_s = nullptr;
-  if(config.has("T_0_s"))
+  double speed = config("speed", 0.01);
+  if constexpr(Negative)
   {
-    T_0_s = config("T_0_s");
-    userT_0_s = &T_0_s;
+    speed = -speed;
   }
-  return std::make_shared<T>(solver, contact, config("speed", 0.01), config("stiffness", 2.), config("weight", 1000.),
-                             userT_0_s);
+  auto & robot = solver.robots().fromConfig(config, "AddRemoveContactTask");
+  return std::make_shared<mc_tasks::AddRemoveContactTask>(robot.frame(config("frame")), speed, config("stiffness", 2.0),
+                                                          config("weight", 1000.0));
 }
 
+static auto ac_rc_registered =
+    mc_tasks::MetaTaskLoader::register_load_function("addRemoveContact", &load_add_remove_contact_task<false>);
 static auto ac_registered =
-    mc_tasks::MetaTaskLoader::register_load_function("addContact",
-                                                     &load_add_remove_contact_task<mc_tasks::AddContactTask>);
+    mc_tasks::MetaTaskLoader::register_load_function("addContact", &load_add_remove_contact_task<false>);
 static auto rc_registered =
-    mc_tasks::MetaTaskLoader::register_load_function("removeContact",
-                                                     &load_add_remove_contact_task<mc_tasks::RemoveContactTask>);
+    mc_tasks::MetaTaskLoader::register_load_function("removeContact", &load_add_remove_contact_task<true>);
 
 } // namespace

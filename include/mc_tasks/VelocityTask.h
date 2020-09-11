@@ -33,6 +33,12 @@ public:
   {
     return errorT_->frame();
   }
+
+  /** Get the frame controlled by this task (non-const) */
+  inline mc_rbdyn::Frame & frame() noexcept
+  {
+    return errorT_->frame();
+  }
 };
 
 using VelocityTaskPtr = std::shared_ptr<VelocityTask>;

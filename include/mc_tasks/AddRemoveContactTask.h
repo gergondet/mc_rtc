@@ -1,242 +1,113 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
-#ifndef _H_ADDREMOVECONTACTTASK_H_
-#define _H_ADDREMOVECONTACTTASK_H_
+#pragma once
 
-#include <mc_rbdyn/Robots.h>
-#include <mc_solver/BoundedSpeedConstr.h>
 #include <mc_tasks/MetaTask.h>
-#include <mc_tasks/api.h>
+#include <mc_tasks/VelocityTask.h>
 
-#include <Tasks/QPTasks.h>
-
-namespace mc_rbdyn
-{
-struct Contact;
-}
+#include <mc_solver/BoundedSpeedConstr.h>
 
 namespace mc_tasks
 {
 
-/*! \brief Add or remove a contact
+/** Add or remove a contact
  *
- * The goal of this task is to move a robot's surface towards a contact
- * or away from a contact depending on construction parameters.
- *
- * The robot's surface will move along its normal axis. It is the
- * programmer responsibility to stop the task when the desired
- * destination has been reached.
+ * This task combines a bounded speed constraint and velocity task to drive a frame in its normal direction. The
+ * velocity sign informs the direction.
  */
 struct MC_TASKS_DLLAPI AddRemoveContactTask : public MetaTask
 {
 public:
-  /*! \brief General constructor
+  /** Constructor
    *
-   * Constructs an AddRemoveContactTask using information passed by the
-   * programmer
+   * \param frame Frame controlled by this task
    *
-   * \param robots Robots involved in the task
-   *
-   * \param constSpeedConstr Used by the solver to constraint the
-   * surface movement
-   *
-   * \param contact Contact that will be added/removed
-   *
-   * \param direction Direction of displacement
-   *
-   * \param speed Speed of the displacement
+   * \param speed Maximum speed of the displacement
    *
    * \param stiffness Stiffness of the task
    *
    * \param weight Weight of the task
    *
-   * \param userT_0_s If provided, overrides the chosen normal
-   * direction
    */
-  AddRemoveContactTask(mc_rbdyn::Robots & robots,
-                       std::shared_ptr<mc_solver::BoundedSpeedConstr> constSpeedConstr,
-                       mc_rbdyn::Contact & contact,
-                       double direction,
-                       double speed = 0.01,
-                       double stiffness = 2,
-                       double weight = 1000,
-                       Eigen::Vector3d * userT_0_s = nullptr);
+  AddRemoveContactTask(mc_rbdyn::Frame & frame, double speed = 0.01, double stiffness = 2, double weight = 1000);
 
-  /*! \brief General constructor with self-managed bounded speed constraint
-   *
-   * Constructs an AddRemoveContactTask using information passed by the programmer. No mc_solver::BoundedSpeedConstr has
-   * to be passed. Instead the constraint is created and managed by the task.
-   *
-   * \param solver Solver where the task will be used
-   *
-   * \param contact Contact that will be added/removed
-   *
-   * \param direction Direction of displacement
-   *
-   * \param speed Speed of the displacement
-   *
-   * \param stiffness Stiffness of the task
-   *
-   * \param weight Weight of the task
-   *
-   * \param userT_0_s if provided, overrides the chosen normal direction
-   */
-  AddRemoveContactTask(mc_solver::QPSolver & solver,
-                       mc_rbdyn::Contact & contact,
-                       double direction,
-                       double speed = 0.01,
-                       double stiffness = 2,
-                       double weight = 1000,
-                       Eigen::Vector3d * userT_0_s = nullptr);
-
-  /*! \brief Set the displacement direction
-   *
-   * \param direction Direction of the displacement
-   *
-   */
-  void direction(double direction);
-
-  /*! \brief Get the desired dislacement speed */
-  double speed()
-  {
-    return speed_;
-  }
   /*! \brief Set the desired dislacement speed */
   void speed(double s);
 
-  /*! \brief Get the task stiffness */
-  double stiffness()
+  inline void update(mc_solver::QPSolver &) override {}
+
+  /** This is managed by this task */
+  inline void dimWeight(const Eigen::VectorXd &) override {}
+
+  inline const Eigen::VectorXd & dimWeight() const noexcept override
   {
-    return stiffness_;
+    return task_->dimWeight();
   }
-  /*! \brief Get the task weight */
-  double weight()
+
+  inline Eigen::VectorXd eval() const override
   {
-    return weight_;
+    return task_->eval();
   }
 
-  /*! \brief Get the velocity error
-   *
-   * \returns Velocity error of the LinVelocity task */
-  Eigen::Vector3d velError();
+  inline Eigen::VectorXd speed() const override
+  {
+    return task_->speed();
+  }
 
-  void dimWeight(const Eigen::VectorXd & dimW) override;
-
-  Eigen::VectorXd dimWeight() const override;
-
-  Eigen::VectorXd eval() const override;
-
-  Eigen::VectorXd speed() const override;
-
-public:
-  mc_rbdyn::Robots & robots;
-  mc_rbdyn::Robot & robot;
-  mc_rbdyn::Robot & env;
-  std::shared_ptr<mc_solver::BoundedSpeedConstr> constSpeedConstr;
-
-  std::shared_ptr<mc_rbdyn::Surface> robotSurf;
-  unsigned int robotBodyIndex;
-
-  sva::PTransformd targetTf;
-
-  std::string bodyId;
-  Eigen::MatrixXd dofMat;
-  Eigen::VectorXd speedMat;
-  Eigen::Vector3d normal;
-
-  double stiffness_;
-  double weight_;
-  double speed_;
-  double direction_;
-  Eigen::Vector3d targetSpeed;
-  std::shared_ptr<tasks::qp::LinVelocityTask> linVelTask;
-  std::shared_ptr<tasks::qp::PIDTask> linVelTaskPid;
-  double targetVelWeight;
-
-private:
   /* Hide these virtual functions */
-  void selectActiveJoints(mc_solver::QPSolver &,
-                          const std::vector<std::string> &,
-                          const std::map<std::string, std::vector<std::array<int, 2>>> & = {}) override
+  inline void selectActiveJoints(mc_solver::QPSolver & solver,
+                                 const std::vector<std::string> & joints,
+                                 const std::map<std::string, std::vector<std::array<int, 2>>> & dofs = {}) override
   {
+    task_->selectActiveJoints(solver, joints, dofs);
   }
 
-  void selectUnactiveJoints(mc_solver::QPSolver &,
-                            const std::vector<std::string> &,
-                            const std::map<std::string, std::vector<std::array<int, 2>>> & = {}) override
+  inline void selectInactiveJoints(mc_solver::QPSolver & solver,
+                                   const std::vector<std::string> & joints,
+                                   const std::map<std::string, std::vector<std::array<int, 2>>> & dofs = {}) override
   {
+    task_->selectInactiveJoints(solver, joints, dofs);
   }
 
-  void resetJointsSelector(mc_solver::QPSolver &) override {}
+  inline void resetJointsSelector(mc_solver::QPSolver & solver) override
+  {
+    task_->resetJointsSelector(solver);
+  }
 
-  void reset() override {}
+  inline void reset() override
+  {
+    task_->reset();
+  }
+
+  inline const mc_rbdyn::Frame & frame() const noexcept
+  {
+    return task_->frame();
+  }
 
 private:
+  mc_solver::BoundedSpeedConstrPtr constraint_;
+  mc_tasks::VelocityTaskPtr task_;
+  double speed_;
+
   void addToSolver(mc_solver::QPSolver & solver) override;
 
   void removeFromSolver(mc_solver::QPSolver & solver) override;
 
-  void update(mc_solver::QPSolver &) override;
+  inline void addToLogger(mc_rtc::Logger & logger) override
+  {
+    MetaTask::addToLogger(*task_, logger);
+  }
 
-  bool manageConstraint = false;
+  inline void removeFromLogger(mc_rtc::Logger & logger) override
+  {
+    MetaTask::removeFromLogger(*task_, logger);
+  }
+
+  void addToGUI(mc_rtc::GUI & gui) override;
 };
 
-/*! \brief Add a contact
- *
- * This is simply a special case of the generic AddRemoveContactTask
- * where direction is equal to -1
- *
- */
-struct MC_TASKS_DLLAPI AddContactTask : public AddRemoveContactTask
-{
-public:
-  /*! \brief Constructor */
-  AddContactTask(mc_rbdyn::Robots & robots,
-                 std::shared_ptr<mc_solver::BoundedSpeedConstr> constSpeedConstr,
-                 mc_rbdyn::Contact & contact,
-                 double speed = 0.01,
-                 double stiffness = 2,
-                 double weight = 1000,
-                 Eigen::Vector3d * userT_0_s = nullptr);
-
-  /*! \brief Constructor (self-managed speed constraint) */
-  AddContactTask(mc_solver::QPSolver & solver,
-                 mc_rbdyn::Contact & contact,
-                 double speed = 0.01,
-                 double stiffness = 2,
-                 double weight = 1000,
-                 Eigen::Vector3d * userT_0_s = nullptr);
-};
-
-/*! \brief Remove a contact
- *
- * This is simply a special case of the generic AddRemoveContactTask
- * where direction is equal to 1
- *
- */
-struct MC_TASKS_DLLAPI RemoveContactTask : public AddRemoveContactTask
-{
-public:
-  /*! \brief Constructor */
-  RemoveContactTask(mc_rbdyn::Robots & robots,
-                    std::shared_ptr<mc_solver::BoundedSpeedConstr> constSpeedConstr,
-                    mc_rbdyn::Contact & contact,
-                    double speed = 0.01,
-                    double stiffness = 2,
-                    double weight = 1000,
-                    Eigen::Vector3d * userT_0_s = nullptr);
-
-  /*! \brief Constructor (self-managed speed constraint) */
-  RemoveContactTask(mc_solver::QPSolver & solver,
-                    mc_rbdyn::Contact & contact,
-                    double speed = 0.01,
-                    double stiffness = 2,
-                    double weight = 1000,
-                    Eigen::Vector3d * userT_0_s = nullptr);
-};
+using AddRemoveContactTaskPtr = std::shared_ptr<mc_tasks::AddRemoveContactTask>;
 
 } // namespace mc_tasks
-
-#endif
