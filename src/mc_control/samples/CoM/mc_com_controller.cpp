@@ -10,6 +10,7 @@
 
 #include <mc_rtc/logging.h>
 
+#include <mc_tasks/AddRemoveContactTask.h>
 #include <mc_tasks/OrientationTask.h>
 #include <mc_tasks/PositionTask.h>
 #include <mc_tasks/TransformTask.h>
@@ -120,28 +121,36 @@ void MCCoMController::reset(const ControllerResetData & reset_data)
   auto findLWristTask = [this]() -> mc_tasks::MetaTaskPtr {
     for(const auto & t : solver().tasks())
     {
-      if(t->name() == "transform_jvrc1_l_wrist" || t->name() == "velocity_jvrc1_l_wrist")
+      if(t->name() == "transform_jvrc1_l_wrist" || t->name() == "velocity_jvrc1_l_wrist"
+         || t->name() == "add_remove_contact_l_wrist")
       {
         return t;
       }
     }
     return nullptr;
   };
-  gui().addElement({}, mc_rtc::gui::Button("Remove l_wrist task", [=]() { solver().removeTask(findLWristTask()); }),
-                   mc_rtc::gui::Button("Add l_wrist transform task",
-                                       [=]() {
-                                         if(!findLWristTask())
-                                         {
-                                           solver().addTask(
-                                               std::make_shared<mc_tasks::TransformTask>(robot().frame("l_wrist")));
-                                         }
-                                       }),
-                   mc_rtc::gui::Button("Add l_wrist velocity task", [=]() {
-                     if(!findLWristTask())
-                     {
-                       solver().addTask(std::make_shared<mc_tasks::VelocityTask>(robot().frame("l_wrist")));
-                     }
-                   }));
+  gui().addElement(
+      {}, mc_rtc::gui::Button("Remove l_wrist task", [=]() { solver().removeTask(findLWristTask()); }),
+      mc_rtc::gui::Button("Add l_wrist transform task",
+                          [=]() {
+                            if(!findLWristTask())
+                            {
+                              solver().addTask(std::make_shared<mc_tasks::TransformTask>(robot().frame("l_wrist")));
+                            }
+                          }),
+      mc_rtc::gui::Button("Add l_wrist velocity task",
+                          [=]() {
+                            if(!findLWristTask())
+                            {
+                              solver().addTask(std::make_shared<mc_tasks::VelocityTask>(robot().frame("l_wrist")));
+                            }
+                          }),
+      mc_rtc::gui::Button("Add l_wrist contact task", [=]() {
+        if(!findLWristTask())
+        {
+          solver().addTask(std::make_shared<mc_tasks::AddRemoveContactTask>(robot().frame("l_wrist"), 0.0));
+        }
+      }));
 }
 
 bool MCCoMController::run()
