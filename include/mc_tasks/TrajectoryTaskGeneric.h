@@ -13,6 +13,7 @@
 #include <mc_rbdyn/Robots.h>
 
 #include <tvm/ControlProblem.h>
+#include <tvm/task_dynamics/Proportional.h>
 #include <tvm/task_dynamics/ProportionalDerivative.h>
 
 namespace mc_tasks
