@@ -48,9 +48,34 @@ struct MC_TVM_DLLAPI FrameVelocity : public tvm::function::abstract::Function
     return dof_;
   }
 
+  /** Set the reference velocity */
+  inline void refVel(const Eigen::Vector6d & refV) noexcept
+  {
+    refVel_ = refV;
+  }
+  /** Get the reference velocity */
+  inline const Eigen::Vector6d & refVel() const noexcept
+  {
+    return refVel_;
+  }
+
+  /** Set the reference acceleration */
+  inline void refAccel(const Eigen::Vector6d & refA) noexcept
+  {
+    refAccel_ = refA;
+  }
+  /** Get the reference acceleration */
+  inline const Eigen::Vector6d & refAccel() const noexcept
+  {
+    return refAccel_;
+  }
+
 private:
   mc_rbdyn::FramePtr frame_;
   Eigen::Vector6d dof_;
+  Eigen::Vector6d refVel_ = Eigen::Vector6d::Zero();
+  Eigen::Vector6d refAccel_ = Eigen::Vector6d::Zero();
+
   rbd::Jacobian jac_;
   Eigen::MatrixXd jacobian_;
 

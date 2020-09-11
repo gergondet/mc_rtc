@@ -47,6 +47,7 @@ usr/include/mc_tasks/MetaTask.h
 usr/include/mc_tasks/DampingTask.h
 usr/include/mc_tasks/PostureTask.h
 usr/include/mc_tasks/PositionBasedVisServoTask.h
+usr/include/mc_tasks/VelocityTask.h
 usr/include/mc_tasks/TrajectoryTaskGeneric.hpp
 usr/include/mc_tasks/TrajectoryTaskGeneric.h
 usr/include/mc_tasks/AdmittanceTask.h
