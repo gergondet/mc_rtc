@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #include <mc_tasks/ExactCubicTrajectoryTask.h>
@@ -13,81 +13,42 @@
 
 namespace mc_tasks
 {
-ExactCubicTrajectoryTask::ExactCubicTrajectoryTask(const mc_rbdyn::Robots & robots,
-                                                   unsigned int robotIndex,
-                                                   const std::string & surfaceName,
+
+ExactCubicTrajectoryTask::ExactCubicTrajectoryTask(mc_rbdyn::Frame & frame,
                                                    double duration,
                                                    double stiffness,
                                                    double weight,
                                                    const sva::PTransformd & target,
                                                    const std::vector<std::pair<double, Eigen::Vector3d>> & posWp,
-                                                   const Eigen::Vector3d & init_vel,
-                                                   const Eigen::Vector3d & init_acc,
-                                                   const Eigen::Vector3d & end_vel,
-                                                   const Eigen::Vector3d & end_acc,
+                                                   const Eigen::Vector3d & initVel,
+                                                   const Eigen::Vector3d & initAcc,
+                                                   const Eigen::Vector3d & finalVel,
+                                                   const Eigen::Vector3d & finalAcc,
                                                    const std::vector<std::pair<double, Eigen::Matrix3d>> & oriWp)
-: SplineTrajectoryTask<ExactCubicTrajectoryTask>(robots,
-                                                 robotIndex,
-                                                 surfaceName,
-                                                 duration,
-                                                 stiffness,
-                                                 weight,
-                                                 target.rotation(),
-                                                 oriWp),
-  bspline(duration,
-          robots.robot(robotIndex).surface(surfaceName).X_0_s(robots.robot(robotIndex)).translation(),
-          target.translation(),
-          posWp,
-          init_vel,
-          init_acc,
-          end_vel,
-          end_acc)
+: SplineTrajectoryTask<ExactCubicTrajectoryTask>(frame, duration, stiffness, weight, target.rotation(), oriWp),
+  bspline_(duration, frame.position().translation(), target.translation(), posWp, initVel, initAcc, finalVel, finalAcc)
 {
-  const mc_rbdyn::Robot & robot = robots.robot(robotIndex);
   type_ = "exact_cubic_trajectory";
-  name_ = "exact_cubic_trajectory_" + robot.name() + "_" + surfaceName_;
-  bspline.constraints(init_vel, init_acc, end_vel, end_acc);
-  initialPose_ = robot.surface(surfaceName_).X_0_s(robot);
-}
-
-void ExactCubicTrajectoryTask::posWaypoints(const std::vector<std::pair<double, Eigen::Vector3d>> & posWp)
-{
-  bspline.waypoints(posWp);
-}
-
-void ExactCubicTrajectoryTask::constraints(const Eigen::Vector3d & init_vel,
-                                           const Eigen::Vector3d & init_acc,
-                                           const Eigen::Vector3d & end_vel,
-                                           const Eigen::Vector3d & end_acc)
-{
-  bspline.constraints(init_vel, init_acc, end_vel, end_acc);
-}
-
-void ExactCubicTrajectoryTask::targetPos(const Eigen::Vector3d & target)
-{
-  bspline.target(target);
-}
-
-const Eigen::Vector3d & ExactCubicTrajectoryTask::targetPos() const
-{
-  return bspline.target();
+  name_ = fmt::format("{}_{}_{}", type_, frame.robot().name(), frame.name());
+  bspline_.constraints(initVel, initAcc, finalVel, finalAcc);
+  initialPose_ = frame.position();
 }
 
 void ExactCubicTrajectoryTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
 {
   SplineTrajectoryBase::addToGUI(gui);
 
-  bspline.addToGUI(gui, {"Tasks", name_});
+  bspline_.addToGUI(gui, {"Tasks", name_});
 
   gui.addElement(
       {"Tasks", name_, "Velocity Constraints"},
       mc_rtc::gui::Arrow("Initial", mc_rtc::gui::ArrowConfig(mc_rtc::gui::Color(0., 1., 1.)),
                          [this]() -> Eigen::Vector3d { return initialPose_.translation(); },
-                         [this]() -> Eigen::Vector3d { return initialPose_.translation() + bspline.init_vel(); }),
+                         [this]() -> Eigen::Vector3d { return initialPose_.translation() + bspline_.init_vel(); }),
       mc_rtc::gui::Arrow(
           "Final", mc_rtc::gui::ArrowConfig(mc_rtc::gui::Color(0., 1., 1.)),
           [this]() -> Eigen::Vector3d { return SplineTrajectoryBase::target().translation(); },
-          [this]() -> Eigen::Vector3d { return SplineTrajectoryBase::target().translation() + bspline.end_vel(); }));
+          [this]() -> Eigen::Vector3d { return SplineTrajectoryBase::target().translation() + bspline_.end_vel(); }));
 }
 
 } // namespace mc_tasks
@@ -100,17 +61,16 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       sva::PTransformd finalTarget_;
       std::vector<std::pair<double, Eigen::Vector3d>> waypoints;
       std::vector<std::pair<double, Eigen::Matrix3d>> oriWp;
-      const auto robotIndex = robotIndexFromConfig(config, solver.robots(), "exact_cubic_trajectory");
+      auto & robot = solver.robots().fromConfig(config, "ExactCubicTrajectoryTask");
       Eigen::Vector3d init_vel, end_vel, init_acc, end_acc;
-
       if(config.has("targetSurface"))
       { // Target defined from a target surface, with an offset defined
         // in the surface coordinates
         const auto & c = config("targetSurface");
         const auto & targetSurfaceName = c("surface");
-        const auto & robot = robotFromConfig(c, solver.robots(), "exact_cubic_trajectory::targetSurface");
+        const auto & robot = solver.robots().fromConfig(c, "ExactCubicTrajectoryTask::targetSurface");
 
-        const sva::PTransformd & targetSurface = robot.surface(targetSurfaceName).X_0_s(robot);
+        const auto & targetSurface = robot.frame(targetSurfaceName).position();
         const Eigen::Vector3d trans = c("translation", Eigen::Vector3d::Zero().eval());
         const Eigen::Matrix3d rot = c("rotation", Eigen::Matrix3d::Identity().eval());
         sva::PTransformd offset(rot, trans);
@@ -167,8 +127,8 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       }
 
       std::shared_ptr<mc_tasks::ExactCubicTrajectoryTask> t = std::make_shared<mc_tasks::ExactCubicTrajectoryTask>(
-          solver.robots(), robotIndex, config("surface"), config("duration", 10.), config("stiffness", 100.),
-          config("weight", 500.), finalTarget_, waypoints, init_vel, init_acc, end_vel, end_acc, oriWp);
+          robot.frame(config("surface")), config("duration", 10.), config("stiffness", 100.), config("weight", 500.),
+          finalTarget_, waypoints, init_vel, init_acc, end_vel, end_acc, oriWp);
       t->load(solver, config);
       const auto displaySamples = config("displaySamples", t->displaySamples());
       t->displaySamples(displaySamples);
