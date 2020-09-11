@@ -1,10 +1,11 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
 
 #include <mc_tasks/SplineTrajectoryTask.h>
+
 #include <mc_trajectory/ExactCubic.h>
 
 namespace mc_tasks
@@ -30,49 +31,55 @@ struct MC_TASKS_DLLAPI ExactCubicTrajectoryTask : public SplineTrajectoryTask<Ex
    * between orientation waypoints. Initial and final acceleration/velocity will
    * also be enforced.
    *
-   * \param robots Robots controlled by the task
-   * \param robotIndex  Which robot is controlled
-   * \param surfaceName Surface controlled by the task, should belong to the controlled robot
-   * \param duration Duration of motion (eg time it takes to go from the current
+   * \param frame Frame controlled by this task
+   *
+   * \param duration Duration of motion
+   *
    * \param stiffness Task stiffness
+   *
    * \param weight Task weight
+   *
    * \param target Final world pose to reach
+   *
    * \param posWp Waypoints in position specified as pairs of [time, position]
-   * \param init_vel Initial velocity of the curve (default: Zero)
-   * \param init_acc Initial acceleration of the curve (default: Zero)
-   * \param end_vel Final velocity of the curve (default: Zero)
-   * \param enc_acc Final acceleration of the curve (default: Zero)
-   * \param oriWp Waypoints in orientation, specified as pairs of [time, orientation].
+   *
+   * \param initVel Initial velocity of the curve (default: Zero)
+   *
+   * \param initAcc Initial acceleration of the curve (default: Zero)
+   *
+   * \param finalVel Final velocity of the curve (default: Zero)
+   *
+   * \param finalAcc Final acceleration of the curve (default: Zero)
+   *
+   * \param oriWp Waypoints in orientation, specified as pairs of [time, orientation]
    */
-  ExactCubicTrajectoryTask(const mc_rbdyn::Robots & robots,
-                           unsigned int robotIndex,
-                           const std::string & surfaceName,
+  ExactCubicTrajectoryTask(mc_rbdyn::Frame & frame,
                            double duration,
                            double stiffness,
                            double weight,
                            const sva::PTransformd & target,
                            const std::vector<std::pair<double, Eigen::Vector3d>> & posWp = {},
-                           const Eigen::Vector3d & init_vel = Eigen::Vector3d::Zero(),
-                           const Eigen::Vector3d & init_acc = Eigen::Vector3d::Zero(),
-                           const Eigen::Vector3d & end_vel = Eigen::Vector3d::Zero(),
-                           const Eigen::Vector3d & end_acc = Eigen::Vector3d::Zero(),
+                           const Eigen::Vector3d & initVel = Eigen::Vector3d::Zero(),
+                           const Eigen::Vector3d & initAcc = Eigen::Vector3d::Zero(),
+                           const Eigen::Vector3d & finalVel = Eigen::Vector3d::Zero(),
+                           const Eigen::Vector3d & finalAcc = Eigen::Vector3d::Zero(),
                            const std::vector<std::pair<double, Eigen::Matrix3d>> & oriWp = {});
 
   /*! \brief const accessor to the underlying spline (used by SplineTrajectoryTask)
    *
    * \returns The spline
    */
-  const mc_trajectory::ExactCubic & spline() const
+  inline const mc_trajectory::ExactCubic & spline() const noexcept
   {
-    return bspline;
+    return bspline_;
   };
   /*! \brief accessor to the underlying spline (used by SplineTrajectoryTask)
    *
    * \returns The spline
    */
-  mc_trajectory::ExactCubic & spline()
+  inline mc_trajectory::ExactCubic & spline() noexcept
   {
-    return bspline;
+    return bspline_;
   };
 
   /*! \brief Add interactive GUI elements to control the curve waypoints
@@ -81,32 +88,47 @@ struct MC_TASKS_DLLAPI ExactCubicTrajectoryTask : public SplineTrajectoryTask<Ex
 
   /** \brief Waypoints in position. The curve will pass exactly through these waypoints.
    */
-  void posWaypoints(const std::vector<std::pair<double, Eigen::Vector3d>> & posWp);
+  inline void posWaypoints(const std::vector<std::pair<double, Eigen::Vector3d>> & posWp)
+  {
+    bspline_.waypoints(posWp);
+  }
 
   /** \brief Initial and final velocity and acceleration constraints for the
    * curve
    *
-   * \param init_vel Initial velocity of the curve (default: Zero)
-   * \param init_acc Initial acceleration of the curve (default: Zero)
-   * \param end_vel Final velocity of the curve (default: Zero)
-   * \param enc_acc Final acceleration of the curve (default: Zero)
+   * \param initVel Initial velocity of the curve (default: Zero)
+   *
+   * \param initAcc Initial acceleration of the curve (default: Zero)
+   *
+   * \param finalVel Final velocity of the curve (default: Zero)
+   *
+   * \param finalAcc Final acceleration of the curve (default: Zero)
    */
-  void constraints(const Eigen::Vector3d & init_vel,
-                   const Eigen::Vector3d & init_acc,
-                   const Eigen::Vector3d & end_vel,
-                   const Eigen::Vector3d & end_acc);
+  inline void constraints(const Eigen::Vector3d & initVel,
+                          const Eigen::Vector3d & initAcc,
+                          const Eigen::Vector3d & finalVel,
+                          const Eigen::Vector3d & finalAcc)
+  {
+    bspline_.constraints(initVel, initAcc, finalVel, finalAcc);
+  }
 
 protected:
   /*! \brief Sets the curve target pose
    * \param target Target pose for the curve
    */
-  void targetPos(const Eigen::Vector3d & target);
+  inline void targetPos(const Eigen::Vector3d & target)
+  {
+    bspline_.target(target);
+  }
 
   /** \brief Returns the curve's target position */
-  const Eigen::Vector3d & targetPos() const;
+  inline const Eigen::Vector3d & targetPos() const noexcept
+  {
+    return bspline_.target();
+  }
 
 protected:
-  mc_trajectory::ExactCubic bspline;
+  mc_trajectory::ExactCubic bspline_;
   sva::PTransformd initialPose_;
 };
 
