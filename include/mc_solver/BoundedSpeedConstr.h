@@ -120,4 +120,6 @@ private:
   void removeBoundedSpeed(QPSolver & solver, BoundedSpeedData & data);
 };
 
+using BoundedSpeedConstrPtr = std::shared_ptr<BoundedSpeedConstr>;
+
 } // namespace mc_solver

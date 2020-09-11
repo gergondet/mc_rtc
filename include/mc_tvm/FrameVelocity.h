@@ -36,6 +36,11 @@ struct MC_TVM_DLLAPI FrameVelocity : public tvm::function::abstract::Function
   {
     return *frame_;
   }
+  /** Access the related frame */
+  inline mc_rbdyn::Frame & frame() noexcept
+  {
+    return *frame_;
+  }
 
   /** Get the dof vector */
   inline const Eigen::Vector6d & dof() const noexcept
