@@ -105,7 +105,6 @@ void MCCoMController::reset(const ControllerResetData & reset_data)
                                                      robot().name());
   }
   solver().addTask(std::make_shared<mc_tasks::OrientationTask>(robot().frame("WAIST_R_S")));
-  solver().addTask(std::make_shared<mc_tasks::TransformTask>(robot().frame("l_wrist")));
   solver().addTask(std::make_shared<mc_tasks::TransformTask>(robot().frame("r_wrist")));
   solver().addConstraint(dynamicsConstraint_);
   solver().addConstraint(collisionConstraint_);
@@ -121,7 +120,7 @@ void MCCoMController::reset(const ControllerResetData & reset_data)
   auto findLWristTask = [this]() -> mc_tasks::MetaTaskPtr {
     for(const auto & t : solver().tasks())
     {
-      if(t->name() == fmt::format("transform_jvrc1_l_wrist"))
+      if(t->name() == "transform_jvrc1_l_wrist" || t->name() == "velocity_jvrc1_l_wrist")
       {
         return t;
       }
@@ -129,10 +128,18 @@ void MCCoMController::reset(const ControllerResetData & reset_data)
     return nullptr;
   };
   gui().addElement({}, mc_rtc::gui::Button("Remove l_wrist task", [=]() { solver().removeTask(findLWristTask()); }),
-                   mc_rtc::gui::Button("Add l_wrist task", [=]() {
+                   mc_rtc::gui::Button("Add l_wrist transform task",
+                                       [=]() {
+                                         if(!findLWristTask())
+                                         {
+                                           solver().addTask(
+                                               std::make_shared<mc_tasks::TransformTask>(robot().frame("l_wrist")));
+                                         }
+                                       }),
+                   mc_rtc::gui::Button("Add l_wrist velocity task", [=]() {
                      if(!findLWristTask())
                      {
-                       solver().addTask(std::make_shared<mc_tasks::TransformTask>(robot().frame("l_wrist")));
+                       solver().addTask(std::make_shared<mc_tasks::VelocityTask>(robot().frame("l_wrist")));
                      }
                    }));
 }
