@@ -13,6 +13,7 @@
 #include <mc_tasks/OrientationTask.h>
 #include <mc_tasks/PositionTask.h>
 #include <mc_tasks/TransformTask.h>
+#include <mc_tasks/VelocityTask.h>
 
 #include <mc_solver/CoMInConvexConstraint.h>
 

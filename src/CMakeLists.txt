@@ -375,13 +375,17 @@ target_link_libraries(mc_trajectory PUBLIC mc_rtc_3rd_party::hpp-spline mc_rtc::
 install_mc_rtc_lib(mc_trajectory)
 
 set(mc_tasks_SRC
-mc_tasks/MomentumTask.cpp
 mc_tasks/PositionTask.cpp
-mc_tasks/TransformTask.cpp
 mc_tasks/OrientationTask.cpp
+mc_tasks/TransformTask.cpp
+
+mc_tasks/VelocityTask.cpp
+
 mc_tasks/VectorOrientationTask.cpp
+
 mc_tasks/CoMTask.cpp
 mc_tasks/ImpedanceTask.cpp
+mc_tasks/MomentumTask.cpp
 #mc_tasks/AddRemoveContactTask.cpp
 mc_tasks/BSplineTrajectoryTask.cpp
 mc_tasks/ExactCubicTrajectoryTask.cpp
@@ -428,6 +432,7 @@ set(mc_tasks_HDR
 ../include/mc_tasks/PostureTask.h
 ../include/mc_tasks/LookAtTask.h
 ../include/mc_tasks/LookAtFrameTask.h
+../include/mc_tasks/VelocityTask.h
 ../include/mc_tasks/ExactCubicTrajectoryTask.h
 ../include/mc_tasks/lipm_stabilizer/StabilizerTask.h
 ../include/mc_tasks/lipm_stabilizer/Contact.h

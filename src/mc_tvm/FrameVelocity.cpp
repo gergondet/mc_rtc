@@ -36,7 +36,7 @@ FrameVelocity::FrameVelocity(mc_rbdyn::Frame & frame, const Eigen::Vector6d & do
 
 void FrameVelocity::updateValue()
 {
-  value_ = dof_.cwiseProduct(jac_.bodyVelocity(frame_->robot().mb(), frame_->robot().mbc()).vector());
+  value_ = dof_.cwiseProduct(jac_.bodyVelocity(frame_->robot().mb(), frame_->robot().mbc()).vector() - refVel_);
 }
 
 void FrameVelocity::updateJacobian()
@@ -49,7 +49,8 @@ void FrameVelocity::updateJacobian()
 void FrameVelocity::updateVelocity()
 {
   velocity_ = dof_.cwiseProduct(
-      jac_.bodyNormalAcceleration(frame_->robot().mb(), frame_->robot().mbc(), frame_->robot().normalAccB()).vector());
+      jac_.bodyNormalAcceleration(frame_->robot().mb(), frame_->robot().mbc(), frame_->robot().normalAccB()).vector()
+      - refAccel_);
 }
 
 } // namespace mc_tvm
