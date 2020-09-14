@@ -1,84 +1,35 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
 
 #include <mc_tasks/TrajectoryTaskGeneric.h>
 
+#include <mc_tvm/GazeFunction.h>
+
 namespace mc_tasks
 {
 
-/*! \brief Control the Gaze of a body
+/*! \brief Control the gaze of a body
  *
- * This task is thin wrapper around the appropriate tasks in Tasks.
  *
  */
-struct MC_TASKS_DLLAPI GazeTask : public TrajectoryTaskGeneric<tasks::qp::GazeTask>
+struct MC_TASKS_DLLAPI GazeTask : public TrajectoryTaskGeneric<mc_tvm::GazeFunction>
 {
 public:
+  using TrajectoryBase = TrajectoryTaskGeneric<mc_tvm::GazeFunction>;
+
   /*! \brief Constructor
    *
-   * \param bodyName Name of the body to control
-   *
-   * \param point2d Position of the point in image frame
-   *
-   * \param depthEstimate Distance of the monitored point from the camera
-   *
-   * \param X_b_gaze Transformation between the camera link and the parent body
-   *
-   * \param robots Robots controlled by this task
-   *
-   * \param robotIndex Index of the robot controlled by this task
+   * \param frame Camera frame used by this gaze task
    *
    * \param stiffness Task stiffness
    *
    * \param weight Task weight
    *
    */
-  GazeTask(const std::string & bodyName,
-           const Eigen::Vector2d & point2d,
-           double depthEstimate,
-           const sva::PTransformd & X_b_gaze,
-           const mc_rbdyn::Robots & robots,
-           unsigned int robotIndex,
-           double stiffness = 2.0,
-           double weight = 500);
-
-  /*! \brief Constructor
-   *
-   * \param bodyName Name of the body to control
-   *
-   * \param point3d Equal to (point2d[0], point2d[1], depthEstimate).
-   * Depth estimate must be >0, the constructor will throw otherwise as this
-   * would result in a division by zero.
-   *
-   * \param X_b_gaze Transformation between the camera link and the parent body
-   *
-   * \param robots Robots controlled by this task
-   *
-   * \param robotIndex Index of the robot controlled by this task
-   *
-   * \param stiffness Task stiffness
-   *
-   * \param weight Task weight
-   *
-   * \throws std::logic_error if point3d.z() <= 0
-   *
-   */
-  GazeTask(const std::string & bodyName,
-           const Eigen::Vector3d & point3d,
-           const sva::PTransformd & X_b_gaze,
-           const mc_rbdyn::Robots & robots,
-           unsigned int robotIndex,
-           double stiffness = 2.0,
-           double weight = 500);
-
-  /*! \brief Reset the task
-   *
-   * Set the task objective to the current body orientation
-   */
-  void reset() override;
+  GazeTask(mc_rbdyn::Frame & frame, double stiffness = 2.0, double weight = 500);
 
   /*! \brief Set the current error
    *
@@ -87,7 +38,12 @@ public:
    * \param point2d_ref Desired position of the point in image frame
    *
    */
-  void error(const Eigen::Vector2d & point2d, const Eigen::Vector2d & point2d_ref = Eigen::Vector2d::Zero());
+  inline void error(const Eigen::Vector2d & point2d,
+                    const Eigen::Vector2d & point2d_ref = Eigen::Vector2d::Zero()) noexcept
+  {
+    errorT_->estimate(point2d);
+    errorT_->target(point2d_ref);
+  }
 
   /*! \brief Set the current error
    *
@@ -96,7 +52,17 @@ public:
    * \param point2d_ref Desired position of the point in image frame
    *
    */
-  void error(const Eigen::Vector3d & point3d, const Eigen::Vector2d & point2d_ref = Eigen::Vector2d::Zero());
+  inline void error(const Eigen::Vector3d & point3d,
+                    const Eigen::Vector2d & point2d_ref = Eigen::Vector2d::Zero()) noexcept
+  {
+    errorT_->estimate(point3d);
+    errorT_->target(point2d_ref);
+  }
+
+  inline const mc_rbdyn::Frame & frame() const noexcept
+  {
+    return errorT_->frame();
+  }
 };
 
 } // namespace mc_tasks

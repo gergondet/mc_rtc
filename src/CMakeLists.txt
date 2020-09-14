@@ -377,34 +377,41 @@ target_link_libraries(mc_trajectory PUBLIC mc_rtc_3rd_party::hpp-spline mc_rtc::
 install_mc_rtc_lib(mc_trajectory)
 
 set(mc_tasks_SRC
+mc_tasks/PostureTask.cpp
+
 mc_tasks/PositionTask.cpp
 mc_tasks/OrientationTask.cpp
 mc_tasks/TransformTask.cpp
 
 mc_tasks/VelocityTask.cpp
 
+mc_tasks/GazeTask.cpp
+mc_tasks/LookAtTask.cpp
+mc_tasks/LookAtFrameTask.cpp
 mc_tasks/VectorOrientationTask.cpp
 
 mc_tasks/CoMTask.cpp
-mc_tasks/ImpedanceTask.cpp
+#mc_tasks/CoPTask.cpp
 mc_tasks/MomentumTask.cpp
-mc_tasks/AddRemoveContactTask.cpp
+
 mc_tasks/BSplineTrajectoryTask.cpp
 mc_tasks/ExactCubicTrajectoryTask.cpp
+
 mc_tasks/ComplianceTask.cpp
+mc_tasks/ImpedanceTask.cpp
 #mc_tasks/AdmittanceTask.cpp
 #mc_tasks/DampingTask.cpp
-#mc_tasks/CoPTask.cpp
-#mc_tasks/GazeTask.cpp
+
 #mc_tasks/PositionBasedVisServoTask.cpp
-mc_tasks/PostureTask.cpp
-mc_tasks/LookAtTask.cpp
-mc_tasks/LookAtFrameTask.cpp
-mc_tasks/MetaTaskLoader.cpp
+
+mc_tasks/AddRemoveContactTask.cpp
+
 #mc_tasks/lipm_stabilizer/StabilizerTask.cpp
 #mc_tasks/lipm_stabilizer/StabilizerTask_log_gui.cpp
 #mc_tasks/lipm_stabilizer/ZMPCC.cpp
 #mc_tasks/lipm_stabilizer/Contact.cpp
+
+mc_tasks/MetaTaskLoader.cpp
 )
 
 set(mc_tasks_HDR
