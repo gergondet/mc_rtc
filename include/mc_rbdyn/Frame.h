@@ -6,6 +6,7 @@
 
 #include <mc_rbdyn/api.h>
 
+#include <mc_rbdyn/ForceSensor.h>
 #include <mc_rbdyn/Robot.h>
 
 #include <mc_rtc/shared.h>
@@ -141,6 +142,34 @@ public:
   inline bool operator==(const Frame & rhs) const noexcept
   {
     return rhs.name_ == name_ && &rhs.robot_ == &robot_;
+  }
+
+  /** True if the frame has a force sensor (direct or indirect) attached */
+  inline bool hasForceSensor() const noexcept
+  {
+    return robot_.frameHasForceSensor(name_) || robot_.frameHasIndirectForceSensor(name_);
+  }
+
+  /** Returns the force sensor attached to the frame
+   *
+   * \throws if \ref hasForceSensor() is false
+   */
+  const ForceSensor & forceSensor() const
+  {
+    if(robot_.frameHasForceSensor(name_))
+    {
+      return robot_.frameForceSensor(name_);
+    }
+    return robot_.findFrameForceSensor(name_);
+  }
+
+  /** Returns the force sensor gravity-free wrench in this frame
+   *
+   * \throws if \ref hasForceSensor() is false
+   */
+  inline sva::ForceVecd wrench() const
+  {
+    return robot_.frameWrench(name_);
   }
 
 private:

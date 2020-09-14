@@ -7,7 +7,6 @@
 #include <mc_rbdyn/Base.h>
 #include <mc_rbdyn/CoM.h>
 #include <mc_rbdyn/Convex.h>
-#include <mc_rbdyn/Frame.h>
 #include <mc_rbdyn/Limits.h>
 #include <mc_rbdyn/Momentum.h>
 #include <mc_rbdyn/RobotModule.h>
