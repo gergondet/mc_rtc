@@ -6,6 +6,8 @@
 
 #include <mc_rbdyn/Robot.h>
 
+#include <mc_rbdyn/Frame.h>
+
 #include <mc_rtc/type_name.h>
 
 namespace mc_rbdyn
