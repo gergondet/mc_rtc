@@ -389,7 +389,7 @@ mc_tasks/MomentumTask.cpp
 mc_tasks/AddRemoveContactTask.cpp
 mc_tasks/BSplineTrajectoryTask.cpp
 mc_tasks/ExactCubicTrajectoryTask.cpp
-#mc_tasks/ComplianceTask.cpp
+mc_tasks/ComplianceTask.cpp
 #mc_tasks/AdmittanceTask.cpp
 #mc_tasks/DampingTask.cpp
 #mc_tasks/CoPTask.cpp

@@ -343,6 +343,12 @@ struct TrajectoryTaskGeneric : public MetaTask
     return *robot_;
   }
 
+  /** True if the task has already been added to a solver */
+  inline bool inSolver() const noexcept
+  {
+    return task_ != nullptr;
+  }
+
 protected:
   /*! This function should be called to finalize the task creation, it will
    * create the actual tasks objects */
