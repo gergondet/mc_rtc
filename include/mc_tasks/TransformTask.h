@@ -134,11 +134,19 @@ public:
   /*! \brief Load parameters from a Configuration object */
   void load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) override;
 
+  /** Access the frame controlled by this task */
+  inline const mc_rbdyn::Frame & frame() const noexcept
+  {
+    return errorT_->frame();
+  }
+
 protected:
   void addToGUI(mc_rtc::gui::StateBuilder & gui) override;
 
   /* Don't use parent's refVel() as the velocity frame (spatial or body) is ambiguous. */
   using TrajectoryBase::refVel;
 };
+
+using TransformTaskPtr = std::shared_ptr<TransformTask>;
 
 } // namespace mc_tasks

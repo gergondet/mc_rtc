@@ -1,10 +1,10 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
-#include <mc_rbdyn/configuration_io.h>
-#include <mc_rbdyn/rpy_utils.h>
 #include <mc_tasks/ComplianceTask.h>
+
+#include <mc_filter/utils/clamp.h>
 #include <mc_tasks/MetaTaskLoader.h>
 
 namespace mc_tasks
@@ -13,170 +13,81 @@ namespace mc_tasks
 namespace force
 {
 
-namespace
+ComplianceTask::ComplianceTask(mc_rbdyn::Frame & frame,
+                               const Eigen::Vector6d & dof,
+                               double stiffness,
+                               double weight,
+                               double forceThresh,
+                               double torqueThresh,
+                               std::pair<double, double> forceGain,
+                               std::pair<double, double> torqueGain)
+: task_(std::make_shared<TransformTask>(frame, stiffness, weight)), forceThresh_(forceThresh),
+  torqueThresh_(torqueThresh), forceGain_(forceGain), torqueGain_(torqueGain), dof_(dof)
 {
-
-std::function<double(double)> clamper(double value)
-{
-  auto clamp = [value](const double & v) { return std::min(std::max(v, -value), value); };
-  return clamp;
-}
-
-const mc_rbdyn::ForceSensor & getSensor(const mc_rbdyn::Robots & robots,
-                                        unsigned int robotIndex,
-                                        const std::string & body)
-{
-  if(robotIndex >= robots.size())
+  type_ = "compliance";
+  name_ = fmt::format("{}_{}", type_, frame.name());
+  if(!frame.hasForceSensor())
   {
     mc_rtc::log::error_and_throw<std::runtime_error>(
-        "[mc_tasks::ComplianceTask] No robot with index {}, robots.size() {}", robotIndex, robots.size());
+        "[{}] No force sensor accessible through {}, you cannot use a compliance task", name_, frame.name());
   }
-  const auto & robot = robots.robot(robotIndex);
-  if(!robot.hasBody(body))
-  {
-    mc_rtc::log::error_and_throw<std::runtime_error>("[mc_tasks::ComplianceTask] No body named {} in {}", body,
-                                                     robot.name());
-  }
-  if(!robot.bodyHasForceSensor(body))
-  {
-    mc_rtc::log::error_and_throw<std::runtime_error>("[mc_tasks::ComplianceTask] No force sensor attached to {}", body);
-  }
-  return robot.bodyForceSensor(body);
-}
-
-} // namespace
-
-ComplianceTask::ComplianceTask(const mc_rbdyn::Robots & robots,
-                               unsigned int robotIndex,
-                               const std::string & body,
-                               double timestep,
-                               const Eigen::Matrix6d & dof,
-                               double stiffness,
-                               double weight,
-                               double forceThresh,
-                               double torqueThresh,
-                               std::pair<double, double> forceGain,
-                               std::pair<double, double> torqueGain)
-: wrench_(Eigen::Vector6d::Zero()), obj_(Eigen::Vector6d::Zero()), error_(Eigen::Vector6d::Zero()),
-  errorD_(Eigen::Vector6d::Zero()), robots_(robots), rIndex_(robotIndex), sensor_(getSensor(robots, robotIndex, body)),
-  timestep_(timestep), forceThresh_(forceThresh), torqueThresh_(torqueThresh), forceGain_(forceGain),
-  torqueGain_(torqueGain), dof_(dof)
-{
-  efTask_ = std::make_shared<EndEffectorTask>(body, robots, robotIndex, stiffness, weight);
-  clampTrans_ = clamper(0.01);
-  clampRot_ = clamper(0.1);
-
-  type_ = "compliance";
-  name_ = "compliance_" + robots_.robot(rIndex_).name() + "_" + body;
-}
-
-ComplianceTask::ComplianceTask(const mc_rbdyn::Robots & robots,
-                               unsigned int robotIndex,
-                               const std::string & body,
-                               double timestep,
-                               double stiffness,
-                               double weight,
-                               double forceThresh,
-                               double torqueThresh,
-                               std::pair<double, double> forceGain,
-                               std::pair<double, double> torqueGain)
-: ComplianceTask(robots,
-                 robotIndex,
-                 body,
-                 timestep,
-                 Eigen::Matrix6d::Identity(),
-                 stiffness,
-                 weight,
-                 forceThresh,
-                 torqueThresh,
-                 forceGain,
-                 torqueGain)
-{
 }
 
 void ComplianceTask::addToSolver(mc_solver::QPSolver & solver)
 {
-  MetaTask::addToSolver(*efTask_, solver);
+  if(!task_->inSolver())
+  {
+    firstUpdate_ = true;
+  }
+  MetaTask::addToSolver(*task_, solver);
 }
 
 void ComplianceTask::removeFromSolver(mc_solver::QPSolver & solver)
 {
-  MetaTask::removeFromSolver(*efTask_, solver);
+  MetaTask::removeFromSolver(*task_, solver);
 }
 
 sva::PTransformd ComplianceTask::computePose()
 {
   Eigen::Vector3d trans = Eigen::Vector3d::Zero();
   Eigen::Matrix3d rot = Eigen::Matrix3d::Identity();
-  if(wrench_.force().norm() > forceThresh_)
+  auto clamper = [](double limit) {
+    return [limit](double value) { return mc_filter::utils::clamp(value, -limit, limit); };
+  };
+  // FIXME Clamper values are hard-coded here, this follows existing practice in mc_rtc 1.x but should be fixed
+  if(error_.force().norm() > forceThresh_)
   {
-    trans = (forceGain_.first * wrench_.force() + forceGain_.second * errorD_.force()).unaryExpr(clampTrans_);
+    trans = (forceGain_.first * error_.force() + forceGain_.second * errorD_.force()).unaryExpr(clamper(0.01));
   }
-  if(wrench_.couple().norm() > torqueThresh_)
+  if(error_.couple().norm() > torqueThresh_)
   {
     Eigen::Vector3d rpy =
-        (torqueGain_.first * wrench_.couple() + torqueGain_.second * errorD_.couple()).unaryExpr(clampRot_);
+        (torqueGain_.first * error_.couple() + torqueGain_.second * errorD_.couple()).unaryExpr(clamper(0.01));
     rot = mc_rbdyn::rpyToMat(rpy);
   }
-  const auto & X_p_f = sensor_.X_p_f();
-  const auto & X_0_p =
-      robots_.robot(rIndex_).mbc().bodyPosW[robots_.robot(rIndex_).bodyIndexByName(sensor_.parentBody())];
+  const auto & sensor = task_->frame().forceSensor();
+  const auto & X_p_f = sensor.X_p_f();
+  const auto & X_0_p = task_->frame().robot().frame(sensor.parent()).position();
   sva::PTransformd move(rot, trans);
-  const auto & X_f_ds = sensor_.X_fsmodel_fsactual();
+  const auto & X_f_ds = sensor.X_fsmodel_fsactual();
   return ((X_f_ds * X_p_f).inv() * move * (X_f_ds * X_p_f)) * X_0_p;
 }
 
 void ComplianceTask::update(mc_solver::QPSolver & solver)
 {
-  error_ = wrench_;
+  prevError_ = error_;
   /* Get wrench, remove gravity, use dof_ to deactivate some axis */
-  wrench_ = sensor_.wrenchWithoutGravity(robots_.robot(rIndex_));
-  wrench_ = sva::ForceVecd(dof_ * (wrench_ - obj_).vector());
-  errorD_ = (wrench_ - error_) / timestep_;
-  efTask_->set_ef_pose(computePose());
+  error_ = task_->frame().wrench();
+  error_ = sva::ForceVecd(dof_.cwiseProduct((error_ - obj_).vector()));
+  if(firstUpdate_)
+  {
+    firstUpdate_ = false;
+    prevError_ = error_;
+  }
+  errorD_ = (error_ - prevError_) / solver.dt();
+  task_->target(computePose());
   /* Does nothing for now, but is here in case of changes */
-  MetaTask::update(*efTask_, solver);
-}
-
-void ComplianceTask::reset()
-{
-  efTask_->reset();
-}
-
-sva::ForceVecd ComplianceTask::getFilteredWrench() const
-{
-  return wrench_ + sva::ForceVecd(dof_ * obj_.vector());
-}
-
-void ComplianceTask::dimWeight(const Eigen::VectorXd & dimW)
-{
-  efTask_->dimWeight(dimW);
-}
-
-Eigen::VectorXd ComplianceTask::dimWeight() const
-{
-  return efTask_->dimWeight();
-}
-
-void ComplianceTask::selectActiveJoints(mc_solver::QPSolver & solver,
-                                        const std::vector<std::string> & activeJointsName,
-                                        const std::map<std::string, std::vector<std::array<int, 2>>> & activeDofs)
-{
-  ensureHasJoints(robots_.robot(rIndex_), activeJointsName, "[" + name() + "::selectActiveJoints]");
-  efTask_->selectActiveJoints(solver, activeJointsName, activeDofs);
-}
-
-void ComplianceTask::selectUnactiveJoints(mc_solver::QPSolver & solver,
-                                          const std::vector<std::string> & unactiveJointsName,
-                                          const std::map<std::string, std::vector<std::array<int, 2>>> & unactiveDofs)
-{
-  ensureHasJoints(robots_.robot(rIndex_), unactiveJointsName, "[" + name() + "::selectUnActiveJoints]");
-  efTask_->selectUnactiveJoints(solver, unactiveJointsName, unactiveDofs);
-}
-
-void ComplianceTask::resetJointsSelector(mc_solver::QPSolver & solver)
-{
-  efTask_->resetJointsSelector(solver);
+  MetaTask::update(*task_, solver);
 }
 
 } // namespace force
@@ -189,11 +100,20 @@ namespace
 static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
     "compliance",
     [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) {
-      Eigen::Matrix6d dof = Eigen::Matrix6d::Identity();
+      Eigen::Vector6d dof = Eigen::Vector6d::Ones();
       config("dof", dof);
-      auto t = std::shared_ptr<mc_tasks::force::ComplianceTask>(new mc_tasks::force::ComplianceTask(
-          solver.robots(), robotIndexFromConfig(config, solver.robots(), "compliance"), config("body"), solver.dt(),
-          dof));
+      auto & robot = solver.robots().fromConfig(config, "ComplianceTask");
+      std::string_view frame;
+      if(config.has("body"))
+      {
+        mc_rtc::log::warning("Deprecate use of body while loading a ComplianceTask, use \"frame\" instead");
+        frame = config("body");
+      }
+      else
+      {
+        frame = config("frame");
+      }
+      auto t = std::make_shared<mc_tasks::force::ComplianceTask>(robot.frame(frame), dof);
       if(config.has("stiffness"))
       {
         t->stiffness(config("stiffness"));
@@ -204,11 +124,23 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       }
       if(config.has("forceThresh"))
       {
-        t->forceThresh(config("forceThresh"));
+        mc_rtc::log::warning(
+            "Deprecate use of forceThresh while loading a ComplianceTask, use \"forceThreshold\" instead");
+        t->forceThreshold(config("forceThresh"));
+      }
+      if(config.has("forceThreshold"))
+      {
+        t->forceThreshold(config("forceThreshold"));
       }
       if(config.has("torqueThresh"))
       {
-        t->torqueThresh(config("torqueThresh"));
+        mc_rtc::log::warning(
+            "Deprecate use of torqueThresh while loading a ComplianceTask, use \"torqueThreshold\" instead");
+        t->torqueThreshold(config("torqueThresh"));
+      }
+      if(config.has("torqueThreshold"))
+      {
+        t->torqueThreshold(config("torqueThreshold"));
       }
       if(config.has("forceGain"))
       {
