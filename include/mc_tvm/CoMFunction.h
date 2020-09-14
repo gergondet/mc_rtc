@@ -30,7 +30,7 @@ struct MC_TVM_DLLAPI CoMFunction : tvm::function::abstract::Function
    */
   CoMFunction(mc_rbdyn::RobotPtr robot);
 
-  /** Reset the object the current CoM and reference speed/acceleration to zero */
+  /** Reset the objective to the current CoM and reference speed/acceleration to zero */
   void reset();
 
   /** Get the current objective */

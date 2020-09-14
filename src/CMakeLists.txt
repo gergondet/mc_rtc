@@ -236,6 +236,7 @@ set(mc_tvm_HDR
   ${mc_tvm_HDR_DIR}/ContactFunction.h
   ${mc_tvm_HDR_DIR}/DynamicFunction.h
   ${mc_tvm_HDR_DIR}/FrameVelocity.h
+  ${mc_tvm_HDR_DIR}/GazeFunction.h
   ${mc_tvm_HDR_DIR}/JointsSelectorFunction.h
   ${mc_tvm_HDR_DIR}/MomentumFunction.h
   ${mc_tvm_HDR_DIR}/OrientationFunction.h
@@ -253,6 +254,7 @@ set(mc_tvm_SRC
   mc_tvm/ContactFunction.cpp
   mc_tvm/DynamicFunction.cpp
   mc_tvm/FrameVelocity.cpp
+  mc_tvm/GazeFunction.cpp
   mc_tvm/JointsSelectorFunction.cpp
   mc_tvm/MomentumFunction.cpp
   mc_tvm/OrientationFunction.cpp
