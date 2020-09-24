@@ -12,7 +12,7 @@ namespace mc_tvm
 
 void splitAddJacobian(const tvm::MatrixConstRef & J,
                       const tvm::VariableVector & vars,
-                      tvm::utils::internal::map<tvm::Variable const *, tvm::internal::MatrixWithProperties> & jacobians)
+                      internal::JacobianMap & jacobians)
 {
   Eigen::DenseIndex s = 0;
   for(const auto & v : vars.variables())

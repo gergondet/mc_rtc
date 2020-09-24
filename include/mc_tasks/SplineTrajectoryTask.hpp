@@ -220,12 +220,6 @@ void SplineTrajectoryTask<Derived>::interpolateGains()
 }
 
 template<typename Derived>
-void SplineTrajectoryTask<Derived>::oriWaypoints(const std::vector<std::pair<double, Eigen::Matrix3d>> & oriWp)
-{
-  oriSpline_.waypoints(oriWp);
-}
-
-template<typename Derived>
 void SplineTrajectoryTask<Derived>::dimWeight(const Eigen::VectorXd & dimW)
 {
   if(dimW.size() != 6)
@@ -258,7 +252,7 @@ void SplineTrajectoryTask<Derived>::dimWeightInterpolation(
 }
 
 template<typename Derived>
-Eigen::VectorXd SplineTrajectoryTask<Derived>::dimWeight() const
+const Eigen::VectorXd & SplineTrajectoryTask<Derived>::dimWeight() const noexcept
 {
   return TrajectoryBase::dimWeight();
 }

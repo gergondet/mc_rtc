@@ -72,7 +72,7 @@ static mc_rbdyn::Robot & loadRobot(mc_rbdyn::Robots & robots,
     bs.push(b.name());
   }
   data("surfaces").add(r.name(), r.availableSurfaces());
-  std::string rName = name;
+  std::string rName {name};
   gui.addElement({"Robots"}, mc_rtc::gui::Robot(r.name(), [rName, &robots]() -> const mc_rbdyn::Robot & {
                    return robots.robot(rName);
                  }));

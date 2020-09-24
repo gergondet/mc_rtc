@@ -104,6 +104,7 @@ extern "C"
 {
   ROBOT_MODULE_API void MC_RTC_ROBOT_MODULE(std::vector<std::string> & names)
   {
+    ROBOT_MODULE_CHECK_VERSION("JVRC1")
     names = {"JVRC1", "JVRC1Fixed"};
   }
   ROBOT_MODULE_API void destroy(mc_rbdyn::RobotModule * ptr)

@@ -46,6 +46,12 @@ public:
     errorT_->position(pos);
   }
 
+  /** Get the frame controlled by this task */
+  inline const mc_rbdyn::Frame & frame() const noexcept
+  {
+    return errorT_->frame();
+  }
+
 protected:
   void addToLogger(mc_rtc::Logger & logger) override;
   void addToGUI(mc_rtc::gui::StateBuilder & gui) override;

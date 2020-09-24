@@ -130,7 +130,7 @@ struct SplineTrajectoryTask : public TrajectoryTaskGeneric<mc_tvm::TransformFunc
    *
    * \returns Dimensional weights expressed as a Vector6d [wx, wy, wz, tx, ty, tz]
    */
-  Eigen::VectorXd dimWeight() const override;
+  const Eigen::VectorXd & dimWeight() const noexcept override;
 
   /*! \brief Set the task stiffness/damping
    *
