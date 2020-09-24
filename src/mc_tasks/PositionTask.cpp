@@ -21,11 +21,10 @@ PositionTask::PositionTask(mc_rbdyn::Frame & frame, double stiffness, double wei
 void PositionTask::addToLogger(mc_rtc::Logger & logger)
 {
   TrajectoryBase::addToLogger(logger);
-  logger.addLogEntry(name_ + "_target", this, [this]() -> const Eigen::Vector3d & { return position(); });
+  logger.addLogEntry(name_ + "_target", this, [this]() { return position(); });
   logger.addLogEntry(name_ + "_curPos", this,
-                     [this]() -> const Eigen::Vector3d & { return errorT_->frame().position().translation(); });
-  logger.addLogEntry(name_ + "_curVel", this,
-                     [this]() -> const Eigen::Vector3d & { return errorT_->frame().velocity().linear(); });
+                     [this]() -> const Eigen::Vector3d & { return frame().position().translation(); });
+  logger.addLogEntry(name_ + "_curVel", this, [this]() -> const Eigen::Vector3d & { return frame().velocity().linear(); });
 }
 
 void PositionTask::addToGUI(mc_rtc::gui::StateBuilder & gui)

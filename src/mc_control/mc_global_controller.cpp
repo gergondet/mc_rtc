@@ -701,10 +701,10 @@ bool MCGlobalController::run()
     }
     if(server_)
     {
-      auto start_gui_t = clock::now();
+      auto start_gui_t = mc_rtc::clock::now();
       server_->handle_requests(*controller_->gui_);
       server_->publish(*controller_->gui_);
-      gui_dt = clock::now() - start_gui_t;
+      gui_dt = mc_rtc::clock::now() - start_gui_t;
     }
     controller_run_dt = end_controller_run_t - start_controller_run_t;
     solver_build_and_solve_t = controller_->solver().solveTime();

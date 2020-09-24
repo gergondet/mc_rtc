@@ -12,9 +12,21 @@
 namespace mc_tvm
 {
 
+namespace internal
+{
+
+struct JacobianMapExposer : public tvm::internal::FirstOrderProvider
+{
+  using JacobianMap = decltype(jacobian_);
+};
+
+using JacobianMap = JacobianMapExposer::JacobianMap;
+
+}
+
 void MC_TVM_DLLAPI
     splitAddJacobian(const tvm::MatrixConstRef & J,
                      const tvm::VariableVector & vars,
-                     tvm::utils::internal::map<tvm::Variable const *, tvm::internal::MatrixWithProperties> & jacobians);
+                     internal::JacobianMap & jacobians);
 
 } // namespace mc_tvm

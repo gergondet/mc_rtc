@@ -7,7 +7,7 @@
 #include <mc_control/fsm/api.h>
 #include <mc_control/fsm/states/api.h>
 
-#include <mc_solver/ConstraintSet.h>
+#include <mc_solver/Constraint.h>
 
 #include <mc_tasks/MetaTask.h>
 #include <mc_tasks/PostureTask.h>
@@ -165,7 +165,7 @@ protected:
   mc_rtc::Configuration remove_posture_task_;
 
   /** Constraints managed by the state if any */
-  std::vector<mc_solver::ConstraintSetPtr> constraints_;
+  std::vector<mc_solver::ConstraintPtr> constraints_;
   /** Tasks managed by the state if any */
   std::vector<std::pair<mc_tasks::MetaTaskPtr, mc_rtc::Configuration>> tasks_;
   /** Posture tasks that were removed by this state */

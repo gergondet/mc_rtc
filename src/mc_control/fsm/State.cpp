@@ -6,7 +6,7 @@
 
 #include <mc_control/fsm/Controller.h>
 
-#include <mc_solver/ConstraintSetLoader.h>
+#include <mc_solver/ConstraintLoader.h>
 
 #include <mc_tasks/MetaTaskLoader.h>
 
@@ -136,7 +136,7 @@ void State::start_(Controller & ctl)
       {
         for(const auto & robot : ctl.robots())
         {
-          auto pt = ctl.getPostureTask(robot.name());
+          auto pt = ctl.getPostureTask(robot->name());
           if(pt)
           {
             ctl.solver().removeTask(pt);
@@ -164,8 +164,8 @@ void State::start_(Controller & ctl)
     std::map<std::string, mc_rtc::Configuration> constraints = constraints_config_;
     for(const auto & c : constraints)
     {
-      constraints_.push_back(mc_solver::ConstraintSetLoader::load(ctl.solver(), c.second));
-      ctl.solver().addConstraintSet(*constraints_.back());
+      constraints_.push_back(mc_solver::ConstraintLoader::load(ctl.solver(), c.second));
+      ctl.solver().addConstraint(*constraints_.back());
     }
   }
   if(!tasks_config_.empty())
@@ -246,7 +246,7 @@ void State::teardown_(Controller & ctl)
   }
   for(const auto & c : constraints_)
   {
-    ctl.solver().removeConstraintSet(*c);
+    ctl.solver().removeConstraint(*c);
   }
   for(const auto & t : tasks_)
   {
