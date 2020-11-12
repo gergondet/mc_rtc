@@ -132,6 +132,8 @@ macro(mc_rtc_set_prefix NAME FOLDER)
   else()
     set(MC_${NAME}_RUNTIME_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/lib/${FOLDER})
   endif()
+  # For backward compatibility
+  set(MC_${NAME}_INSTALL_PREFIX "${MC_${NAME}_LIBRARY_INSTALL_PREFIX}")
 endmacro()
 
 mc_rtc_set_prefix(PLUGINS mc_plugins)
@@ -164,6 +166,9 @@ add_subdirectory(utils)
 if(${PYTHON_BINDING})
  add_subdirectory(binding/python)
 endif()
+
+set(MC_RTC_BINDIR "${CMAKE_INSTALL_PREFIX}/bin")
+set(MC_RTC_LIBDIR "${CMAKE_INSTALL_PREFIX}/lib")
 
 add_subdirectory(robots)
 add_subdirectory(observers)
