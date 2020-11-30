@@ -8,14 +8,60 @@
  * various elements in the GUI */
 
 #include <mc_rtc/Configuration.h>
-#include <mc_rtc/gui/api.h>
 #include <mc_rtc/logging.h>
+
+#include <mc_rtc/gui/api.h>
+#include <mc_rtc/gui/details/traits.h>
 
 namespace mc_rtc
 {
 
 namespace gui
 {
+
+namespace details
+{
+
+/** A generic helper that stores either:
+ * - a callback taht returns a \tparam T object if GetT is not void
+ * - a default \tparam T object otherwise
+ */
+template<typename T, typename GetT>
+struct ConfigCallback
+{
+  ConfigCallback(GetT get_config_fn) : get_config_fn_(get_config_fn)
+  {
+    static_assert(details::CheckReturnType<GetT, T>::value,
+                  "Configuration callback must return an object of the right type");
+  }
+
+  void write(mc_rtc::MessagePackBuilder & builder)
+  {
+    get_config_fn_().write(builder);
+  }
+
+private:
+  GetT get_config_fn_;
+};
+
+template<typename T>
+struct ConfigCallback<T, void>
+{
+  ConfigCallback() = default;
+
+  ConfigCallback(const T & config) : config_(config) {}
+
+  void write(mc_rtc::MessagePackBuilder & builder)
+  {
+    config_.write(builder);
+  }
+
+private:
+  T config_;
+};
+
+} // namespace details
+
 struct MC_RTC_GUI_DLLAPI Color
 {
   Color() {}
@@ -122,6 +168,15 @@ struct MC_RTC_GUI_DLLAPI Color
   static const Color LightGray;
   static const std::map<std::string, Color> ColorMap;
 };
+
+namespace details
+{
+
+template<typename GetT>
+using ColorCallback = ConfigCallback<Color, GetT>;
+
+} // namespace details
+
 } // namespace gui
 
 template<>
@@ -219,6 +274,15 @@ struct MC_RTC_GUI_DLLAPI LineConfig
     out.finish_array();
   }
 };
+
+namespace details
+{
+
+template<typename GetT>
+using LineConfigCallback = ConfigCallback<LineConfig, GetT>;
+
+} // namespace details
+
 } // namespace gui
 
 template<>
@@ -309,6 +373,15 @@ struct MC_RTC_GUI_DLLAPI ArrowConfig
   double end_point_scale = 0.0;
   Color color;
 };
+
+namespace details
+{
+
+template<typename GetT>
+using ArrowConfigCallback = ConfigCallback<ArrowConfig, GetT>;
+
+} // namespace details
+
 } // namespace gui
 
 template<>
@@ -438,6 +511,15 @@ struct PointConfig
   Color color;
   double scale = 0.02;
 };
+
+namespace details
+{
+
+template<typename GetT>
+using ForceConfigCallback = ConfigCallback<ForceConfig, GetT>;
+
+} // namespace details
+
 } // namespace gui
 
 template<>

@@ -17,44 +17,6 @@ namespace gui
 namespace details
 {
 
-/** Stores:
- * - a callback that returns an ArrowConfig object if GetConfig is not void
- * - a default ArrowConfig value otherwise
- */
-template<typename GetConfig>
-struct ArrowConfigCallback
-{
-  ArrowConfigCallback(GetConfig get_config_fn) : get_config_fn_(get_config_fn)
-  {
-    static_assert(details::CheckReturnType<GetConfig, ArrowConfig>::value,
-                  "ArrowConfig callback must return an ArrowConfig");
-  }
-
-  void write(mc_rtc::MessagePackBuilder & builder)
-  {
-    get_config_fn_().write(builder);
-  }
-
-private:
-  GetConfig get_config_fn_;
-};
-
-template<>
-struct ArrowConfigCallback<void>
-{
-  ArrowConfigCallback() = default;
-
-  ArrowConfigCallback(const ArrowConfig & config) : config_(config) {}
-
-  void write(mc_rtc::MessagePackBuilder & builder)
-  {
-    config_.write(builder);
-  }
-
-private:
-  ArrowConfig config_;
-};
-
 /** Arrow should display an arrow from the point at the start to the point at the end
  *
  * An ArrowConfig can be provided to specify how the arrow should be displayed
