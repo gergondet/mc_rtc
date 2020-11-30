@@ -388,6 +388,10 @@ TestServer::TestServer() : xythetaz_(4)
                          []() {
                            return Eigen::Vector3d{2.5, 2.5, 0.5};
                          }),
+      mc_rtc::gui::Arrow(
+          "ArrowROColor",
+          [this]() -> mc_rtc::gui::ArrowConfig { return {mc_rtc::gui::Color(fabs(cos(t_)), fabs(sin(t_)), 0)}; },
+          []() { return Eigen::Vector3d(0, 0, 0); }, [this]() { return Eigen::Vector3d(cos(t_), sin(t_), 0); }),
       mc_rtc::gui::Arrow("Arrow", arrow_config, [this]() { return arrow_start_; },
                          [this](const Eigen::Vector3d & start) { arrow_start_ = start; },
                          [this]() { return arrow_end_; }, [this](const Eigen::Vector3d & end) { arrow_end_ = end; }),
