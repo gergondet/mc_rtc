@@ -402,11 +402,26 @@ TestServer::TestServer() : xythetaz_(4)
                          []() {
                            return sva::PTransformd{Eigen::Vector3d{2, 2, 0}};
                          }),
+      mc_rtc::gui::Force(
+          "ForceROColor",
+          [this]() -> mc_rtc::gui::ForceConfig {
+            return 200 * fabs(cos(t_)) > 150 ? mc_rtc::gui::Color::Red : mc_rtc::gui::Color::Green;
+          },
+          [this]() {
+            return sva::ForceVecd(Eigen::Vector3d{0., 0., 0.}, Eigen::Vector3d{0., 0., 200 * fabs(cos(t_))});
+          },
+          []() { return sva::PTransformd{Eigen::Vector3d(-2, -2, 0)}; }),
       mc_rtc::gui::Force("Force", mc_rtc::gui::ForceConfig(mc_rtc::gui::Color(0., 1., 0.)), [this]() { return force_; },
                          [this](const sva::ForceVecd & force) { force_ = force; },
                          []() {
                            return sva::PTransformd{Eigen::Vector3d{2, 2, 0}};
-                         }));
+                         }),
+      mc_rtc::gui::Force("ForceColor",
+                         [this]() -> mc_rtc::gui::ForceConfig {
+                           return fabs(force_.force().z()) > 150 ? mc_rtc::gui::Color::Red : mc_rtc::gui::Color::Green;
+                         },
+                         [this]() { return force_; }, [this](const sva::ForceVecd & force) { force_ = force; },
+                         []() { return sva::PTransformd{Eigen::Vector3d(2, 1, 0)}; }));
   using Color = mc_rtc::gui::Color;
   using Range = mc_rtc::gui::plot::Range;
   using Style = mc_rtc::gui::plot::Style;
