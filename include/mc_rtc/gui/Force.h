@@ -65,7 +65,7 @@ private:
 };
 
 template<typename GetForce, typename GetSurface, typename SetForce, typename GetConfig = void>
-struct ForceImpl : public ForceROImpl<GetForce, GetSurface>
+struct ForceImpl : public ForceROImpl<GetForce, GetSurface, GetConfig>
 {
   static constexpr auto type = Elements::Force;
   using ForceRO = ForceROImpl<GetForce, GetSurface, GetConfig>;
@@ -116,17 +116,23 @@ details::ForceROImpl<GetForce, GetSurface> Force(const std::string & name,
 }
 
 /** Helper function to get a details::ForceROImpl */
-template<typename GetForce, typename GetSurface, typename GetConfig>
-details::ForceROImpl<GetForce, GetSurface> Force(const std::string & name,
-                                                 GetConfig get_config_fn,
-                                                 GetForce get_force_fn,
-                                                 GetSurface get_surface_fn)
+template<typename GetForce,
+         typename GetSurface,
+         typename GetConfig,
+         typename std::enable_if<details::CheckReturnType<GetConfig, ForceConfig>::value, int>::type = 0>
+details::ForceROImpl<GetForce, GetSurface, GetConfig> Force(const std::string & name,
+                                                            GetConfig get_config_fn,
+                                                            GetForce get_force_fn,
+                                                            GetSurface get_surface_fn)
 {
   return details::ForceROImpl<GetForce, GetSurface, GetConfig>(name, get_config_fn, get_force_fn, get_surface_fn);
 }
 
 /** Helper function to get a details::ForceImpl */
-template<typename GetForce, typename GetSurface, typename SetForce>
+template<typename GetForce,
+         typename GetSurface,
+         typename SetForce,
+         typename std::enable_if<details::CheckReturnType<GetForce, sva::ForceVecd>::value, int>::type = 0>
 details::ForceImpl<GetForce, GetSurface, SetForce> Force(const std::string & name,
                                                          GetForce get_force_fn,
                                                          SetForce set_force_fn,
@@ -149,11 +155,11 @@ details::ForceImpl<GetForce, GetSurface, SetForce> Force(const std::string & nam
 
 /** Helper function to get a details::ForceImpl */
 template<typename GetForce, typename GetSurface, typename SetForce, typename GetConfig>
-details::ForceImpl<GetForce, GetSurface, SetForce> Force(const std::string & name,
-                                                         GetConfig get_config_fn,
-                                                         GetForce get_force_fn,
-                                                         SetForce set_force_fn,
-                                                         GetSurface get_surface_fn)
+details::ForceImpl<GetForce, GetSurface, SetForce, GetConfig> Force(const std::string & name,
+                                                                    GetConfig get_config_fn,
+                                                                    GetForce get_force_fn,
+                                                                    SetForce set_force_fn,
+                                                                    GetSurface get_surface_fn)
 {
   return details::ForceImpl<GetForce, GetSurface, SetForce, GetConfig>(name, get_config_fn, get_force_fn, set_force_fn,
                                                                        get_surface_fn);
