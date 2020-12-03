@@ -14,6 +14,9 @@ namespace mc_rtc
 namespace gui
 {
 
+namespace details
+{
+
 /** Point3D should display a 3D point in the environment
  *
  * A PointConfig is provided to control how the point should be displayed
@@ -24,16 +27,16 @@ namespace gui
  *
  * \tparam GetT Should return an Eigen::Vector3d
  */
-template<typename GetT>
+template<typename GetT,
+         typename GetConfig = void,
+         typename std::enable_if<details::CheckReturnType<GetT, Eigen::Vector3d>::value, bool>::type = true>
 struct Point3DROImpl : public DataElement<GetT>
 {
   static constexpr auto type = Elements::Point3D;
 
-  Point3DROImpl(const std::string & name, const PointConfig & config, GetT get_fn)
+  Point3DROImpl(const std::string & name, PointConfigCallback<GetConfig> config, GetT get_fn)
   : DataElement<GetT>(name, get_fn), config_(config)
   {
-    static_assert(details::CheckReturnType<GetT, Eigen::Vector3d>::value,
-                  "Point3D element position callback must return an Eigen::Vector3d");
   }
 
   static constexpr size_t write_size()
@@ -52,7 +55,7 @@ struct Point3DROImpl : public DataElement<GetT>
   Point3DROImpl() {}
 
 private:
-  PointConfig config_;
+  PointConfigCallback<GetConfig> config_;
 };
 
 /** Point3D should display a 3D point in the environment
@@ -67,16 +70,17 @@ private:
  *
  * \tparam SetT Will be called when the point is moved or the ArrayInput is triggered
  */
-template<typename GetT, typename SetT>
+template<typename GetT,
+         typename SetT,
+         typename GetConfig = void,
+         typename std::enable_if<details::CheckReturnType<GetT, Eigen::Vector3d>::value, bool>::type = true>
 struct Point3DImpl : public CommonInputImpl<GetT, SetT>
 {
   static constexpr auto type = Elements::Point3D;
 
-  Point3DImpl(const std::string & name, const PointConfig & config, GetT get_fn, SetT set_fn)
+  Point3DImpl(const std::string & name, PointConfigCallback<GetConfig> config, GetT get_fn, SetT set_fn)
   : CommonInputImpl<GetT, SetT>(name, get_fn, set_fn), config_(config)
   {
-    static_assert(details::CheckReturnType<GetT, Eigen::Vector3d>::value,
-                  "Point3D element position callback must return an Eigen::Vector3d");
   }
 
   /** Invalid element */
@@ -95,35 +99,54 @@ struct Point3DImpl : public CommonInputImpl<GetT, SetT>
   }
 
 private:
-  PointConfig config_;
+  PointConfigCallback<GetConfig> config_;
 };
 
-/** Helper function to create a Point3DROImpl */
+} // namespace details
+
+/** Helper function to create a details::Point3DROImpl */
 template<typename GetT>
-Point3DROImpl<GetT> Point3D(const std::string & name, GetT get_fn)
+details::Point3DROImpl<GetT> Point3D(const std::string & name, GetT get_fn)
 {
-  return Point3DROImpl<GetT>(name, {}, get_fn);
+  return details::Point3DROImpl<GetT>(name, {}, get_fn);
 }
 
-/** Helper function to create a Point3DImpl */
+/** Helper function to create a details::Point3DImpl */
 template<typename GetT, typename SetT>
-Point3DImpl<GetT, SetT> Point3D(const std::string & name, GetT get_fn, SetT set_fn)
+details::Point3DImpl<GetT, SetT> Point3D(const std::string & name, GetT get_fn, SetT set_fn)
 {
-  return Point3DImpl<GetT, SetT>(name, {}, get_fn, set_fn);
+  return details::Point3DImpl<GetT, SetT>(name, {}, get_fn, set_fn);
 }
 
-/** Helper function to create a Point3DROImpl with configuration */
+/** Helper function to create a details::Point3DROImpl with configuration */
 template<typename GetT>
-Point3DROImpl<GetT> Point3D(const std::string & name, const PointConfig & config, GetT get_fn)
+details::Point3DROImpl<GetT> Point3D(const std::string & name, const PointConfig & config, GetT get_fn)
 {
-  return Point3DROImpl<GetT>(name, config, get_fn);
+  return details::Point3DROImpl<GetT>(name, config, get_fn);
 }
 
-/** Helper function to create a Point3DImpl with configuration */
+/** Helper function to create a details::Point3DImpl with configuration */
 template<typename GetT, typename SetT>
-Point3DImpl<GetT, SetT> Point3D(const std::string & name, const PointConfig & config, GetT get_fn, SetT set_fn)
+details::Point3DImpl<GetT, SetT> Point3D(const std::string & name, const PointConfig & config, GetT get_fn, SetT set_fn)
 {
-  return Point3DImpl<GetT, SetT>(name, config, get_fn, set_fn);
+  return details::Point3DImpl<GetT, SetT>(name, config, get_fn, set_fn);
+}
+
+/** Helper function to create a details::Point3DROImpl with configuration callback */
+template<typename GetT, typename GetConfig>
+details::Point3DROImpl<GetT, GetConfig> Point3D(const std::string & name, GetConfig config, GetT get_fn)
+{
+  return details::Point3DROImpl<GetT, GetConfig>(name, config, get_fn);
+}
+
+/** Helper function to create a details::Point3DImpl with configuration callback */
+template<typename GetT, typename SetT, typename GetConfig>
+details::Point3DImpl<GetT, SetT, GetConfig> Point3D(const std::string & name,
+                                                    GetConfig config,
+                                                    GetT get_fn,
+                                                    SetT set_fn)
+{
+  return details::Point3DImpl<GetT, SetT, GetConfig>(name, config, get_fn, set_fn);
 }
 
 } // namespace gui

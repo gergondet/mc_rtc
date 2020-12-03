@@ -359,9 +359,23 @@ TestServer::TestServer() : xythetaz_(4)
 
   builder.addElement(
       {"GUI Markers", "Point3D"},
-      mc_rtc::gui::Point3D("ReadOnly", mc_rtc::gui::PointConfig({1., 0., 0.}, 0.08), [this]() { return v3_; }),
+      mc_rtc::gui::Point3D("ReadOnlyNoConfig",
+                           [this]() -> Eigen::Vector3d { return v3_ + Eigen::Vector3d(0, 0, 1.0); }),
+      mc_rtc::gui::Point3D("ReadOnly", mc_rtc::gui::PointConfig({1., 0., 1.}, 0.08), [this]() { return v3_; }),
+      mc_rtc::gui::Point3D("ReadOnlyConfigCallback",
+                           []() {
+                             return mc_rtc::gui::PointConfig({1., 0., 1.}, 0.08);
+                           },
+                           [this]() { return v3_; }),
+      mc_rtc::gui::Point3D("InteractiveNoConfig", [this]() { return vInt_; },
+                           [this](const Eigen::Vector3d & v) { vInt_ = v; }),
       mc_rtc::gui::Point3D("Interactive", mc_rtc::gui::PointConfig({0., 1., 0.}, 0.08), [this]() { return vInt_; },
-                           [this](const Eigen::Vector3d & v) { vInt_ = v; }));
+                           [this](const Eigen::Vector3d & v) { vInt_ = v; }),
+      mc_rtc::gui::Point3D("InteractiveConfigCallback",
+                           []() {
+                             return mc_rtc::gui::PointConfig({0., 1., 0.}, 0.08);
+                           },
+                           [this]() { return vInt_; }, [this](const Eigen::Vector3d & v) { vInt_ = v; }));
 
   builder.addElement({"GUI Markers", "Polygons"}, mc_rtc::gui::Polygon("Polygons", [this]() { return polygons_; }));
 
