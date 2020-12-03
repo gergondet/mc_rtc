@@ -23,10 +23,12 @@ namespace details
 {
 
 /** A generic helper that stores either:
- * - a callback taht returns a \tparam T object if GetT is not void
+ * - a callback that returns a \tparam T object if GetT is not void
  * - a default \tparam T object otherwise
  */
-template<typename T, typename GetT>
+template<typename T,
+         typename GetT,
+         typename = typename std::enable_if<std::is_void<GetT>::value || CheckReturnType<GetT, T>::value, bool>::type>
 struct ConfigCallback
 {
   ConfigCallback(GetT get_config_fn) : get_config_fn_(get_config_fn)
@@ -446,6 +448,14 @@ struct ForceConfig : public ArrowConfig
   double force_scale = 0.0015;
 };
 
+namespace details
+{
+
+template<typename GetT>
+using ForceConfigCallback = ConfigCallback<ForceConfig, GetT>;
+
+} // namespace details
+
 } // namespace gui
 
 template<>
@@ -516,7 +526,7 @@ namespace details
 {
 
 template<typename GetT>
-using ForceConfigCallback = ConfigCallback<ForceConfig, GetT>;
+using PointConfigCallback = ConfigCallback<PointConfig, GetT>;
 
 } // namespace details
 

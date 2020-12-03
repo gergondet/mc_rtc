@@ -27,7 +27,12 @@ namespace details
  *
  * \tparam GetSurface Should return an sva::PTransformd where the force will be displayed
  */
-template<typename GetForce, typename GetSurface, typename GetConfig = void>
+template<typename GetForce,
+         typename GetSurface,
+         typename GetConfig = void,
+         typename std::enable_if<details::CheckReturnType<GetForce, sva::ForceVecd>::value
+                                     && details::CheckReturnType<GetSurface, sva::PTransformd>::value,
+                                 bool>::type = true>
 struct ForceROImpl : public Element
 {
   static constexpr auto type = Elements::Force;
@@ -38,10 +43,6 @@ struct ForceROImpl : public Element
               GetSurface get_surface_fn)
   : Element(name), get_force_fn_(get_force_fn), get_surface_fn_(get_surface_fn), config_(config)
   {
-    static_assert(details::CheckReturnType<GetForce, sva::ForceVecd>::value,
-                  "Force element force callback must return an sva::ForceVecd");
-    static_assert(details::CheckReturnType<GetSurface, sva::PTransformd>::value,
-                  "Force element surface callback must return an sva::PTransformd");
   }
 
   static constexpr size_t write_size()
@@ -64,7 +65,13 @@ private:
   ForceConfigCallback<GetConfig> config_;
 };
 
-template<typename GetForce, typename GetSurface, typename SetForce, typename GetConfig = void>
+template<typename GetForce,
+         typename GetSurface,
+         typename SetForce,
+         typename GetConfig = void,
+         typename std::enable_if<details::CheckReturnType<GetForce, sva::ForceVecd>::value
+                                     && details::CheckReturnType<GetSurface, sva::PTransformd>::value,
+                                 bool>::type = true>
 struct ForceImpl : public ForceROImpl<GetForce, GetSurface, GetConfig>
 {
   static constexpr auto type = Elements::Force;
@@ -116,10 +123,7 @@ details::ForceROImpl<GetForce, GetSurface> Force(const std::string & name,
 }
 
 /** Helper function to get a details::ForceROImpl */
-template<typename GetForce,
-         typename GetSurface,
-         typename GetConfig,
-         typename std::enable_if<details::CheckReturnType<GetConfig, ForceConfig>::value, int>::type = 0>
+template<typename GetForce, typename GetSurface, typename GetConfig>
 details::ForceROImpl<GetForce, GetSurface, GetConfig> Force(const std::string & name,
                                                             GetConfig get_config_fn,
                                                             GetForce get_force_fn,
@@ -129,10 +133,7 @@ details::ForceROImpl<GetForce, GetSurface, GetConfig> Force(const std::string & 
 }
 
 /** Helper function to get a details::ForceImpl */
-template<typename GetForce,
-         typename GetSurface,
-         typename SetForce,
-         typename std::enable_if<details::CheckReturnType<GetForce, sva::ForceVecd>::value, int>::type = 0>
+template<typename GetForce, typename GetSurface, typename SetForce>
 details::ForceImpl<GetForce, GetSurface, SetForce> Force(const std::string & name,
                                                          GetForce get_force_fn,
                                                          SetForce set_force_fn,

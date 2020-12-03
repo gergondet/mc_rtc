@@ -6,6 +6,7 @@
 
 /** This file contains some utility template metaprogramming functions for the GUI */
 
+#include <functional>
 #include <type_traits>
 
 namespace mc_rtc
@@ -17,39 +18,25 @@ namespace gui
 namespace details
 {
 
-/** Detect a callable type
+// clang-format off
+
+/** Taken from https://stackoverflow.com/questions/51187974/can-stdis-invocable-be-emulated-within-c11
  *
- * Taken from https://stackoverflow.com/questions/15393938/find-out-whether-a-c-object-is-callable
- *
- * FIXME To be replaced with std::is_invocable in C++17
+ * Can be replaced with std::is_invocable in C++17
  */
-template<typename T>
-struct is_callable
+template <typename F, typename... Args>
+struct is_invocable :
+    std::is_constructible<
+        std::function<void(Args ...)>,
+        std::reference_wrapper<typename std::remove_reference<F>::type>
+    >
 {
-private:
-  typedef char (&yes)[1];
-  typedef char (&no)[2];
-
-  struct Fallback
-  {
-    void operator()();
-  };
-  struct Derived : T, Fallback
-  {
-  };
-
-  template<typename U, U>
-  struct Check;
-
-  template<typename>
-  static yes test(...);
-
-  template<typename C>
-  static no test(Check<void (Fallback::*)(), &C::operator()> *);
-
-public:
-  static const bool value = sizeof(test<Derived>(0)) == sizeof(yes);
 };
+
+template<>
+struct is_invocable<void> : public std::false_type {};
+
+// clang-format on
 
 /** Tag for non-callable objects */
 struct NonCallable
@@ -64,7 +51,7 @@ struct ReturnType
 
 /** Get the return type of a getter function */
 template<typename GetT>
-struct ReturnType<GetT, typename std::enable_if<is_callable<GetT>::value>::type>
+struct ReturnType<GetT, typename std::enable_if<is_invocable<GetT>::value>::type>
 {
   using type = typename std::decay<decltype(std::declval<GetT>()())>::type;
 };
