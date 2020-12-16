@@ -16,14 +16,11 @@ namespace force
 
 using mc_filter::utils::clampInPlaceAndWarn;
 
-DampingTask::DampingTask(const std::string & surfaceName,
-                         const mc_rbdyn::Robots & robots,
-                         unsigned int robotIndex,
-                         double stiffness,
-                         double weight)
-: AdmittanceTask(surfaceName, robots, robotIndex, stiffness, weight)
+DampingTask::DampingTask(mc_rbdyn::Frame & frame, double stiffness, double weight)
+: AdmittanceTask(frame, stiffness, weight)
 {
-  name_ = "damping_" + robots_.robot(robotIndex).name() + "_" + surfaceName;
+  type_ = "admittance";
+  name_ = fmt::format("{}_{}_{}", type_, frame.robot().name(), frame.name());
   reset();
 }
 
@@ -41,7 +38,7 @@ void DampingTask::update(mc_solver::QPSolver &)
   // Yet, keep in mind that our velocity bounds are artificial. Whenever
   // possible, the best is to set to gains so that they are not saturated.
 
-  SurfaceTransformTask::refVelB(refVelB_);
+  TransformTask::refVelB(refVelB_);
 }
 
 } // namespace force
@@ -54,9 +51,17 @@ namespace
 static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
     "damping",
     [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) {
-      auto t = std::make_shared<mc_tasks::force::DampingTask>(config("surface"), solver.robots(),
-                                                              robotIndexFromConfig(config, solver.robots(), "damping"));
-
+      std::shared_ptr<mc_tasks::force::DampingTask> t;
+      auto & robot = solver.robots().fromConfig(config, "DampingTask");
+      if(config.has("surface"))
+      {
+        mc_rtc::log::warning("Deprecated use of surface while loading a DampingTask, use \"frame\" instead");
+        t = std::make_shared<mc_tasks::force::DampingTask>(robot.frame(config("surface")));
+      }
+      else
+      {
+        t = std::make_shared<mc_tasks::force::DampingTask>(robot.frame(config("frame")));
+      }
       if(config.has("admittance"))
       {
         t->admittance(config("admittance"));
@@ -69,10 +74,27 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
 
       if(config.has("targetSurface"))
       {
+        mc_rtc::log::warning(
+            "Deprecated use of targetSurface while loading a DampingTask, use \"targetFrame\" instead");
         const auto & c = config("targetSurface");
-        t->targetSurface(robotIndexFromConfig(c, solver.robots(), t->name() + "::targetSurface"), c("surface"),
-                         {c("offset_rotation", Eigen::Matrix3d::Identity().eval()),
-                          c("offset_translation", Eigen::Vector3d::Zero().eval())});
+        const auto & r = solver.robots().fromConfig(c, t->name() + "::targetSurface");
+        t->targetPose(r.frame(c("surface")), {c("offset_rotation", Eigen::Matrix3d::Identity().eval()),
+                                              c("offset_translation", Eigen::Vector3d::Zero().eval())});
+      }
+      else if(config.has("targetFrame"))
+      {
+        const auto & c = config("targetFrame");
+        const auto & r = solver.robots().fromConfig(c, t->name() + "::targetFrame");
+        const auto & frame = r.frame(c("frame"));
+        if(c.has("offset"))
+        {
+          t->targetPose(frame, c("offset", sva::PTransformd::Identity()));
+        }
+        else
+        {
+          t->targetPose(frame, {c("offset_rotation", Eigen::Matrix3d::Identity().eval()),
+                                c("offset_translation", Eigen::Vector3d::Zero().eval())});
+        }
       }
       else if(config.has("targetPose"))
       {

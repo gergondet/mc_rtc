@@ -17,14 +17,13 @@ namespace mc_tasks
 namespace force
 {
 
-CoPTask::CoPTask(const std::string & surfaceName,
-                 const mc_rbdyn::Robots & robots,
-                 unsigned int robotIndex,
+CoPTask::CoPTask(mc_rbdyn::Frame & frame,
                  double stiffness,
                  double weight)
-: DampingTask(surfaceName, robots, robotIndex, stiffness, weight)
+: DampingTask(frame, stiffness, weight)
 {
-  name_ = "cop_" + robots_.robot(rIndex_).name() + "_" + surfaceName;
+  type_ = "cop";
+  name_ = fmt::format("{}_{}_{}", type_, frame.robot().name(), frame.name());
 }
 
 void CoPTask::reset()
@@ -122,9 +121,18 @@ namespace
 static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
     "cop",
     [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) {
-      auto t = std::allocate_shared<mc_tasks::force::CoPTask>(Eigen::aligned_allocator<mc_tasks::force::CoPTask>{},
-                                                              config("surface"), solver.robots(),
-                                                              robotIndexFromConfig(config, solver.robots(), "cop"));
+      std::shared_ptr<mc_tasks::force::CoPTask> t;
+      auto & robot = solver.robots().fromConfig(config, "CoPTask");
+      using Allocator = Eigen::aligned_allocator<mc_tasks::force::CoPTask>;
+      if(config.has("surface"))
+      {
+        mc_rtc::log::warning("Deprecated use of surface while loading a CoPTask, use \"frame\" instead");
+        t = std::allocate_shared<mc_tasks::force::CoPTask>(Allocator{}, robot.frame(config("surface")));
+      }
+      else
+      {
+        t = std::allocate_shared<mc_tasks::force::CoPTask>(Allocator{}, robot.frame(config("frame")));
+      }
       if(config.has("admittance"))
       {
         t->admittance(config("admittance"));
@@ -139,10 +147,27 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       }
       if(config.has("targetSurface"))
       {
+        mc_rtc::log::warning(
+            "Deprecated use of targetSurface while loading a DampingTask, use \"targetFrame\" instead");
         const auto & c = config("targetSurface");
-        t->targetSurface(robotIndexFromConfig(c, solver.robots(), t->name() + "::targetSurface"), c("surface"),
-                         {c("offset_rotation", Eigen::Matrix3d::Identity().eval()),
-                          c("offset_translation", Eigen::Vector3d::Zero().eval())});
+        const auto & r = solver.robots().fromConfig(c, t->name() + "::targetSurface");
+        t->targetPose(r.frame(c("surface")), {c("offset_rotation", Eigen::Matrix3d::Identity().eval()),
+                                              c("offset_translation", Eigen::Vector3d::Zero().eval())});
+      }
+      else if(config.has("targetFrame"))
+      {
+        const auto & c = config("targetFrame");
+        const auto & r = solver.robots().fromConfig(c, t->name() + "::targetFrame");
+        const auto & frame = r.frame(c("frame"));
+        if(c.has("offset"))
+        {
+          t->targetPose(frame, c("offset", sva::PTransformd::Identity()));
+        }
+        else
+        {
+          t->targetPose(frame, {c("offset_rotation", Eigen::Matrix3d::Identity().eval()),
+                                c("offset_translation", Eigen::Vector3d::Zero().eval())});
+        }
       }
       else if(config.has("targetPose"))
       {

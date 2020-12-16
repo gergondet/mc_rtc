@@ -107,6 +107,17 @@ public:
     this->target(X_0_target);
   }
 
+  /*! \brief Set target pose (position and orientation) of the controlled frame relative to another frame
+   *
+   * \param frame Reference frame
+   *
+   * \param offset Offset relative to the reference frame
+   */
+  void targetPose(const mc_rbdyn::Frame & frame, const sva::PTransformd & offset)
+  {
+    this->target(frame, offset);
+  }
+
   /*! \brief Transform from current frame pose to target pose.
    *
    */

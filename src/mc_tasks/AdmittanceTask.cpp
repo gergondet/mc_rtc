@@ -152,7 +152,7 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       auto & robot = solver.robots().fromConfig(config, "AdmittanceTask");
       if(config.has("surface"))
       {
-        mc_rtc::log::warning("Deprecate use of surface while loading an AdmittanceTask, use \"frame\" instead");
+        mc_rtc::log::warning("Deprecated use of surface while loading an AdmittanceTask, use \"frame\" instead");
         auto t = std::make_shared<mc_tasks::force::AdmittanceTask>(robot.frame(config("surface")));
         t->reset();
         t->load(solver, config);
