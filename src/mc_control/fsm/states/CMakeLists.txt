@@ -41,13 +41,10 @@ add_fsm_state_simple(Pause)
 add_fsm_state_simple(Posture)
 add_fsm_state_simple(Message)
 add_fsm_state_simple(MetaTasks)
-# FIXME Require Compliancetask
-# add_fsm_state_simple(AddRemoveContact)
-# add_fsm_state_simple(SlidingFootContact)
+add_fsm_state_simple(AddRemoveContact)
 add_fsm_state_simple(Meta)
 add_fsm_state_simple(Parallel)
-# FIXME Require stabilizer task
-# add_fsm_state_simple(StabilizerStandingState)
+#add_fsm_state_simple(StabilizerStandingState)
 
 # PythonState
 if(${PYTHON_BINDING})
