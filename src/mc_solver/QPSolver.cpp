@@ -344,7 +344,11 @@ void QPSolver::removeContact(const mc_rbdyn::Contact & contact)
   {
     problem_.remove(c.get());
   }
-  problem_.remove(data.contactConstraint_.get());
+  if(data.contactConstraint_)
+  {
+    problem_.remove(data.contactConstraint_.get());
+    data.contactConstraint_.reset();
+  }
   mc_rtc::log::info("Removed contact {}::{}/{}::{}", contact.r1, contact.r1Surface, contact.r2, contact.r2Surface);
 }
 
