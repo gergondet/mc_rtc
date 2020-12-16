@@ -32,12 +32,7 @@ public:
 
   /*! \brief Initialize a new CoP task.
    *
-   * \param robotSurface Name of the surface frame to control, in which the
-   * desired wrench will also be expressed
-   *
-   * \param robots Robots where the task will be applied
-   *
-   * \param robotIndex Which robot among the robots
+   * \param frame Frame to control
    *
    * \param stiffness Stiffness of the underlying SurfaceTransform task
    *
@@ -47,9 +42,7 @@ public:
    * sensor attached to it
    *
    */
-  CoPTask(const std::string & robotSurface,
-          const mc_rbdyn::Robots & robots,
-          unsigned robotIndex,
+  CoPTask(mc_rbdyn::Frame & frame,
           double stiffness = 5.0,
           double weight = 1000.0);
 
@@ -77,7 +70,7 @@ public:
    */
   Eigen::Vector2d measuredCoP() const
   {
-    return robots_.robot(rIndex_).cop(surface_.name());
+    return frame().robot().cop(frame().name());
   }
 
   /*! \brief Measured CoP in world frame.
@@ -85,7 +78,7 @@ public:
    */
   Eigen::Vector3d measuredCoPW() const
   {
-    return robots_.robot(rIndex_).copW(surface_.name());
+    return frame().robot().copW(frame().name());
   }
 
   /*! \brief Set targent wrench to zero.
@@ -112,7 +105,7 @@ public:
   {
     Eigen::Vector3d cop_s;
     cop_s << targetCoP_, 0.;
-    sva::PTransformd X_0_s = robots_.robot(rIndex_).surfacePose(surface_.name());
+    const auto & X_0_s = frame().position();
     return X_0_s.translation() + X_0_s.rotation().transpose() * cop_s;
   }
 
@@ -150,7 +143,7 @@ public:
    */
   void targetForceW(const Eigen::Vector3d & targetForceW)
   {
-    const auto & X_0_rh = robots_.robot(rIndex_).surface(surface_.name()).X_0_s(robots_.robot(rIndex_));
+    const auto & X_0_rh = frame().position();
     targetForce(X_0_rh.dualMul(sva::ForceVecd(Eigen::Vector3d::Zero(), targetForceW)).force());
   }
 

@@ -40,12 +40,7 @@ public:
 
   /*! \brief Initialize a new admittance task.
    *
-   * \param robotSurface Name of the surface frame to control, in which the
-   * desired wrench will also be expressed
-   *
-   * \param robots Robots where the task will be applied
-   *
-   * \param robotIndex Which robot among the robots
+   * \param frame Frame to control
    *
    * \param stiffness Stiffness of the underlying SurfaceTransform task
    *
@@ -55,9 +50,7 @@ public:
    * sensor attached to it
    *
    */
-  DampingTask(const std::string & robotSurface,
-              const mc_rbdyn::Robots & robots,
-              unsigned robotIndex,
+  DampingTask(mc_rbdyn::Frame & frame,
               double stiffness = 5.0,
               double weight = 1000.0);
 
