@@ -22,11 +22,10 @@ struct JacobianMapExposer : public tvm::internal::FirstOrderProvider
 
 using JacobianMap = JacobianMapExposer::JacobianMap;
 
-}
+} // namespace internal
 
-void MC_TVM_DLLAPI
-    splitAddJacobian(const tvm::MatrixConstRef & J,
-                     const tvm::VariableVector & vars,
-                     internal::JacobianMap & jacobians);
+void MC_TVM_DLLAPI splitAddJacobian(const tvm::MatrixConstRef & J,
+                                    const tvm::VariableVector & vars,
+                                    internal::JacobianMap & jacobians);
 
 } // namespace mc_tvm

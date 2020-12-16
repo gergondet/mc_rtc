@@ -42,9 +42,7 @@ public:
    * sensor attached to it
    *
    */
-  CoPTask(mc_rbdyn::Frame & frame,
-          double stiffness = 5.0,
-          double weight = 1000.0);
+  CoPTask(mc_rbdyn::Frame & frame, double stiffness = 5.0, double weight = 1000.0);
 
   /*! \brief Reset the task
    *

@@ -50,9 +50,7 @@ public:
    * sensor attached to it
    *
    */
-  DampingTask(mc_rbdyn::Frame & frame,
-              double stiffness = 5.0,
-              double weight = 1000.0);
+  DampingTask(mc_rbdyn::Frame & frame, double stiffness = 5.0, double weight = 1000.0);
 
 protected:
   void update(mc_solver::QPSolver &) override;
