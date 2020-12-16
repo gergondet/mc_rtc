@@ -23,10 +23,10 @@ struct MC_RBDYN_DLLAPI Contact
 
   static constexpr double defaultFriction = 0.7;
 
-  Contact(const std::string & r1,
-          const std::string & r2,
-          const std::string & r1Surface,
-          const std::string & r2Surface,
+  Contact(std::string_view r1,
+          std::string_view r2,
+          std::string_view r1Surface,
+          std::string_view r2Surface,
           double friction = defaultFriction,
           const Eigen::Vector6d & dof = Eigen::Vector6d::Ones())
   : r1(r1), r2(r2), r1Surface(r1Surface), r2Surface(r2Surface), friction(friction), dof(dof)
