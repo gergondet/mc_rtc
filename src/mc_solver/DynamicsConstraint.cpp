@@ -54,7 +54,8 @@ namespace
 template<typename T>
 mc_solver::ConstraintPtr load_constr(mc_solver::QPSolver & solver, const mc_rtc::Configuration & config)
 {
-  return std::make_shared<T>(solver.robots().robot(config("robot")), config("damper"), config("velocityPercent", 0.5));
+  auto & robot = solver.robots().fromConfig(config, "Kinematics|DynamicsConstraint");
+  return std::make_shared<T>(robot, config("damper"), config("velocityPercent", 0.5));
 }
 
 static auto kin_registered =
