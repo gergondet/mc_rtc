@@ -15,24 +15,20 @@ namespace lipm_stabilizer
 namespace internal
 {
 
-Contact::Contact(const mc_rbdyn::Robot & robot, const std::string & surfaceName, double friction)
-: Contact(robot, surfaceName, robot.surfacePose(surfaceName), friction)
+Contact::Contact(const mc_rbdyn::Surface & surface, double friction)
+: Contact(surface, surface.frame().position(), friction)
 {
 }
 
-Contact::Contact(const mc_rbdyn::Robot & robot,
-                 const std::string & surfaceName,
-                 const sva::PTransformd & surfacePose,
-                 const double friction)
-: surfaceName_(surfaceName), friction_(friction)
+Contact::Contact(const mc_rbdyn::Surface & surface, const sva::PTransformd & surfacePose, const double friction)
+: surface_(surface), friction_(friction)
 {
-  const auto & surface = robot.surface(surfaceName);
   if(surface.type() != "planar")
   {
     mc_rtc::log::error_and_throw<std::runtime_error>(
         "LIPMStabilizer contact expects a planar surface attached to the robot's ankle. Surface {} "
         "with type {} not supported",
-        surfaceName, surface.type());
+        surface.name(), surface.type());
   }
 
   surfacePose_ = surfacePose;
@@ -71,7 +67,7 @@ Contact::Contact(const mc_rbdyn::Robot & robot,
   // clang-format on
 }
 
-void Contact::findSurfaceBoundaries(const mc_rbdyn::Surface & surface)
+void Contact::findSurfaceBoundaries(const mc_rbdyn::Surface & surface) noexcept
 {
   const auto & surfacePoints = surface.points();
   // Find boundaries in surface frame along the surface's sagital (x) and lateral (y) direction
@@ -121,7 +117,7 @@ void Contact::findSurfaceBoundaries(const mc_rbdyn::Surface & surface)
   xyMax_ << xMinMax.second->x(), yMinMax.second->y();
 }
 
-HrepXd Contact::hrep(const Eigen::Vector3d & vertical) const
+HrepXd Contact::hrep(const Eigen::Vector3d & vertical) const noexcept
 {
   Eigen::Matrix<double, 4, 2> localHrepMat, worldHrepMat;
   Eigen::Matrix<double, 4, 1> localHrepVec, worldHrepVec;
@@ -130,7 +126,6 @@ HrepXd Contact::hrep(const Eigen::Vector3d & vertical) const
   if((normal() - vertical).norm() > 1e-3)
   {
     mc_rtc::log::warning("Contact is not horizontal");
-    ;
   }
   const sva::PTransformd & X_0_c = surfacePose_;
   worldHrepMat = localHrepMat * X_0_c.rotation().topLeftCorner<2, 2>();

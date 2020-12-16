@@ -8,6 +8,8 @@
 #pragma once
 
 #include <mc_rbdyn/Robot.h>
+#include <mc_rbdyn/Surface.h>
+
 #include <mc_rtc/Configuration.h>
 #include <mc_rtc/logging.h>
 #include <mc_tasks/api.h>
@@ -49,8 +51,7 @@ struct MC_TASKS_DLLAPI Contact
   /**
    * @brief Constructs a contact from a surface attached to the ankle frame of a robot
    *
-   * @param robot Robot from which to create the contact
-   * @param surfaceName Name of surface attached to the robot's ankle. It is
+   * @param surface Surface attached to the robot's ankle. It is
    * assumed that the surface frame is defined as follows:
    * - z axis going from the environment towards the robot
    * - x aligned with the sagital direction
@@ -58,25 +59,22 @@ struct MC_TASKS_DLLAPI Contact
    *
    * @param friction sole friction
    */
-  Contact(const mc_rbdyn::Robot & robot, const std::string & surfaceName, double friction);
+  Contact(const mc_rbdyn::Surface & surface, double friction);
 
   /**
    * @brief Constructs a Contact with user-specified surface pose
    * @param surfacePose Pose of the contact surface frame
    *
-   * \see Contact(const mc_rbdyn::Robot&, const std::string &, double);
+   * \see Contact(const mc_rbdyn::Surface&, double);
    */
-  Contact(const mc_rbdyn::Robot & robot,
-          const std::string & surfaceName,
-          const sva::PTransformd & surfacePose,
-          double friction);
+  Contact(const mc_rbdyn::Surface & surface, const sva::PTransformd & surfacePose, double friction);
 
   /**
    * @brief Halfspace representation of contact area in world frame.
    *
    * @param vertical Normalized vector parallel to gravity
    */
-  HrepXd hrep(const Eigen::Vector3d & vertical) const;
+  HrepXd hrep(const Eigen::Vector3d & vertical) const noexcept;
 
   /** H-representation of contact wrench cones.
    *
@@ -86,7 +84,7 @@ struct MC_TASKS_DLLAPI Contact
    * \note Uses halfLength_, halfWidth_ computed from the surface points in findSurfaceBoundaries(), friction_: sole
    * friction
    */
-  const Eigen::Matrix<double, 16, 6> & wrenchFaceMatrix() const
+  const Eigen::Matrix<double, 16, 6> & wrenchFaceMatrix() const noexcept
   {
     return wrenchFaceMatrix_;
   }
@@ -94,7 +92,7 @@ struct MC_TASKS_DLLAPI Contact
   /** Sagittal unit vector of the contact frame.
    *
    */
-  Eigen::Vector3d sagittal() const
+  Eigen::Vector3d sagittal() const noexcept
   {
     return surfacePose_.rotation().row(0);
   }
@@ -102,7 +100,7 @@ struct MC_TASKS_DLLAPI Contact
   /** Lateral unit vector of the contact frame.
    *
    */
-  Eigen::Vector3d lateral() const
+  Eigen::Vector3d lateral() const noexcept
   {
     return surfacePose_.rotation().row(1);
   }
@@ -110,24 +108,24 @@ struct MC_TASKS_DLLAPI Contact
   /** Normal unit vector of the contact frame.
    *
    */
-  Eigen::Vector3d normal() const
+  Eigen::Vector3d normal() const noexcept
   {
     return surfacePose_.rotation().row(2);
   }
   /** Shorthand for position.
    *
    */
-  const Eigen::Vector3d & position() const
+  const Eigen::Vector3d & position() const noexcept
   {
     return surfacePose_.translation();
   }
 
-  double halfWidth() const
+  double halfWidth() const noexcept
   {
     return halfWidth_;
   }
 
-  double halfLength() const
+  double halfLength() const noexcept
   {
     return halfLength_;
   }
@@ -136,32 +134,32 @@ struct MC_TASKS_DLLAPI Contact
    * World position of projected ankle frame into surface frame.
    * Orientation is that of the target contact frame.
    */
-  const sva::PTransformd & anklePose() const
+  const sva::PTransformd & anklePose() const noexcept
   {
     return anklePose_;
   }
 
-  Eigen::Vector3d sagital()
+  Eigen::Vector3d sagital() noexcept
   {
     return surfacePose_.rotation().row(0);
   }
 
-  Eigen::Vector3d lateral()
+  Eigen::Vector3d lateral() noexcept
   {
     return surfacePose_.rotation().row(1);
   }
 
-  Eigen::Vector3d vertical()
+  Eigen::Vector3d vertical() noexcept
   {
     return surfacePose_.rotation().row(2);
   }
 
-  const std::string & surfaceName() const
+  const mc_rbdyn::Surface & surface() const noexcept
   {
-    return surfaceName_;
+    return *surface_;
   }
 
-  const sva::PTransformd & surfacePose() const
+  const sva::PTransformd & surfacePose() const noexcept
   {
     return surfacePose_;
   }
@@ -170,7 +168,7 @@ struct MC_TASKS_DLLAPI Contact
    * @brief Returns the contact polygon defined by the 4 vertices of the min/max
    * coordinates along the surface's sagital and normal direction
    */
-  const std::vector<Eigen::Vector3d> & polygon() const
+  const std::vector<Eigen::Vector3d> & polygon() const noexcept
   {
     return contactPolygon_;
   }
@@ -179,7 +177,7 @@ struct MC_TASKS_DLLAPI Contact
    * @brief World coordinates of the point furthest back in the surface's
    * sagital direction
    */
-  double xmin() const
+  double xmin() const noexcept
   {
     return xyMin_.x();
   }
@@ -188,7 +186,7 @@ struct MC_TASKS_DLLAPI Contact
    * @brief World coordinates of the point furthest front in the surface's
    * sagital direction
    */
-  double xmax() const
+  double xmax() const noexcept
   {
     return xyMax_.x();
   }
@@ -197,7 +195,7 @@ struct MC_TASKS_DLLAPI Contact
    * @brief World coordinates of the point furthest right in the surface's
    * lateral direction
    */
-  double ymin() const
+  double ymin() const noexcept
   {
     return xyMin_.y();
   }
@@ -206,7 +204,7 @@ struct MC_TASKS_DLLAPI Contact
    * @brief World coordinates of the point furthest left in the surface's
    * lateral direction
    */
-  double ymax() const
+  double ymax() const noexcept
   {
     return xyMax_.y();
   }
@@ -216,10 +214,10 @@ private:
    * @brief Finds the surface boundaries in the sagital/lateral plane from surface points, and compute its properties:
    * halfLength_, halfWidth_, and contact polygon.
    */
-  void findSurfaceBoundaries(const mc_rbdyn::Surface & surface);
+  void findSurfaceBoundaries(const mc_rbdyn::Surface & surface) noexcept;
 
 private:
-  std::string surfaceName_; /**< Name of the contact surface in robot model. */
+  mc_rbdyn::ConstSurfacePtr surface_;
   sva::PTransformd anklePose_; /**< Contact frame rooted at the ankle */
   sva::PTransformd surfacePose_; /**< Plücker transform of the contact in the inertial frame. */
 

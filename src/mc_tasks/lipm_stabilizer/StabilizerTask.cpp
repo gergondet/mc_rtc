@@ -25,58 +25,50 @@ using ::mc_filter::utils::clamp;
 using ::mc_filter::utils::clampInPlaceAndWarn;
 namespace constants = ::mc_rtc::constants;
 
-StabilizerTask::StabilizerTask(const mc_rbdyn::Robots & robots,
-                               const mc_rbdyn::Robots & realRobots,
-                               unsigned int robotIndex,
+StabilizerTask::StabilizerTask(mc_rbdyn::Robot & robot,
+                               const mc_rbdyn::Robot & realRobot,
                                const std::string & leftSurface,
                                const std::string & rightSurface,
                                const std::string & torsoBodyName,
                                double dt)
-: robots_(robots), realRobots_(realRobots), robotIndex_(robotIndex), dcmEstimator_(dt),
-  extWrenchSumLowPass_(dt, /* cutoffPeriod = */ 0.05), comOffsetLowPass_(dt, /* cutoffPeriod = */ 0.05),
-  comOffsetLowPassCoM_(dt, /* cutoffPeriod = */ 1.0), comOffsetDerivator_(dt, /* timeConstant = */ 1.),
-  dcmIntegrator_(dt, /* timeConstant = */ 15.), dcmDerivator_(dt, /* timeConstant = */ 1.), dt_(dt),
-  mass_(robots.robot(robotIndex).mass())
+: robot_(robot), realRobot_(realRobot), dcmEstimator_(dt), extWrenchSumLowPass_(dt, /* cutoffPeriod = */ 0.05),
+  comOffsetLowPass_(dt, /* cutoffPeriod = */ 0.05), comOffsetLowPassCoM_(dt, /* cutoffPeriod = */ 1.0),
+  comOffsetDerivator_(dt, /* timeConstant = */ 1.), dcmIntegrator_(dt, /* t`  imeConstant = */ 15.),
+  dcmDerivator_(dt, /* timeConstant = */ 1.), dt_(dt), mass_(robot.mass())
 {
   type_ = "lipm_stabilizer";
-  name_ = type_ + "_" + robots.robot(robotIndex).name();
+  name_ = fmt::format("{}_{}", type_, robot.name());
 
-  comTask.reset(new mc_tasks::CoMTask(robots, robotIndex_));
-  auto leftCoP = std::allocate_shared<mc_tasks::force::CoPTask>(Eigen::aligned_allocator<mc_tasks::force::CoPTask>{},
-                                                                leftSurface, robots, robotIndex_);
-  auto rightCoP = std::allocate_shared<mc_tasks::force::CoPTask>(Eigen::aligned_allocator<mc_tasks::force::CoPTask>{},
-                                                                 rightSurface, robots, robotIndex_);
-  footTasks[ContactState::Left] = leftCoP;
-  footTasks[ContactState::Right] = rightCoP;
+  comTask = std::make_shared<mc_tasks::CoMTask>(robot);
+  using Allocator = Eigen::aligned_allocator<mc_tasks::force::CoPTask>;
+  footTasks[ContactState::Left] = std::allocate_shared<mc_tasks::force::CoPTask>(Allocator{}, robot.frame(leftSurface));
+  footTasks[ContactState::Right] =
+      std::allocate_shared<mc_tasks::force::CoPTask>(Allocator{}, robot.frame(rightSurface));
 
-  std::string pelvisBodyName = robot().mb().body(0).name();
-  pelvisTask = std::make_shared<mc_tasks::OrientationTask>(pelvisBodyName, robots_, robotIndex_);
-  torsoTask = std::make_shared<mc_tasks::OrientationTask>(torsoBodyName, robots_, robotIndex_);
+  std::string pelvisBodyName = robot.mb().body(0).name();
+  pelvisTask = std::make_shared<mc_tasks::OrientationTask>(robot.frame(pelvisBodyName));
+  torsoTask = std::make_shared<mc_tasks::OrientationTask>(robot.frame(torsoBodyName));
 
   // Rename the tasks managed by the stabilizer
   // Doing so helps making the logs more consistent, and having a fixed name
   // allows for predifined custom plots in the log ui.
   const auto n = name_ + "_Tasks";
   comTask->name(n + "_com");
-  leftCoP->name(n + "_cop_left");
-  rightCoP->name(n + "_cop_right");
+  footTasks[ContactState::Left]->name(n + "_cop_left");
+  footTasks[ContactState::Right]->name(n + "_cop_right");
   pelvisTask->name(n + "_pelvis");
   torsoTask->name(n + "_torso");
 }
 
-StabilizerTask::StabilizerTask(const mc_rbdyn::Robots & robots,
-                               const mc_rbdyn::Robots & realRobots,
-                               unsigned int robotIndex,
-                               double dt)
-: StabilizerTask(robots,
-                 realRobots,
-                 robotIndex,
-                 robots.robot(robotIndex).module().defaultLIPMStabilizerConfiguration().leftFootSurface,
-                 robots.robot(robotIndex).module().defaultLIPMStabilizerConfiguration().rightFootSurface,
-                 robots.robot(robotIndex).module().defaultLIPMStabilizerConfiguration().torsoBodyName,
+StabilizerTask::StabilizerTask(mc_rbdyn::Robot & robot, const mc_rbdyn::Robot & realRobot, double dt)
+: StabilizerTask(robot,
+                 realRobot,
+                 robot.module().defaultLIPMStabilizerConfiguration().leftFootSurface,
+                 robot.module().defaultLIPMStabilizerConfiguration().rightFootSurface,
+                 robot.module().defaultLIPMStabilizerConfiguration().torsoBodyName,
                  dt)
 {
-  configure(robots.robot(robotIndex).module().defaultLIPMStabilizerConfiguration());
+  configure(robot.module().defaultLIPMStabilizerConfiguration());
   setContacts({ContactState::Left, ContactState::Right});
   reset();
 }
@@ -127,7 +119,7 @@ void StabilizerTask::reset()
   dcmDerivator_.reset(Eigen::Vector3d::Zero());
   dcmIntegrator_.reset(Eigen::Vector3d::Zero());
 
-  omega_ = std::sqrt(constants::gravity.z() / robot().com().z());
+  omega_ = std::sqrt(constants::gravity.z() / robot().com().com().z());
   commitConfig();
 }
 
@@ -136,7 +128,7 @@ void StabilizerTask::dimWeight(const Eigen::VectorXd & /* dim */)
   mc_rtc::log::error_and_throw<std::runtime_error>("dimWeight not implemented for task {}", type_);
 }
 
-Eigen::VectorXd StabilizerTask::dimWeight() const
+const Eigen::VectorXd & StabilizerTask::dimWeight() const noexcept
 {
   mc_rtc::log::error_and_throw<std::runtime_error>("dimWeight not implemented for task {}", type_);
 }
@@ -150,7 +142,7 @@ void StabilizerTask::selectActiveJoints(mc_solver::QPSolver & /* solver */,
                                                    name_);
 }
 
-void StabilizerTask::selectUnactiveJoints(
+void StabilizerTask::selectInactiveJoints(
     mc_solver::QPSolver & /* solver */,
     const std::vector<std::string> & /* unactiveJointsName */,
     const std::map<std::string, std::vector<std::array<int, 2>>> & /* unactiveDofs */)
@@ -206,7 +198,7 @@ void StabilizerTask::removeFromSolver(mc_solver::QPSolver & solver)
   MetaTask::removeFromSolver(*comTask, solver);
   MetaTask::removeFromSolver(*pelvisTask, solver);
   MetaTask::removeFromSolver(*torsoTask, solver);
-  for(const auto footTask : contactTasks)
+  for(const auto & footTask : contactTasks)
   {
     MetaTask::removeFromSolver(*footTask, solver);
   }
@@ -219,8 +211,8 @@ void StabilizerTask::updateContacts(mc_solver::QPSolver & solver)
     // Remove previous contacts
     for(const auto & contactT : contactTasks)
     {
-      mc_rtc::log::info("{}: Removing contact {}", name(), contactT->surface());
-      MetaTask::removeFromLogger(*contactT, *solver.logger());
+      mc_rtc::log::info("{}: Removing contact {}", name(), contactT->frame().name());
+      MetaTask::removeFromLogger(*contactT, solver.logger());
       MetaTask::removeFromSolver(*contactT, solver);
     }
     contactTasks.clear();
@@ -230,11 +222,11 @@ void StabilizerTask::updateContacts(mc_solver::QPSolver & solver)
     for(const auto contactState : addContacts_)
     {
       auto footTask = footTasks[contactState];
-      mc_rtc::log::info("{}: Adding contact {}", name(), footTask->surface());
+      mc_rtc::log::info("{}: Adding contact {}", name(), footTask->frame().name());
       MetaTask::addToSolver(*footTask, solver);
-      MetaTask::addToLogger(*footTask, *solver.logger());
+      MetaTask::addToLogger(*footTask, solver.logger());
       contactTasks.push_back(footTask);
-      const auto & fs = robot().indirectSurfaceForceSensor(footTask->surface());
+      const auto & fs = footTask->frame().forceSensor();
       contactSensors.push_back(fs.name());
     }
     addContacts_.clear();
@@ -254,7 +246,7 @@ void StabilizerTask::update(mc_solver::QPSolver & solver)
   // Update contacts if they have changed
   updateContacts(solver);
 
-  updateState(realRobots_.robot().com(), realRobots_.robot().comVelocity());
+  updateState(realRobot().com().com(), realRobot().com().velocity());
 
   // Run stabilizer
   run();
@@ -262,7 +254,7 @@ void StabilizerTask::update(mc_solver::QPSolver & solver)
   MetaTask::update(*comTask, solver);
   MetaTask::update(*pelvisTask, solver);
   MetaTask::update(*torsoTask, solver);
-  for(const auto footTask : contactTasks)
+  for(const auto & footTask : contactTasks)
   {
     MetaTask::update(*footTask, solver);
   }
@@ -396,7 +388,7 @@ void StabilizerTask::load(mc_solver::QPSolver &, const mc_rtc::Configuration & c
     for(const auto & contactName : contacts)
     {
       ContactState s = contactName;
-      sva::PTransformd contactPose = footTasks[s]->surfacePose();
+      sva::PTransformd contactPose = footTasks[s]->pose();
       if(config.has(contactName))
       {
         const auto & c = config(contactName);
@@ -420,13 +412,13 @@ void StabilizerTask::load(mc_solver::QPSolver &, const mc_rtc::Configuration & c
           height = (height + h) / 2;
         }
       }
-      contactsToAdd.push_back({s, {robot(), footTasks[s]->surface(), contactPose, c_.friction}});
+      contactsToAdd.push_back({s, {robot().surface(footTasks[s]->frame().name()), contactPose, c_.friction}});
     }
   }
   this->setContacts(contactsToAdd);
 
   // Target robot com by default
-  Eigen::Vector3d comTarget = robot().com();
+  Eigen::Vector3d comTarget = robot().com().com();
   if(config.has("staticTarget"))
   {
     if(config.has("com"))
@@ -459,8 +451,8 @@ void StabilizerTask::setContacts(const std::vector<ContactState> & contacts)
   for(const auto contact : contacts)
   {
     addContacts.push_back({contact,
-                           {robot(), footTasks[contact]->surface(),
-                            realRobot().surfacePose(footTasks[contact]->surface()), c_.friction}});
+                           {robot().surface(footTasks[contact]->frame().name()),
+                            realRobot().frame(footTasks[contact]->frame().name()).position(), c_.friction}});
   }
   setContacts(addContacts);
 }
@@ -468,9 +460,10 @@ void StabilizerTask::setContacts(const std::vector<ContactState> & contacts)
 void StabilizerTask::setContacts(const std::vector<std::pair<ContactState, sva::PTransformd>> & contacts)
 {
   ContactDescriptionVector addContacts;
-  for(const auto contact : contacts)
+  for(const auto & contact : contacts)
   {
-    addContacts.push_back({contact.first, {robot(), footTasks[contact.first]->surface(), contact.second, c_.friction}});
+    addContacts.push_back(
+        {contact.first, {robot().surface(footTasks[contact.first]->frame().name()), contact.second, c_.friction}});
   }
   setContacts(addContacts);
 }
@@ -572,8 +565,10 @@ void StabilizerTask::computeLeftFootRatio()
 
 sva::PTransformd StabilizerTask::anchorFrame(const mc_rbdyn::Robot & robot) const
 {
-  return sva::interpolate(robot.surfacePose(footTasks.at(ContactState::Left)->surface()),
-                          robot.surfacePose(footTasks.at(ContactState::Right)->surface()), leftFootRatio_);
+  auto framePose = [&robot, this](ContactState s) -> const sva::PTransformd & {
+    return robot.frame(footTasks.at(s)->frame().name()).position();
+  };
+  return sva::interpolate(framePose(ContactState::Left), framePose(ContactState::Right), leftFootRatio_);
 }
 
 void StabilizerTask::updateZMPFrame()
@@ -727,11 +722,10 @@ void StabilizerTask::run()
   updateZMPFrame();
   if(!inTheAir_)
   {
-    measuredNetWrench_ = robots_.robot(robotIndex_).netWrench(contactSensors);
+    measuredNetWrench_ = robot().netWrench(contactSensors);
     try
     {
-      measuredZMP_ =
-          robots_.robot(robotIndex_).zmp(measuredNetWrench_, zmpFrame_, c_.safetyThresholds.MIN_NET_TOTAL_FORCE_ZMP);
+      measuredZMP_ = robot().zmp(measuredNetWrench_, zmpFrame_, c_.safetyThresholds.MIN_NET_TOTAL_FORCE_ZMP);
     }
     catch(std::runtime_error & e)
     {
@@ -1129,8 +1123,8 @@ void StabilizerTask::updateFootForceDifferenceControl()
 
   double LTz_d = leftFootTask->targetPose().translation().z();
   double RTz_d = rightFootTask->targetPose().translation().z();
-  double LTz = leftFootTask->surfacePose().translation().z();
-  double RTz = rightFootTask->surfacePose().translation().z();
+  double LTz = leftFootTask->pose().translation().z();
+  double RTz = rightFootTask->pose().translation().z();
   dfzHeightError_ = (LTz_d - RTz_d) - (LTz - RTz);
   vdcHeightError_ = (LTz_d + RTz_d) - (LTz + RTz);
 
@@ -1162,8 +1156,8 @@ namespace
 static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
     "lipm_stabilizer",
     [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) {
-      unsigned robotIndex = robotIndexFromConfig(config, solver.robots(), "lipm_stabilizer");
-      const auto & robot = solver.robots().robot(robotIndex);
+      auto & robot = solver.robots().fromConfig(config, "lipm_stabilizer");
+      const auto & realRobot = solver.realRobots().robot(robot.name());
 
       // Load default configuration from robot module
       auto stabiConf = robot.module().defaultLIPMStabilizerConfiguration();
@@ -1176,8 +1170,8 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       }
 
       auto t = std::allocate_shared<mc_tasks::lipm_stabilizer::StabilizerTask>(
-          Eigen::aligned_allocator<mc_tasks::lipm_stabilizer::StabilizerTask>{}, solver.robots(), solver.realRobots(),
-          robotIndex, stabiConf.leftFootSurface, stabiConf.rightFootSurface, stabiConf.torsoBodyName, solver.dt());
+          Eigen::aligned_allocator<mc_tasks::lipm_stabilizer::StabilizerTask>{}, robot, realRobot,
+          stabiConf.leftFootSurface, stabiConf.rightFootSurface, stabiConf.torsoBodyName, solver.dt());
       t->configure(stabiConf);
       t->load(solver, config);
       t->reset();
