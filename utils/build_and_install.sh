@@ -1108,7 +1108,6 @@ build_git_dependency_configure_and_build()
                     -DPYTHON_BINDING_FORCE_PYTHON2:BOOL=${PYTHON_FORCE_PYTHON2} \
                     -DPYTHON_BINDING_FORCE_PYTHON3:BOOL=${PYTHON_FORCE_PYTHON3} \
                     -DPYTHON_BINDING_BUILD_PYTHON2_AND_PYTHON3:BOOL=${PYTHON_BUILD_PYTHON2_AND_PYTHON3} \
-                    -DMC_LOG_UI_PYTHON_EXECUTABLE:STRING="${MC_LOG_UI_PYTHON_EXECUTABLE}" \
                     -DCMAKE_BUILD_TYPE:STRING="$BUILD_TYPE" \
                     ${CMAKE_ADDITIONAL_OPTIONS}
   exit_if_error "-- [ERROR] CMake configuration failed for $git_dep"
@@ -1277,6 +1276,7 @@ exec_log cmake $mc_rtc_dir -DCMAKE_BUILD_TYPE:STRING="$BUILD_TYPE" \
                    -DPYTHON_BINDING_FORCE_PYTHON2:BOOL=${PYTHON_FORCE_PYTHON2} \
                    -DPYTHON_BINDING_FORCE_PYTHON3:BOOL=${PYTHON_FORCE_PYTHON3} \
                    -DPYTHON_BINDING_BUILD_PYTHON2_AND_PYTHON3:BOOL=${PYTHON_BUILD_PYTHON2_AND_PYTHON3} \
+                    -DMC_LOG_UI_PYTHON_EXECUTABLE:STRING="${MC_LOG_UI_PYTHON_EXECUTABLE}" \
                    ${CMAKE_ADDITIONAL_OPTIONS}
 exit_if_error "CMake configuration failed for mc_rtc"
 build_project mc_rtc
