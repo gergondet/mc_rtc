@@ -399,7 +399,7 @@ mc_tasks/ExactCubicTrajectoryTask.cpp
 
 mc_tasks/ComplianceTask.cpp
 mc_tasks/ImpedanceTask.cpp
-#mc_tasks/AdmittanceTask.cpp
+mc_tasks/AdmittanceTask.cpp
 #mc_tasks/DampingTask.cpp
 
 #mc_tasks/PositionBasedVisServoTask.cpp
