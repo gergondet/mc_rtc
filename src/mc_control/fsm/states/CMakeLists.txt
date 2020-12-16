@@ -44,7 +44,7 @@ add_fsm_state_simple(MetaTasks)
 add_fsm_state_simple(AddRemoveContact)
 add_fsm_state_simple(Meta)
 add_fsm_state_simple(Parallel)
-#add_fsm_state_simple(StabilizerStandingState)
+add_fsm_state_simple(StabilizerStandingState)
 
 # PythonState
 if(${PYTHON_BINDING})
