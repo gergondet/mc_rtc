@@ -17,10 +17,7 @@ namespace mc_tasks
 namespace force
 {
 
-CoPTask::CoPTask(mc_rbdyn::Frame & frame,
-                 double stiffness,
-                 double weight)
-: DampingTask(frame, stiffness, weight)
+CoPTask::CoPTask(mc_rbdyn::Frame & frame, double stiffness, double weight) : DampingTask(frame, stiffness, weight)
 {
   type_ = "cop";
   name_ = fmt::format("{}_{}_{}", type_, frame.robot().name(), frame.name());

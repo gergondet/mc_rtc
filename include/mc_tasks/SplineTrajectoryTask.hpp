@@ -21,8 +21,8 @@ SplineTrajectoryTask<Derived>::SplineTrajectoryTask(mc_rbdyn::Frame & frame,
                                                     const Eigen::Matrix3d & target,
                                                     const std::vector<std::pair<double, Eigen::Matrix3d>> & oriWp)
 : TrajectoryTask(frame.robot(), stiffness, weight), duration_(duration),
-  oriSpline_(duration, frame.position().rotation(), target, oriWp),
-  dimWeightInterpolator_(), stiffnessInterpolator_(), dampingInterpolator_()
+  oriSpline_(duration, frame.position().rotation(), target, oriWp), dimWeightInterpolator_(), stiffnessInterpolator_(),
+  dampingInterpolator_()
 {
   finalize(frame);
   type_ = "trajectory";
