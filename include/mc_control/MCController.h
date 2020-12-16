@@ -268,16 +268,6 @@ public:
     return *robots_;
   }
 
-  /** Return the mc_rbdyn::Robot controlled by this controller
-   *
-   * @throws std::runtime_error if the robot does not exist
-   * \anchor mc_controller_robot_name_const_doc
-   **/
-  const mc_rbdyn::Robot & robot(const std::string & name) const;
-
-  /** Non-const variant of \ref mc_controller_robot_name_const_doc "robot(name)" */
-  mc_rbdyn::Robot & robot(const std::string & name);
-
   /** Non-const variant of \ref mc_controller_robot_const_doc "robot()" */
   inline mc_rbdyn::Robot & robot() noexcept
   {
