@@ -600,40 +600,6 @@ public:
    */
   bool frameHasIndirectForceSensor(std::string_view frame) const;
 
-  /**
-   * @brief Checks if the surface has a force sensor directly attached to it
-   *
-   * @param surface Name of the surface to which the sensor is directly attached
-   *
-   * @see surfaceHasIndirectForceSensor(const std::string &) if you wish to check whether a
-   * sensor is indirectly attached to a body
-   *
-   * @return True if the surface has a force sensor attached to it, false
-   * otherwise
-   */
-  bool surfaceHasForceSensor(const std::string & surface) const;
-
-  /** Check if the body has a force sensor attached to it (directly or
-   * indirectly)
-   *
-   * @param body Name of the body to which the sensor is (directly or
-   * indirectly) attached
-   *
-   * @returns True if the body has a force sensor attached to it, false
-   * otherwise
-   */
-  bool bodyHasIndirectForceSensor(const std::string & body) const;
-
-  /** Check if the surface has a force sensor attached to it (directly or
-   * indirectly)
-   *
-   * @param surface Name of the surface to which the sensor is directly attached
-   *
-   * @returns True if the surface has a force sensor attached to it, false
-   * otherwise
-   */
-  bool surfaceHasIndirectForceSensor(const std::string & surface) const;
-
   /** Return a force sensor by name
    *
    * @param name Name of the sensor

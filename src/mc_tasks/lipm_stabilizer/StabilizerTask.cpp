@@ -367,7 +367,7 @@ void StabilizerTask::checkConfiguration(const StabilizerConfiguration & config)
       mc_rtc::log::error_and_throw<std::runtime_error>("[{}] requires a surface named {} in robot {}", name(),
                                                        surfaceName, robot().name());
     }
-    if(!robot().surfaceHasIndirectForceSensor(surfaceName))
+    if(!robot().frame(surfaceName).hasForceSensor())
     {
       mc_rtc::log::error_and_throw<std::runtime_error>("[{}] Surface {} must have an associated force sensor.", name(),
                                                        surfaceName);
