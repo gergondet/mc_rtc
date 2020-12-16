@@ -47,7 +47,7 @@ void StabilizerStandingState::start(Controller & ctl)
   config_("comHeight", stabilizerTask_->config().comHeight);
   // Reset linear inverted pendulum model, used here to compute stabilizer references
   double lambda = constants::GRAVITY / stabilizerTask_->config().comHeight;
-  pendulum_.reset(lambda, robot.com(), robot.comVelocity(), robot.comAcceleration());
+  pendulum_.reset(lambda, robot.com().com(), robot.com().velocity(), robot.com().acceleration());
   if(config_.has("above"))
   {
     const std::string above = config_("above");
@@ -67,21 +67,21 @@ void StabilizerStandingState::start(Controller & ctl)
     }
     else if(above == "LeftSurface")
     {
-      targetCoP(robot.surfacePose(stabilizerTask_->footSurface(ContactState::Left)).translation());
+      targetCoP(robot.frame(stabilizerTask_->footSurface(ContactState::Left)).position().translation());
     }
     else if(above == "RightSurface")
     {
-      targetCoP(robot.surfacePose(stabilizerTask_->footSurface(ContactState::Right)).translation());
+      targetCoP(robot.frame(stabilizerTask_->footSurface(ContactState::Right)).position().translation());
     }
     else if(above == "CenterSurfaces")
     {
-      targetCoP(sva::interpolate(ctl.robot().surfacePose(stabilizerTask_->footSurface(ContactState::Left)),
-                                 ctl.robot().surfacePose(stabilizerTask_->footSurface(ContactState::Right)), 0.5)
+      targetCoP(sva::interpolate(ctl.robot().frame(stabilizerTask_->footSurface(ContactState::Left)).position(),
+                                 ctl.robot().frame(stabilizerTask_->footSurface(ContactState::Right)).position(), 0.5)
                     .translation());
     }
     else if(robot.hasSurface(above))
     {
-      targetCoP(robot.surfacePose(above).translation());
+      targetCoP(robot.frame(above).position().translation());
     }
     else
     {
@@ -98,7 +98,7 @@ void StabilizerStandingState::start(Controller & ctl)
   }
   else
   {
-    targetCoM(robot.com());
+    targetCoM(robot.com().com());
   }
 
   // Fixme: the stabilizer needs the observed state immediatly
@@ -117,7 +117,7 @@ void StabilizerStandingState::start(Controller & ctl)
 
   if(optionalGUI_ && stabilizerTask_->inDoubleSupport())
   {
-    ctl.gui()->addElement(
+    ctl.gui().addElement(
         {"FSM", name(), "Move"}, mc_rtc::gui::ElementsStacking::Horizontal,
         mc_rtc::gui::Button(
             "Left foot", [this]() { targetCoP(stabilizerTask_->contactAnklePose(ContactState::Left).translation()); }),
@@ -130,7 +130,7 @@ void StabilizerStandingState::start(Controller & ctl)
         mc_rtc::gui::Button("Right foot", [this]() {
           targetCoP(stabilizerTask_->contactAnklePose(ContactState::Right).translation());
         }));
-    ctl.gui()->addElement(
+    ctl.gui().addElement(
         {"FSM", name(), "Move"},
         mc_rtc::gui::ArrayInput("CoM Target", [this]() -> const Eigen::Vector3d & { return comTarget_; },
                                 [this](const Eigen::Vector3d & com) { targetCoM(com); }),
@@ -138,7 +138,7 @@ void StabilizerStandingState::start(Controller & ctl)
                                 [this](const Eigen::Vector3d & com) { targetCoM(comTarget_ + com); }));
   }
 
-  ctl.gui()->addElement(
+  ctl.gui().addElement(
       {"FSM", name(), "Gains"},
       mc_rtc::gui::NumberInput("CoM stiffness", [this]() { return K_; }, [this](const double & s) { K_ = s; }),
       mc_rtc::gui::NumberInput("CoM damping", [this]() { return D_; }, [this](const double & d) { D_ = d; }),
@@ -223,7 +223,7 @@ bool StabilizerStandingState::run(Controller & ctl)
   double lambda = n.dot(comdd + constants::gravity) / n.dot(com_ - copTarget_);
   Eigen::Vector3d zmp = com_ - (constants::gravity + comdd) / lambda;
 
-  pendulum_.integrateIPM(zmp, lambda, ctl.timeStep);
+  pendulum_.integrateIPM(zmp, lambda, ctl.solver().dt());
 
   // Update stabilizer target
   stabilizerTask_->target(pendulum_.com(), pendulum_.comd(), pendulum_.comdd(), pendulum_.zmp());
@@ -245,7 +245,7 @@ bool StabilizerStandingState::run(Controller & ctl)
 void StabilizerStandingState::teardown(Controller & ctl)
 {
   ctl.solver().removeTask(stabilizerTask_);
-  ctl.gui()->removeCategory({"FSM", name()});
+  ctl.gui().removeCategory({"FSM", name()});
   ctl.logger().removeLogEntries(this);
 
   ctl.datastore().remove("StabilizerStandingState::getCoMTarget");
