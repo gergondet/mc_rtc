@@ -290,18 +290,15 @@ void StabilizerTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
               return measuredZMP_ + FORCE_SCALE * measuredNetWrench_.force();
             }));
 
-  for(const auto footTask : footTasks)
+  for(const auto & footTask : footTasks)
   {
     auto footT = footTask.second;
-    gui.addElement(
-        {"Tasks", name_, "Markers", "Foot wrenches"},
-        Point3D("Stabilizer_" + footT->surface() + "CoP", PointConfig(Color::Magenta, 0.01),
-                [footT]() { return footT->targetCoPW(); }),
-        Force("Measured_" + footT->surface() + "CoPForce", copForceConfig,
-              [footT, this]() {
-                return robot().indirectSurfaceForceSensor(footT->surface()).worldWrenchWithoutGravity(robot());
-              },
-              [footT]() { return sva::PTransformd(footT->measuredCoPW()); }));
+    gui.addElement({"Tasks", name_, "Markers", "Foot wrenches"},
+                   Point3D(fmt::format("Stabilizer_{}CoP", footT->frame().name()), PointConfig(Color::Magenta, 0.01),
+                           [footT]() { return footT->targetCoPW(); }),
+                   Force(fmt::format("Measured_{}CoPForce", footT->frame().name()), copForceConfig,
+                         [footT]() { return footT->frame().wrench(); },
+                         [footT]() { return sva::PTransformd(footT->measuredCoPW()); }));
   }
 
   gui.addElement({"Tasks", name_, "Markers", "Contacts"},
@@ -392,29 +389,35 @@ void StabilizerTask::addToLogger(mc_rtc::Logger & logger)
   });
 
   // Log computed robot properties
-  logger.addLogEntry(name_ + "_controlRobot_LeftFoot", this,
-                     [this]() { return robot().surfacePose(footSurface(ContactState::Left)); });
-  logger.addLogEntry(name_ + "_controlRobot_RightFoot", this,
-                     [this]() { return robot().surfacePose(footSurface(ContactState::Right)); });
-  logger.addLogEntry(name_ + "_controlRobot_com", this, [this]() { return robot().com(); });
-  logger.addLogEntry(name_ + "_controlRobot_comd", this, [this]() { return robot().comVelocity(); });
+  logger.addLogEntry(name_ + "_controlRobot_LeftFoot", this, [this]() -> const sva::PTransformd & {
+    return robot().frame(footSurface(ContactState::Left)).position();
+  });
+  logger.addLogEntry(name_ + "_controlRobot_RightFoot", this, [this]() -> const sva::PTransformd & {
+    return robot().frame(footSurface(ContactState::Right)).position();
+  });
+  logger.addLogEntry(name_ + "_controlRobot_com", this,
+                     [this]() -> const Eigen::Vector3d & { return robot().com().com(); });
+  logger.addLogEntry(name_ + "_controlRobot_comd", this,
+                     [this]() -> const Eigen::Vector3d & { return robot().com().velocity(); });
   logger.addLogEntry(name_ + "_controlRobot_posW", this,
                      [this]() -> const sva::PTransformd & { return robot().posW(); });
 
-  logger.addLogEntry(name_ + "_realRobot_LeftFoot", this,
-                     [this]() { return realRobot().surfacePose(footSurface(ContactState::Left)); });
-  logger.addLogEntry(name_ + "_realRobot_RightFoot", this,
-                     [this]() { return realRobot().surfacePose(footSurface(ContactState::Right)); });
-  MC_RTC_LOG_HELPER(name_ + "_realRobot_com", measuredCoM_);
-  MC_RTC_LOG_HELPER(name_ + "_realRobot_comd", measuredCoMd_);
-  MC_RTC_LOG_HELPER(name_ + "_realRobot_dcm", measuredDCM_);
-  MC_RTC_LOG_HELPER(name_ + "_realRobot_dcm_unbiased", measuredDCMUnbiased_);
+  logger.addLogEntry(name_ + "_realRobot_LeftFoot", this, [this]() -> const sva::PTransformd & {
+    return realRobot().frame(footSurface(ContactState::Left)).position();
+  });
+  logger.addLogEntry(name_ + "_realRobot_RightFoot", this, [this]() -> const sva::PTransformd & {
+    return realRobot().frame(footSurface(ContactState::Right)).position();
+  });
+  logger.addLogEntry(name_ + "_realRobot_com", this, [this]() -> const Eigen::Vector3d & { return measuredCoM_; });
+  logger.addLogEntry(name_ + "_realRobot_comd", this, [this]() -> const Eigen::Vector3d & { return measuredCoMd_; });
+  logger.addLogEntry(name_ + "_realRobot_dcm", this, [this]() -> const Eigen::Vector3d & { return measuredDCM_; });
+  logger.addLogEntry(name_ + "_realRobot_dcm_unbiased", this,
+                     [this]() -> const Eigen::Vector3d & { return measuredDCMUnbiased_; });
   logger.addLogEntry(name_ + "_realRobot_posW", this,
                      [this]() -> const sva::PTransformd & { return realRobot().posW(); });
   logger.addLogEntry(name_ + "_realRobot_wrench", this,
                      [this]() -> const sva::ForceVecd & { return measuredNetWrench_; });
   logger.addLogEntry(name_ + "_realRobot_zmp", this, [this]() -> const Eigen::Vector3d & { return measuredZMP_; });
-
   zmpcc_.addToLogger(logger, name_);
 
   MetaTask::addToLogger(*comTask, logger);

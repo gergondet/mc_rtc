@@ -59,18 +59,16 @@ struct MC_TASKS_DLLAPI StabilizerTask : public MetaTask
   /**
    * @brief Creates a stabilizer meta task
    *
-   * @param robots Robots on which the task acts
-   * @param realRobots Corresponding real robot instances
-   * @param robotIndex Index of the robot to stabilize
+   * @param robot Robot on which the task acts
+   * @param realRobot Corresponding observation
    * @param leftSurface Left foot surface name. Its origin should be the center of the foot sole
-   * @param rightSurface Left foot surface name. Its origin should be the center of the foot sole
+   * @param rightSurface Right foot surface name. Its origin should be the center of the foot sole
    * @param torsoBodyName Body name of the robot's torso (i.e a link above the
    * floating base)
    * @param dt Controller's timestep
    */
-  StabilizerTask(const mc_rbdyn::Robots & robots,
-                 const mc_rbdyn::Robots & realRobots,
-                 unsigned int robotIndex,
+  StabilizerTask(mc_rbdyn::Robot & robot,
+                 const mc_rbdyn::Robot & realRobot,
                  const std::string & leftSurface,
                  const std::string & rightSurface,
                  const std::string & torsoBodyName,
@@ -82,18 +80,13 @@ struct MC_TASKS_DLLAPI StabilizerTask : public MetaTask
    * This constructor uses the stabilizer configuration in the robot module associated to the controlled robot. The
    * stabilizer is started with two feet contacts.
    *
-   * @param robots Robots on which the task acts
+   * @param robot Robot on which the task acts
    *
-   * @param realRobots Corresponding real robots instance
-   *
-   * @param robotIndex Index of the robot
+   * @param realRobot Corresponding observation
    *
    * @param dt Controller's timestep
    */
-  StabilizerTask(const mc_rbdyn::Robots & robots,
-                 const mc_rbdyn::Robots & realRobots,
-                 unsigned int robotIndex,
-                 double dt);
+  StabilizerTask(mc_rbdyn::Robot & robot, const mc_rbdyn::Robot & realRobot, double dt);
 
   /**
    * @brief Resets the stabilizer tasks and parameters to their default configuration.
@@ -231,9 +224,9 @@ struct MC_TASKS_DLLAPI StabilizerTask : public MetaTask
     return contacts_.at(s).anklePose();
   }
 
-  inline const std::string & footSurface(ContactState s) const
+  inline std::string_view footSurface(ContactState s) const
   {
-    return footTasks.at(s)->surface();
+    return footTasks.at(s)->frame().name();
   }
 
   /**
@@ -341,12 +334,12 @@ struct MC_TASKS_DLLAPI StabilizerTask : public MetaTask
 
   inline const mc_rbdyn::Robot & robot() const noexcept
   {
-    return robots_.robot(robotIndex_);
+    return *robot_;
   }
 
   inline const mc_rbdyn::Robot & realRobot() const noexcept
   {
-    return realRobots_.robot(robotIndex_);
+    return *realRobot_;
   }
 
   /**
@@ -594,14 +587,14 @@ struct MC_TASKS_DLLAPI StabilizerTask : public MetaTask
 
 private:
   void dimWeight(const Eigen::VectorXd & dimW) override;
-  Eigen::VectorXd dimWeight() const override;
+  const Eigen::VectorXd & dimWeight() const noexcept override;
 
   void selectActiveJoints(mc_solver::QPSolver & solver,
                           const std::vector<std::string> & activeJointsName,
                           const std::map<std::string, std::vector<std::array<int, 2>>> & activeDofs = {}) override;
 
-  void selectUnactiveJoints(mc_solver::QPSolver & solver,
-                            const std::vector<std::string> & unactiveJointsName,
+  void selectInactiveJoints(mc_solver::QPSolver & solver,
+                            const std::vector<std::string> & inactiveJointsName,
                             const std::map<std::string, std::vector<std::array<int, 2>>> & unactiveDofs = {}) override;
 
   void resetJointsSelector(mc_solver::QPSolver & solver) override;
@@ -801,9 +794,8 @@ protected:
   std::shared_ptr<mc_tasks::CoMTask> comTask;
   std::shared_ptr<mc_tasks::OrientationTask> pelvisTask; /**< Pelvis orientation task */
   std::shared_ptr<mc_tasks::OrientationTask> torsoTask; /**< Torso orientation task */
-  const mc_rbdyn::Robots & robots_;
-  const mc_rbdyn::Robots & realRobots_;
-  unsigned int robotIndex_;
+  mc_rbdyn::ConstRobotPtr robot_;
+  mc_rbdyn::ConstRobotPtr realRobot_;
 
   /** Stabilizer targets */
   Eigen::Vector3d comTargetRaw_ = Eigen::Vector3d::Zero();
