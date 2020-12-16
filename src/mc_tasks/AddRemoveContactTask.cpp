@@ -75,8 +75,8 @@ mc_tasks::AddRemoveContactTaskPtr load_add_remove_contact_task(mc_solver::QPSolv
 static auto ac_rc_registered =
     mc_tasks::MetaTaskLoader::register_load_function("addRemoveContact", &load_add_remove_contact_task<false>);
 static auto ac_registered =
-    mc_tasks::MetaTaskLoader::register_load_function("addContact", &load_add_remove_contact_task<false>);
+    mc_tasks::MetaTaskLoader::register_load_function("addContact", &load_add_remove_contact_task<true>);
 static auto rc_registered =
-    mc_tasks::MetaTaskLoader::register_load_function("removeContact", &load_add_remove_contact_task<true>);
+    mc_tasks::MetaTaskLoader::register_load_function("removeContact", &load_add_remove_contact_task<false>);
 
 } // namespace

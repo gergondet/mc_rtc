@@ -86,6 +86,16 @@ public:
     return task_->frame();
   }
 
+  inline double weight() const noexcept
+  {
+    return task_->weight();
+  }
+
+  inline double stiffness() const noexcept
+  {
+    return task_->stiffness();
+  }
+
 private:
   mc_solver::BoundedSpeedConstrPtr constraint_;
   mc_tasks::VelocityTaskPtr task_;
