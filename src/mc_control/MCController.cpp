@@ -92,13 +92,17 @@ static mc_rbdyn::RobotsPtr loadRobots(const std::vector<mc_rbdyn::RobotModulePtr
     {
       count[m->name] = 1;
       const auto & r = loadRobot(*robots, gui, m, m->name);
-      realRobots.robotCopy(r, r.name());
+      const auto & real = realRobots.robotCopy(r, r.name());
+      gui.addElement({"Robots", "Real"},
+                     mc_rtc::gui::Robot(r.name(), [&real]() -> const mc_rbdyn::Robot & { return real; }));
     }
     else
     {
       count[m->name] += 1;
       const auto & r = loadRobot(*robots, gui, m, fmt::format("{}_{}", m->name, count[m->name]));
-      realRobots.robotCopy(r, r.name());
+      const auto & real = realRobots.robotCopy(r, r.name());
+      gui.addElement({"Robots", "Real"},
+                     mc_rtc::gui::Robot(r.name(), [&real]() -> const mc_rbdyn::Robot & { return real; }));
     }
   }
   return robots;
