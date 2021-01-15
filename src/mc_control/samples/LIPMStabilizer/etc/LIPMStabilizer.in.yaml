@@ -26,7 +26,6 @@ robots:
     module: env/ground
 # General constraints, always on
 constraints:
-- type: contact
 - type: kinematics
   damper: [0.1, 0.01, 0.5]
 - type: compoundJoint
