@@ -44,16 +44,31 @@ public:
 
   /** Constructor
    *
-   * \param contact The Contact that this function computes
+   * \param f1 First contact frame
    *
-   * \param dof The function dof matrix
+   * \param f2 Second contact frame
+   *
+   * \param dof Contact dof
    *
    */
-  ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2);
+  ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, const Eigen::Vector6d & dof = Eigen::Vector6d::Ones());
+
+  /** Access the contact dof vector */
+  inline const Eigen::Vector6d & dof() const noexcept
+  {
+    return dof_;
+  }
+
+  /** Set the contact dof vector */
+  inline void dof(const Eigen::Vector6d & dof) noexcept
+  {
+    dof_ = dof;
+  }
 
 private:
   mc_rbdyn::FramePtr f1_;
   mc_rbdyn::FramePtr f2_;
+  Eigen::Vector6d dof_;
 
   bool use_f1_ = false;
   rbd::Jacobian f1Jacobian_;

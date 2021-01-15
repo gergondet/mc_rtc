@@ -9,7 +9,8 @@
 namespace mc_tvm
 {
 
-ContactFunction::ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2) : tvm::function::abstract::Function(6)
+ContactFunction::ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, const Eigen::Vector6d & dof)
+: tvm::function::abstract::Function(6), dof_(dof)
 {
   registerUpdates(Update::Value, &ContactFunction::updateValue, Update::Derivatives,
                   &ContactFunction::updateDerivatives);
@@ -49,7 +50,7 @@ ContactFunction::ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2) :
 void ContactFunction::updateValue()
 {
   auto X_f1_f2 = f2_->position() * f1_->position().inv();
-  value_ = sva::transformError(X_f1_f2, X_f1_f2_init_).vector();
+  value_ = dof_.asDiagonal() * sva::transformError(X_f1_f2, X_f1_f2_init_).vector();
 }
 
 void ContactFunction::updateDerivatives()
@@ -67,15 +68,15 @@ void ContactFunction::updateDerivatives()
   normalAcceleration_.setZero();
   if(use_f1_)
   {
-    velocity_ += f1_->velocity().vector();
-    normalAcceleration_ += f1_->normalAcceleration().vector();
-    splitJacobian(f1_->jacobian(), r1.q());
+    velocity_ += dof_.asDiagonal() * f1_->velocity().vector();
+    normalAcceleration_ += dof_.asDiagonal() * f1_->normalAcceleration().vector();
+    splitJacobian(dof_.asDiagonal() * f1_->jacobian(), r1.q());
   }
   if(use_f2_)
   {
-    velocity_ -= f2_->velocity().vector();
-    normalAcceleration_ -= f2_->normalAcceleration().vector();
-    splitJacobian(f2_->jacobian(), r2.q());
+    velocity_ -= dof_.asDiagonal() * f2_->velocity().vector();
+    normalAcceleration_ -= dof_.asDiagonal() * f2_->normalAcceleration().vector();
+    splitJacobian(dof_.asDiagonal() * f2_->jacobian(), r2.q());
   }
   //// The error we computed previously in a MotionVecd
   // sva::MotionVecd err_f1(value_);
