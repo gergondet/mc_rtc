@@ -249,7 +249,7 @@ void QPSolver::addContactToDynamics(const std::string & robot,
   for(int i = 0; i < forces.numberOfVariables(); ++i)
   {
     auto & f = forces[i];
-    auto point = points[i];
+    auto point = points[static_cast<size_t>(i)];
     constraints.push_back(problem_.add(dir * frictionCone * f >= 0.0, {tvm::requirements::PriorityLevel(0)}));
     gui_->addElement(
         {"Forces", robot, std::string(frame.name())},
@@ -284,12 +284,16 @@ void QPSolver::addContact(const mc_rbdyn::Contact & contact)
   auto & s2 = r2.surface(contact.r2Surface);
   auto & f1 = s1.frame();
   auto & f2 = s2.frame();
-  // FIXME Currently ignore dof...
   if(!data.contactConstraint_) // New contact
   {
-    auto contact_fn = std::make_shared<mc_tvm::ContactFunction>(f1, f2);
+    auto contact_fn = std::make_shared<mc_tvm::ContactFunction>(f1, f2, contact.dof);
     data.contactConstraint_ = problem_.add(contact_fn == 0., tvm::task_dynamics::PD(1.0 / dt_, 1.0 / dt_),
                                            {tvm::requirements::PriorityLevel(0)});
+  }
+  else
+  {
+    auto contact_fn = std::static_pointer_cast<mc_tvm::ContactFunction>(data.contactConstraint_->task.function());
+    contact_fn->dof(contact.dof);
   }
   // FIXME Let the user decide how much the friction cone should be discretized
   auto C = discretizedFrictionCone(contact.friction);
