@@ -11,6 +11,7 @@ namespace mc_solver
 
 CompoundJointConstraint::CompoundJointConstraint(mc_rbdyn::Robot & robot, double dt)
 {
+  name_ = fmt::format("CompoundJointConstraint::{}", robot.name());
   functions_.reserve(robot.module().compoundJoints().size());
   constraints_.reserve(functions_.size());
   for(auto & cstr : robot.module().compoundJoints())

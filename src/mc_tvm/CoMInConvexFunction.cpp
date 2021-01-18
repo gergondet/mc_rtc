@@ -67,19 +67,9 @@ void CoMInConvexFunction::updateJacobian()
 {
   Eigen::DenseIndex i = 0;
   const Eigen::MatrixXd & jac = com_->jacobian();
-  const auto & qFF = com_->robot().qFloatingBase();
-  int qFFSize = qFF->space().tSize();
-  const auto & qJoints = com_->robot().qJoints();
   for(const auto & p : planes_)
   {
-    if(qFFSize)
-    {
-      jacobian_[qFF.get()].row(i).noalias() = p->normal().transpose() * jac.middleCols(0, qFFSize);
-    }
-    for(const auto & qJ : qJoints)
-    {
-      jacobian_[qJ.get()].row(i).noalias() = p->normal().transpose() * jac.middleCols(qFFSize, qJ->space().tSize());
-    }
+    jacobian_[com_->robot().q().get()].row(i).noalias() = p->normal().transpose() * jac;
     ++i;
   }
 }

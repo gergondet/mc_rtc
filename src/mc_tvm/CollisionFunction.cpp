@@ -131,16 +131,7 @@ void CollisionFunction::updateJacobian()
     distJac_.block(0, 0, 1, d.jac_.dof()).noalias() =
         (sign * normVecDist_).transpose() * jac.block(3, 0, 3, d.jac_.dof());
     d.jac_.fullJacobian(r.mb(), distJac_.block(0, 0, 1, d.jac_.dof()), fullJac_);
-    int ffSize = r.qFloatingBase()->space().tSize();
-    int jSize = r.qJoints().totalSize();
-    if(ffSize)
-    {
-      jacobian_[r.qFloatingBase().get()].block(0, 0, 1, ffSize) += fullJac_.block(0, 0, 1, ffSize);
-    }
-    if(jSize)
-    {
-      mc_tvm::splitAddJacobian(fullJac_.block(0, ffSize, 1, jSize), r.qJoints(), jacobian_);
-    }
+    jacobian_[r.q().get()] += fullJac_;
     sign = -1.0;
     object = std::ref(c2_);
     point = std::ref(p2_);

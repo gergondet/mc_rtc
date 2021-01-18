@@ -51,22 +51,17 @@ void TrajectoryTaskGeneric<T>::addToSolver(mc_solver::QPSolver & solver)
 {
   if(!task_)
   {
-    // Returns true if error has any of the variables in vars
-    auto hasVariables = [](auto & error, const tvm::VariableVector & vars) {
-      const auto & errVars = error->variables();
-      return std::any_of(vars.begin(), vars.end(), [&](const auto & v) { return errVars.contains(*v); });
-    };
     auto addTask = [&, this](auto & error) {
       tvm::requirements::SolvingRequirements reqs{tvm::requirements::PriorityLevel(1),
                                                   tvm::requirements::Weight(weight_),
                                                   tvm::requirements::AnisotropicWeight(dimWeight_)};
-      if(hasVariables(error, robot().q()))
+      if(error->variables()[0]->derivativeNumber() == 0)
       {
         task_ = solver.problem().add(error == 0., tvm::task_dynamics::PD(stiffness_, damping_), reqs);
       }
       else
       {
-        assert(hasVariables(error, tvm::dot(robot().q())));
+        assert(error->variables()[0]->derivativeNumber() == 1);
         task_ = solver.problem().add(error == 0., tvm::task_dynamics::P(stiffness_), reqs);
       }
     };
