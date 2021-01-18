@@ -471,12 +471,12 @@ bool QPSolver::runJointsFeedback(bool wVelocity)
       robot.forwardAcceleration();
 
       // Set optimization varibles accordingly
-      auto alpha = tvm::dot(robot.q()).value();
+      Eigen::VectorXd alpha = tvm::dot(robot.q())->value();
       rbd::paramToVector(robot.mbc().alpha, alpha);
-      tvm::dot(robot.q()).value(alpha);
-      auto q = robot.q().value();
+      tvm::dot(robot.q())->value(alpha);
+      Eigen::VectorXd q = robot.q()->value();
       rbd::paramToVector(robot.mbc().q, q);
-      robot.q().value(q);
+      robot.q()->value(q);
     }
   }
   if(runCommon())
@@ -523,12 +523,12 @@ bool QPSolver::runClosedLoop()
     robot.forwardAcceleration();
 
     // Set variable values accordingly
-    auto alpha = tvm::dot(robot.q()).value();
+    Eigen::VectorXd alpha = tvm::dot(robot.q())->value();
     rbd::paramToVector(robot.mbc().alpha, alpha);
-    tvm::dot(robot.q()).value(alpha);
-    auto q = robot.q().value();
+    tvm::dot(robot.q())->value(alpha);
+    Eigen::VectorXd q = robot.q()->value();
     rbd::paramToVector(robot.mbc().q, q);
-    robot.q().value(q);
+    robot.q()->value(q);
   }
 
   // Solve QP and integrate
@@ -556,14 +556,14 @@ void QPSolver::updateRobot(mc_rbdyn::Robot & robot)
   auto & mb = robot.mb();
   auto & mbc = robot.mbc();
   rbd::vectorToParam(robot.tau()->value(), mbc.jointTorque);
-  rbd::vectorToParam(tvm::dot(robot.q(), 2).value(), mbc.alphaD);
+  rbd::vectorToParam(tvm::dot(robot.q(), 2)->value(), mbc.alphaD);
   rbd::eulerIntegration(mb, mbc, dt_);
-  auto alpha = tvm::dot(robot.q()).value();
+  Eigen::VectorXd alpha = tvm::dot(robot.q())->value();
   rbd::paramToVector(mbc.alpha, alpha);
-  tvm::dot(robot.q()).value(alpha);
-  auto q = robot.q().value();
+  tvm::dot(robot.q())->value(alpha);
+  Eigen::VectorXd q = robot.q()->value();
   rbd::paramToVector(mbc.q, q);
-  robot.q().value(q);
+  robot.q()->value(q);
   // FIXME We update the kinematics here for logging and display purpose mostly
   robot.updateKinematics();
 }

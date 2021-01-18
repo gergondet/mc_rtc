@@ -82,7 +82,6 @@ protected:
    */
   JointsSelectorFunction(tvm::FunctionPtr f,
                          const mc_rbdyn::Robot & robot,
-                         bool fbActive,
                          const std::vector<std::pair<Eigen::DenseIndex, Eigen::DenseIndex>> & activeIndex);
 
 protected:
@@ -91,7 +90,6 @@ protected:
 
   tvm::FunctionPtr f_;
   mc_rbdyn::ConstRobotPtr robot_;
-  bool fbActive_;
   std::vector<std::pair<Eigen::DenseIndex, Eigen::DenseIndex>> activeIndex_;
 };
 

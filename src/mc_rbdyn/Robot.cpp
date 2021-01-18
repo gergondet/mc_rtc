@@ -416,22 +416,18 @@ Robot::Robot(make_shared_token,
 
   // Create TVM variables
   {
-    size_t j0 = 0;
+    q_ = tvm::Space(mb().nrDof(), mb().nrParams(), mb().nrDof()).createVariable(name_);
     if(mb().nrJoints() > 0 && mb().joint(0).type() == rbd::Joint::Free)
     {
-      j0 = 1;
-      q_fb_ = tvm::Space(6, 7, 6).createVariable(name_ + "_qFloatingBase");
+      q_fb_ = q_->subvariable(tvm::Space(6, 7, 6), "qFloatingBase");
+      q_joints_ = q_->subvariable(tvm::Space(mb().nrDof() - 6, mb().nrParams() - 7, mb().nrDof() - 6), "qJoints",
+                                  tvm::Space(6, 7, 6));
     }
     else
     {
-      q_fb_ = tvm::Space(0).createVariable(name_ + "_qFloatingBase");
+      q_fb_ = q_->subvariable(tvm::Space(0), "qFloatingBase");
+      q_joints_ = q_;
     }
-    int nParams = 0;
-    int nDof = 0;
-    bool mimicBlock = false;
-    size_t startIdx = j0;
-    size_t endIdx = 0;
-    size_t leaderIdx = 0;
     Eigen::VectorXd mimicMultiplier = Eigen::VectorXd(0);
     mc_rtc::map<size_t, tvm::VariablePtr> mimicLeaders;
     mc_rtc::map<size_t, mimic_variables_t> mimicFollowers;
@@ -441,120 +437,33 @@ Robot::Robot(make_shared_token,
                           [&](const auto & j) { return j.isMimic() && j.mimicName() == jName; })
              != mb().joints().end();
     };
-    // Create a variable based on a joint range
-    auto makeQVar = [&](size_t startIdx, size_t endIdx, int nParams, int nDof, size_t leaderIdx, bool isLeader) {
-      if(nParams == 0)
+    const auto & joints = mb().joints();
+    int nParams = 0;
+    int nDof = 0;
+    for(size_t i = 0; i < joints.size(); ++i)
+    {
+      const auto & j = joints[i];
+      if(isMimicLeader(j.name()))
       {
-        return;
+        tvm::VariablePtr var = qJoint(i);
+        mimicLeaders[i] = var;
       }
-      auto vName = fmt::format("{}_q_{}", name_, mb().joints()[startIdx].name());
-      if(startIdx != endIdx)
+      else if(j.isMimic())
       {
-        vName = fmt::format("{}...{}", vName, mb().joints()[endIdx].name());
-      }
-      tvm::VariablePtr var = tvm::Space(nDof, nParams, nDof).createVariable(vName);
-      if(isLeader)
-      {
-        mimicLeaders[leaderIdx] = var;
-      }
-      else if(leaderIdx < mb().joints().size())
-      {
+        auto leaderIdx = jointIndexByName(j.mimicName());
+        tvm::VariablePtr var = qJoint(i);
         if(!mimicFollowers.count(leaderIdx))
         {
           mimicFollowers[leaderIdx].second.resize(0);
         }
         mimicFollowers[leaderIdx].first.add(var);
         auto & mult = mimicFollowers[leaderIdx].second;
-        auto newM = Eigen::VectorXd(mult.size() + mimicMultiplier.size());
-        newM << mult, mimicMultiplier;
+        auto newM = Eigen::VectorXd(mult.size() + 1);
+        newM << mult, j.mimicMultiplier();
         mult = newM;
       }
-      q_joints_.add(var);
-    };
-    size_t nJoints = mb().joints().size();
-    for(size_t jIdx = j0; jIdx < nJoints; ++jIdx)
-    {
-      const auto & j = mb().joints()[jIdx];
-      if(j.isMimic())
-      {
-        if(!mimicBlock) // Enter a new mimic block
-        {
-          mimicBlock = true;
-          if(jIdx != 0 && startIdx != jIdx) // The mimic is not the first joint and the previous joint was not a leader
-          {
-            makeQVar(startIdx, endIdx, nParams, nDof, nJoints, false);
-          }
-          startIdx = jIdx;
-          leaderIdx = mb().jointIndexByName(j.mimicName());
-          nParams = 0;
-          nDof = 0;
-          mimicMultiplier.resize(0);
-        }
-        else
-        {
-          // Maybe we are entering a mimic block for another leader
-          size_t nLeaderIdx = mb().jointIndexByName(j.mimicName());
-          if(nLeaderIdx != leaderIdx)
-          {
-            makeQVar(startIdx, endIdx, nParams, nDof, leaderIdx, false);
-            startIdx = jIdx;
-            leaderIdx = nLeaderIdx;
-            nParams = 0;
-            nDof = 0;
-            mimicMultiplier.resize(0);
-          }
-        }
-        nParams += j.params();
-        nDof += j.dof();
-        endIdx = jIdx;
-        mimicMultiplier.conservativeResize(mimicMultiplier.size() + 1);
-        mimicMultiplier(mimicMultiplier.size() - 1) = j.mimicMultiplier();
-      }
-      else
-      {
-        if(mimicBlock) // end of a mimic block
-        {
-          makeQVar(startIdx, endIdx, nParams, nDof, leaderIdx, false);
-          startIdx = jIdx;
-          nParams = 0;
-          nDof = 0;
-        }
-        if(isMimicLeader(j.name()))
-        {
-          if(!mimicBlock) // we didn't create a variable block before
-          {
-            makeQVar(startIdx, endIdx, nParams, nDof, nJoints, false);
-            nParams = 0;
-            nDof = 0;
-          }
-          makeQVar(jIdx, jIdx, j.params(), j.dof(), jIdx, true);
-          startIdx = jIdx + 1;
-          endIdx = jIdx + 1;
-        }
-        else if(j.dof() != 0) // This avoids having unactuated joints in the variable names
-        {
-          if(nParams == 0) // Didn't encounter an active joint yet
-          {
-            startIdx = jIdx;
-          }
-          endIdx = jIdx;
-        }
-        mimicBlock = false;
-        nParams += j.params();
-        nDof += j.dof();
-      }
-    }
-    if(mimicBlock) // ended the loop inside a block of mimic joints
-    {
-      const auto & leaderIdx = mb().jointIndexByName(mb().joints()[startIdx].mimicName());
-      makeQVar(startIdx, nJoints - 1, nParams, nDof, leaderIdx, false);
-    }
-    else
-    {
-      if(startIdx < nJoints && nParams != 0)
-      {
-        makeQVar(startIdx, endIdx, nParams, nDof, nJoints, false);
-      }
+      nParams += j.params();
+      nDof += j.dof();
     }
     for(auto & m : mimicLeaders)
     {
@@ -562,15 +471,13 @@ Robot::Robot(make_shared_token,
     }
   }
   tau_ = tvm::Space(mb().nrDof()).createVariable(name_ + "_tau");
-  q_.add(q_fb_);
-  q_.add(q_joints_);
-  dq_ = dot(q_, 1);
-  ddq_ = dot(q_, 2);
-  auto q_init = q_.value();
+  dq_ = tvm::dot(q_, 1);
+  ddq_ = tvm::dot(q_, 2);
+  Eigen::VectorXd q_init = q_->value();
   rbd::paramToVector(mbc().q, q_init);
-  q_.value(q_init);
-  dq_.value(Eigen::VectorXd::Zero(dq_.totalSize()));
-  ddq_.value(Eigen::VectorXd::Zero(ddq_.totalSize()));
+  q_->value(q_init);
+  dq_->value(Eigen::VectorXd::Zero(dq_->size()));
+  ddq_->value(Eigen::VectorXd::Zero(ddq_->size()));
   tau_->value(Eigen::VectorXd::Zero(tau_->size()));
 
   /** Signal setup */
@@ -1386,12 +1293,8 @@ void Robot::updateKinematics()
   // kinematicsGraph_.execute();
 }
 
-std::tuple<tvm::VariablePtr, int, int> Robot::qJoint(size_t jIdx)
+tvm::VariablePtr Robot::qJoint(size_t jIdx)
 {
-  if(jIdx == 0 && q_fb_->size() != 0)
-  {
-    return {q_fb_, 0, 0};
-  }
   if(jIdx > mb().joints().size())
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("{} has no joint at index {}", name_, jIdx);
@@ -1400,33 +1303,11 @@ std::tuple<tvm::VariablePtr, int, int> Robot::qJoint(size_t jIdx)
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("{} is not actuated in {}", mb().joints()[jIdx].name(), name_);
   }
-  auto qInParam = mb().jointPosInParam(jIdx);
-  int startParam = q_fb_->size();
-  for(auto & q : q_joints_)
-  {
-    if(startParam + q->size() < qInParam)
-    {
-      startParam += q->size();
-      continue;
-    }
-    // Find the joint index that will bring us to the param start
-    size_t rootIdx = jIdx;
-    while(mb().jointPosInParam(rootIdx) != startParam)
-    {
-      rootIdx--;
-    }
-    int paramOffset = 0;
-    int dofOffset = 0;
-    while(rootIdx != jIdx)
-    {
-      const auto & j = mb().joint(rootIdx);
-      paramOffset += j.params();
-      dofOffset += j.dof();
-      rootIdx++;
-    }
-    return {q, paramOffset, dofOffset};
-  }
-  mc_rtc::log::error_and_throw<std::runtime_error>("Impossible");
+  auto offsetParam = mb().jointPosInParam(static_cast<int>(jIdx));
+  auto offsetDof = mb().jointPosInDof(static_cast<int>(jIdx));
+  const auto & j = mb().joints()[jIdx];
+  return q_->subvariable(tvm::Space(j.dof(), j.params(), j.dof()), j.name(),
+                         tvm::Space(offsetDof, offsetParam, offsetDof));
 }
 
 } // namespace mc_rbdyn

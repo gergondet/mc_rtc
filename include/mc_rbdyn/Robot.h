@@ -279,12 +279,12 @@ public:
   std::vector<sva::MotionVecd> & normalAccB();
 
   /** Access q variable (const) */
-  inline const tvm::VariableVector & q() const noexcept
+  inline const tvm::VariablePtr & q() const noexcept
   {
     return q_;
   }
   /** Access q variable */
-  inline tvm::VariableVector & q() noexcept
+  inline tvm::VariablePtr & q() noexcept
   {
     return q_;
   }
@@ -301,24 +301,25 @@ public:
   }
 
   /** Access joints variable (const) */
-  inline const tvm::VariableVector & qJoints() const noexcept
+  inline const tvm::VariablePtr & qJoints() const noexcept
   {
     return q_joints_;
   }
   /** Access joints variable */
-  inline tvm::VariableVector & qJoints() noexcept
+  inline tvm::VariablePtr & qJoints() noexcept
   {
     return q_joints_;
   }
 
-  /** Given a joint index, returns the TVM variable it belongs to and the index
-   * of the joint in this variable and it s derivative (param, dof)
+  /** Given a joint index creates a TVM variable corresponding to this variable
+   *
+   * \warning This returns a different object (but the same variable from TVM pov) each time this function is called
    *
    * \param jIdx Joint index
    *
    * \throws If the joint index is out of bounds or the joint is not actuated
    */
-  std::tuple<tvm::VariablePtr, int, int> qJoint(size_t jIdx);
+  tvm::VariablePtr qJoint(size_t jIdx);
 
   /** Given a joint name, returns the TVM variable it belongs to and the index of the joint in this variable
    *
@@ -326,7 +327,7 @@ public:
    *
    * \throws If the robot does not have such a joint or the joint is not actuated
    */
-  inline std::tuple<tvm::VariablePtr, int, int> qJoint(std::string_view jName)
+  inline tvm::VariablePtr qJoint(std::string_view jName)
   {
     return qJoint(jointIndexByName(jName));
   }
@@ -906,15 +907,15 @@ private:
   /** Floating-base variable */
   tvm::VariablePtr q_fb_;
   /** Joints variable */
-  tvm::VariableVector q_joints_;
+  tvm::VariablePtr q_joints_;
   /** Generalized configuration variable */
-  tvm::VariableVector q_;
+  tvm::VariablePtr q_;
   /** Map mimic leader joint to their followers */
   mc_rtc::map<tvm::VariablePtr, mimic_variables_t> mimics_;
   /** Derivative of q */
-  tvm::VariableVector dq_;
+  tvm::VariablePtr dq_;
   /** Double derivative of q */
-  tvm::VariableVector ddq_;
+  tvm::VariablePtr ddq_;
   /** Tau variable */
   tvm::VariablePtr tau_;
   /** Robot's mass */
