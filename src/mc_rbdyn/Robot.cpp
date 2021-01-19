@@ -431,13 +431,36 @@ Robot::Robot(make_shared_token,
     Eigen::VectorXd mimicMultiplier = Eigen::VectorXd(0);
     mc_rtc::map<size_t, tvm::VariablePtr> mimicLeaders;
     mc_rtc::map<size_t, mimic_variables_t> mimicFollowers;
+    const auto & joints = mb().joints();
     // Returns true if the provided joint is a leader in a mimic relationship
     auto isMimicLeader = [&](std::string_view jName) {
       return std::find_if(mb().joints().begin(), mb().joints().end(),
                           [&](const auto & j) { return j.isMimic() && j.mimicName() == jName; })
              != mb().joints().end();
     };
-    const auto & joints = mb().joints();
+    // Returns a mimic block, i.e. following a given mimic joint all joints that follow that are also mimic of the same
+    // joint
+    auto getMimicBlock = [&](size_t startIdx) -> std::tuple<int, int, size_t> {
+      const auto & mimicJ = joints[startIdx];
+      size_t endIdx = startIdx;
+      int params = mimicJ.params();
+      int dof = mimicJ.dof();
+      for(size_t i = startIdx + 1; i < joints.size(); ++i)
+      {
+        const auto & j = joints[i];
+        if(j.isMimic() && j.mimicName() == mimicJ.mimicName())
+        {
+          endIdx = i;
+          params += j.params();
+          dof += j.dof();
+        }
+        else
+        {
+          break;
+        }
+      }
+      return {params, dof, endIdx};
+    };
     int nParams = 0;
     int nDof = 0;
     for(size_t i = 0; i < joints.size(); ++i)
@@ -450,17 +473,28 @@ Robot::Robot(make_shared_token,
       }
       else if(j.isMimic())
       {
+        auto [params, dof, endIdx] = getMimicBlock(i);
         auto leaderIdx = jointIndexByName(j.mimicName());
-        tvm::VariablePtr var = qJoint(i);
+        tvm::VariablePtr var =
+            q_->subvariable(tvm::Space(dof, params), fmt::format("{}...{}", j.name(), joints[endIdx].name()),
+                            tvm::Space(nDof, nParams));
         if(!mimicFollowers.count(leaderIdx))
         {
           mimicFollowers[leaderIdx].second.resize(0);
         }
         mimicFollowers[leaderIdx].first.add(var);
         auto & mult = mimicFollowers[leaderIdx].second;
-        auto newM = Eigen::VectorXd(mult.size() + 1);
-        newM << mult, j.mimicMultiplier();
+        auto newM = Eigen::VectorXd(mult.size() + var->size());
+        newM.head(mult.size()) = mult;
+        for(size_t ii = i; ii <= endIdx; ++ii)
+        {
+          newM(mult.size() + ii - i) = joints[ii].mimicMultiplier();
+        }
         mult = newM;
+        nParams += params;
+        nDof += dof;
+        i = endIdx;
+        continue;
       }
       nParams += j.params();
       nDof += j.dof();
