@@ -8,6 +8,8 @@
 
 #include <mc_rtc/shared.h>
 
+#include <string>
+
 namespace mc_solver
 {
 
