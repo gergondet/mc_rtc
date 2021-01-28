@@ -180,7 +180,7 @@ Robot::Robot(make_shared_token,
     else if(bounds.size() == 2)
     {
       initBound(fmt::format("lower {}", name), lower, mb().nrDof(), &rbd::Joint::dof, bounds[0], -inf, -inf);
-      initBound(fmt::format("upper {}", name), lower, mb().nrDof(), &rbd::Joint::dof, bounds[1], inf, inf);
+      initBound(fmt::format("upper {}", name), upper, mb().nrDof(), &rbd::Joint::dof, bounds[1], inf, inf);
     }
     else
     {
