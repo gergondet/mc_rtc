@@ -97,10 +97,16 @@ public:
   Robot & operator=(Robot &&) = default;
 
   /** Returns the name of the robot */
-  const std::string & name() const;
+  inline const std::string & name() const noexcept
+  {
+    return name_;
+  }
 
   /** Retrieve the associated RobotModule */
-  const RobotModule & module() const;
+  inline const RobotModule & module() const noexcept
+  {
+    return module_;
+  }
 
   /** Retrieve the joint limits */
   inline const Limits & limits() const noexcept
@@ -818,7 +824,16 @@ public:
   void loadRSDFFromDir(std::string_view surfaceDir);
 
   /** Return the robot's default stance (e.g. half-sitting for humanoid) */
-  mc_rtc::map<std::string, std::vector<double>> stance() const;
+  inline const mc_rtc::map<std::string, std::vector<double>> & stance() const noexcept
+  {
+    return module().stance();
+  }
+
+  /** Returns the robot's default joint order */
+  inline const std::vector<std::string> & refJointOrder() const noexcept
+  {
+    return module().ref_joint_order();
+  }
 
   /** Apply Euler integration to the robot using \p step timestep */
   void eulerIntegration(double step);
