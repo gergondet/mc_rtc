@@ -105,8 +105,29 @@ void MCCoMController::reset(const ControllerResetData & reset_data)
     mc_rtc::log::error_and_throw<std::runtime_error>("CoM sample controller does not support this robot {}",
                                                      robot().name());
   }
-  solver().addTask(std::make_shared<mc_tasks::OrientationTask>(robot().frame("WAIST_R_S")));
-  solver().addTask(std::make_shared<mc_tasks::TransformTask>(robot().frame("r_wrist")));
+  if(robot().module().defaultLIPMStabilizerConfiguration().torsoBodyName.size())
+  {
+    const auto & torso = robot().module().defaultLIPMStabilizerConfiguration().torsoBodyName;
+    solver().addTask(std::make_shared<mc_tasks::OrientationTask>(robot().frame(torso)));
+  }
+  else if(robot().hasFrame("WAIST_R_S"))
+  {
+    solver().addTask(std::make_shared<mc_tasks::OrientationTask>(robot().frame("WAIST_R_S")));
+  }
+  auto r_wrist = [&]() -> std::string {
+    for(const auto & f : {"r_wrist", "RightGripper", "RightHand"})
+    {
+      if(robot().hasFrame(f))
+      {
+        return f;
+      }
+    }
+    return "";
+  }();
+  if(r_wrist.size())
+  {
+    solver().addTask(std::make_shared<mc_tasks::TransformTask>(robot().frame(r_wrist)));
+  }
   solver().addConstraint(dynamicsConstraint_);
   solver().addConstraint(collisionConstraint_);
   solver().addConstraint(compoundJointConstraint_);
