@@ -536,16 +536,6 @@ Robot::Robot(make_shared_token,
   updateAll();
 }
 
-const std::string & Robot::name() const
-{
-  return name_;
-}
-
-const RobotModule & Robot::module() const
-{
-  return module_;
-}
-
 bool Robot::hasFrame(std::string_view frame) const
 {
   return frames_.contains(frame);
