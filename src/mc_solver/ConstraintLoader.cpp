@@ -14,3 +14,11 @@ ConstraintLoader::storage_t & ConstraintLoader::storage()
 }
 
 } // namespace mc_solver
+
+namespace
+{
+
+static auto registered = mc_solver::ConstraintLoader::register_load_function(
+    "contact",
+    [](mc_solver::QPSolver &, const mc_rtc::Configuration &) { return nullptr; });
+}
