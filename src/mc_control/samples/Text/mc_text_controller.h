@@ -22,7 +22,7 @@ public:
 
 private:
   mc_rtc::Configuration config_;
-  std::vector<mc_solver::ConstraintSetPtr> constraints_;
+  std::vector<mc_solver::ConstraintPtr> constraints_;
   std::vector<mc_tasks::MetaTaskPtr> tasks_;
 };
 

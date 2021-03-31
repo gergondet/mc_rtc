@@ -10,7 +10,7 @@ ExternalForcesController::ExternalForcesController(mc_rbdyn::RobotModulePtr rm,
 : mc_control::fsm::Controller(rm, dt, config)
 {
   datastore().make_call("KinematicAnchorFrame::" + robot().name(), [](const mc_rbdyn::Robot & robot) {
-    return sva::interpolate(robot.surfacePose("LeftFoot"), robot.surfacePose("RightFoot"), 0.5);
+    return sva::interpolate(robot.frame("LeftFoot").position(), robot.frame("RightFoot").position(), 0.5);
   });
 }
 
@@ -20,24 +20,25 @@ void ExternalForcesController::reset(const mc_control::ControllerResetData & res
 
   auto handForceConfig = mc_rtc::gui::ForceConfig(mc_rtc::gui::Color::Red);
   handForceConfig.force_scale *= 10;
-  gui()->addElement({"Forces"},
-                    mc_rtc::gui::Force("LeftGripperForce", handForceConfig,
-                                       [this]() { return robot().surfaceWrench("LeftGripper"); },
-                                       [this]() { return robot().surfacePose("LeftGripper"); }),
-                    mc_rtc::gui::Force("RightGripperForce", handForceConfig,
-                                       [this]() { return robot().surfaceWrench("RightGripper"); },
-                                       [this]() { return robot().surfacePose("RightGripper"); }));
+  gui().addElement({"Forces"},
+                   mc_rtc::gui::Force("LeftGripperForce", handForceConfig,
+                                      [this]() { return robot().frame("LeftGripper").wrench(); },
+                                      [this]() { return robot().frame("LeftGripper").position(); }),
+                   mc_rtc::gui::Force("RightGripperForce", handForceConfig,
+                                      [this]() { return robot().frame("RightGripper").wrench(); },
+                                      [this]() { return robot().frame("RightGripper").position(); }));
 
-  gui()->addPlot(
-      "Surface wrenches", mc_rtc::gui::plot::X("t", [this]() { return t_; }),
-      mc_rtc::gui::plot::Y("LeftGripperForceZ", [this]() { return robot().surfaceWrench("LeftGripper").force().z(); },
-                           mc_rtc::gui::Color::Red),
-      mc_rtc::gui::plot::Y("RightGripperForceZ", [this]() { return robot().surfaceWrench("RightGripper").force().z(); },
-                           mc_rtc::gui::Color::Red));
+  gui().addPlot("Surface wrenches", mc_rtc::gui::plot::X("t", [this]() { return t_; }),
+                mc_rtc::gui::plot::Y("LeftGripperForceZ",
+                                     [this]() { return robot().frame("LeftGripper").wrench().force().z(); },
+                                     mc_rtc::gui::Color::Red),
+                mc_rtc::gui::plot::Y("RightGripperForceZ",
+                                     [this]() { return robot().frame("RightGripper").wrench().force().z(); },
+                                     mc_rtc::gui::Color::Red));
 }
 
 bool ExternalForcesController::run()
 {
-  t_ += timeStep;
+  t_ += solver().dt();
   return Controller::run();
 }

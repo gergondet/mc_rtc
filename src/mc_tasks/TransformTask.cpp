@@ -127,7 +127,8 @@ void TransformTask::target(const mc_rbdyn::Frame & f, const sva::PTransformd & o
 void TransformTask::addToLogger(mc_rtc::Logger & logger)
 {
   TrajectoryBase::addToLogger(logger);
-  logger.addLogEntry(name_ + "_pose", this, [this]() -> const sva::PTransformd & { return errorT_->frame().position(); });
+  logger.addLogEntry(name_ + "_pose", this,
+                     [this]() -> const sva::PTransformd & { return errorT_->frame().position(); });
   logger.addLogEntry(name_ + "_target", this, [this]() -> const sva::PTransformd & { return target(); });
 }
 

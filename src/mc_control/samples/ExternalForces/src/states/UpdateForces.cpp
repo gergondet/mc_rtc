@@ -18,11 +18,11 @@ void UpdateForces::start(mc_control::fsm::Controller & _ctl)
 
   for(auto task : ctl.solver().tasks())
   {
-    if(auto stabilizerTask = dynamic_cast<mc_tasks::lipm_stabilizer::StabilizerTask *>(task))
+    if(auto stabilizerTask = dynamic_cast<mc_tasks::lipm_stabilizer::StabilizerTask *>(task.get()))
     {
       stabilizerTask_ = stabilizerTask;
     }
-    else if(auto impedanceTask = dynamic_cast<mc_tasks::force::ImpedanceTask *>(task))
+    else if(auto impedanceTask = dynamic_cast<mc_tasks::force::ImpedanceTask *>(task.get()))
     {
       impedanceTasks_.push_back(impedanceTask);
     }
@@ -46,7 +46,7 @@ bool UpdateForces::run(mc_control::fsm::Controller & _ctl)
   for(const auto & impedanceTask : impedanceTasks_)
   {
     impedanceTask->targetWrench(targetWrench);
-    surfaceNames.push_back(impedanceTask->surface());
+    surfaceNames.push_back(std::string{impedanceTask->frame().name()});
     targetWrenches.push_back(targetWrench);
     gains.emplace_back(Eigen::Vector3d::Zero(), Eigen::Vector3d::UnitZ());
   }
