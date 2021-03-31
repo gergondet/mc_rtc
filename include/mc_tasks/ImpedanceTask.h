@@ -5,7 +5,7 @@
 #pragma once
 
 #include <mc_tasks/ImpedanceGains.h>
-#include <mc_tasks/SurfaceTransformTask.h>
+#include <mc_tasks/TransformTask.h>
 
 #include <mc_filter/LowPass.h>
 
@@ -49,18 +49,14 @@ namespace force
  *    https://www.springer.com/jp/book/9780792377337
  *
  */
-struct MC_TASKS_DLLAPI ImpedanceTask : SurfaceTransformTask
+struct MC_TASKS_DLLAPI ImpedanceTask : TransformTask
 {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   /*! \brief Constructor.
    *
-   * \param surfaceName Name of the surface frame to control
-   *
-   * \param robots Robots controlled by this task
-   *
-   * \param robotIndex Index of the robot controlled by this task
+   * \param frame Frame to control
    *
    * \param stiffness Task stiffness
    *
@@ -70,11 +66,7 @@ public:
    * sensor attached to it
    *
    */
-  ImpedanceTask(const std::string & surfaceName,
-                const mc_rbdyn::Robots & robots,
-                unsigned robotIndex,
-                double stiffness = 5.0,
-                double weight = 1000.0);
+  ImpedanceTask(mc_rbdyn::Frame & frame, double stiffness = 5.0, double weight = 1000.0);
 
   /*! \brief Reset the task
    *
@@ -97,43 +89,43 @@ public:
   }
 
   /*! \brief Get the target pose of the surface in the world frame. */
-  const sva::PTransformd & targetPose() const noexcept
+  inline const sva::PTransformd & targetPose() const noexcept
   {
     return targetPoseW_;
   }
 
   /*! \brief Set the target pose of the surface in the world frame. */
-  void targetPose(const sva::PTransformd & pose)
+  inline void targetPose(const sva::PTransformd & pose) noexcept
   {
     targetPoseW_ = pose;
   }
 
   /*! \brief Get the target velocity of the surface in the world frame. */
-  const sva::MotionVecd & targetVel() const noexcept
+  inline const sva::MotionVecd & targetVel() const noexcept
   {
     return targetVelW_;
   }
 
   /*! \brief Set the target velocity of the surface in the world frame. */
-  void targetVel(const sva::MotionVecd & vel)
+  inline void targetVel(const sva::MotionVecd & vel) noexcept
   {
     targetVelW_ = vel;
   }
 
   /*! \brief Get the target acceleration of the surface in the world frame. */
-  const sva::MotionVecd & targetAccel() const noexcept
+  inline const sva::MotionVecd & targetAccel() const noexcept
   {
     return targetAccelW_;
   }
 
   /*! \brief Set the target acceleration of the surface in the world frame. */
-  void targetAccel(const sva::MotionVecd & accel)
+  inline void targetAccel(const sva::MotionVecd & accel) noexcept
   {
     targetAccelW_ = accel;
   }
 
   /*! \brief Get the relative pose from target frame to compliance frame represented in the world frame. */
-  const sva::PTransformd & deltaCompliancePose() const
+  inline const sva::PTransformd & deltaCompliancePose() const noexcept
   {
     return deltaCompPoseW_;
   }
@@ -144,14 +136,14 @@ public:
    *  See the Constructor description for the definition of compliance pose.
    *
    */
-  const sva::PTransformd compliancePose() const
+  inline const sva::PTransformd compliancePose() const noexcept
   {
     sva::PTransformd T_0_d(targetPoseW_.rotation());
     return T_0_d * deltaCompPoseW_ * T_0_d.inv() * targetPoseW_;
   }
 
   /*! \brief Get the target wrench in the surface frame. */
-  const sva::ForceVecd & targetWrench() const noexcept
+  inline const sva::ForceVecd & targetWrench() const noexcept
   {
     return targetWrench_;
   }
@@ -160,38 +152,37 @@ public:
    * This function will convert the wrench from the world frame to the surface frame, and call targetWrench().
    *
    */
-  void targetWrenchW(const sva::ForceVecd & wrenchW)
+  inline void targetWrenchW(const sva::ForceVecd & wrenchW) noexcept
   {
-    const auto & X_0_s = robots.robot(rIndex).surfacePose(surfaceName);
-    targetWrench(X_0_s.dualMul(wrenchW));
+    targetWrench(frame().position().dualMul(wrenchW));
   }
 
   /*! \brief Set the target wrench in the surface frame. */
-  void targetWrench(const sva::ForceVecd & wrench)
+  inline void targetWrench(const sva::ForceVecd & wrench) noexcept
   {
     targetWrench_ = wrench;
   }
 
   /*! \brief Get the measured wrench in the surface frame. */
-  const sva::ForceVecd & measuredWrench() const
+  inline const sva::ForceVecd & measuredWrench() const noexcept
   {
     return measuredWrench_;
   }
 
   /*! \brief Get the filtered measured wrench in the surface frame. */
-  const sva::ForceVecd & filteredMeasuredWrench() const
+  inline const sva::ForceVecd & filteredMeasuredWrench() const noexcept
   {
     return filteredMeasuredWrench_;
   }
 
   /*! \brief Get the cutoff period for the low-pass filter of measured wrench. */
-  double cutoffPeriod() const
+  inline double cutoffPeriod() const noexcept
   {
     return lowPass_.cutoffPeriod();
   }
 
   /*! \brief Set the cutoff period for the low-pass filter of measured wrench. */
-  void cutoffPeriod(double cutoffPeriod)
+  inline void cutoffPeriod(double cutoffPeriod) noexcept
   {
     lowPass_.cutoffPeriod(cutoffPeriod);
   }
@@ -267,9 +258,9 @@ private:
    *  Instead, the user can set the targetPose, targetVel, and targetAccel.
    *  Targets of SurfaceTransformTask are determined from the target values through the impedance equation.
    */
-  using SurfaceTransformTask::refAccel;
-  using SurfaceTransformTask::refVelB;
-  using SurfaceTransformTask::target;
+  using TransformTask::refAccel;
+  using TransformTask::refVelB;
+  using TransformTask::target;
 };
 
 } // namespace force
