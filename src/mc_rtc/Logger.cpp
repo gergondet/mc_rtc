@@ -145,7 +145,11 @@ struct LoggerThreadedPolicyImpl : public LoggerImpl
   {
     char * ndata = new char[size];
     std::memcpy(ndata, data, size);
-    data_.push({ndata, size});
+    if(!data_.push({ndata, size}))
+    {
+      mc_rtc::log::critical("Data cannot be added to the log");
+      delete[] ndata;
+    }
   }
 
   std::thread log_sync_th_;
