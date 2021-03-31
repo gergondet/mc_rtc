@@ -43,7 +43,8 @@ BENCHMARK_DEFINE_F(RobotLoadingFixture, RobotCreation)(benchmark::State & state)
   auto rm = mc_rbdyn::RobotLoader::get_robot_module("JVRC1");
   while(state.KeepRunning())
   {
-    auto robots = mc_rbdyn::loadRobot(*rm);
+    mc_rbdyn::Robots robots;
+    robots.load(*rm, rm->name);
   }
 }
 BENCHMARK_REGISTER_F(RobotLoadingFixture, RobotCreation)->Unit(benchmark::kMicrosecond);
@@ -51,8 +52,8 @@ BENCHMARK_REGISTER_F(RobotLoadingFixture, RobotCreation)->Unit(benchmark::kMicro
 BENCHMARK_DEFINE_F(RobotLoadingFixture, RobotCopy)(benchmark::State & state)
 {
   auto rm = mc_rbdyn::RobotLoader::get_robot_module("JVRC1");
-  auto robots_ptr = mc_rbdyn::loadRobot(*rm);
-  const auto & robots = *robots_ptr;
+  mc_rbdyn::Robots robots;
+  robots.load(*rm, rm->name);
   while(state.KeepRunning())
   {
     auto robots_copy = robots;
