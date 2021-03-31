@@ -851,7 +851,7 @@ bool Robot::frameHasForceSensor(std::string_view frame) const
 
 bool Robot::frameHasIndirectForceSensor(std::string_view frame) const
 {
-  return frameIndirectForceSensors_.contains(frame);
+  return frameHasForceSensor(frame) || frameIndirectForceSensors_.contains(frame);
 }
 
 ForceSensor & Robot::forceSensor(std::string_view name)
