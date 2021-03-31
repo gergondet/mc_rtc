@@ -16,26 +16,21 @@ MCEndEffectorController::MCEndEffectorController(std::shared_ptr<mc_rbdyn::Robot
                                                  const mc_rtc::Configuration & config)
 : MCController(robot_module, dt)
 {
-  solver().addConstraintSet(contactConstraint);
-  solver().addConstraintSet(dynamicsConstraint);
-  solver().addConstraintSet(selfCollisionConstraint);
-  solver().addConstraintSet(*compoundJointConstraint);
-  solver().addTask(postureTask.get());
+  solver().addConstraint(dynamicsConstraint_);
+  solver().addConstraint(collisionConstraint_);
+  solver().addConstraint(compoundJointConstraint_);
+  solver().addTask(postureTask_);
   if(robot().hasSurface("LFullSole") && robot().hasSurface("RFullSole"))
   {
-    solver().setContacts(
-        {mc_rbdyn::Contact(robots(), "LFullSole", "AllGround"), mc_rbdyn::Contact(robots(), "RFullSole", "AllGround")});
+    solver().addContact({robot().name(), "ground", "LFullSole", "AllGround"});
+    solver().addContact({robot().name(), "ground", "RFullSole", "AllGround"});
   }
   else if(robot().hasSurface("LeftFoot") && robot().hasSurface("RightFoot"))
   {
-    solver().setContacts(
-        {mc_rbdyn::Contact(robots(), "LeftFoot", "AllGround"), mc_rbdyn::Contact(robots(), "RightFoot", "AllGround")});
+    solver().addContact({robot().name(), "ground", "LeftFoot", "AllGround"});
+    solver().addContact({robot().name(), "ground", "RightFoot", "AllGround"});
   }
-  else if(robot().mb().joint(0).dof() == 0)
-  {
-    solver().setContacts({});
-  }
-  else
+  else if(robot().mb().joint(0).dof() != 0)
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("EndEffector sample does not support robot {}", robot().name());
   }
@@ -49,14 +44,14 @@ MCEndEffectorController::MCEndEffectorController(std::shared_ptr<mc_rbdyn::Robot
   {
     body = "r_wrist";
   }
-  efTask_ = std::make_shared<mc_tasks::EndEffectorTask>(body, robots(), robots().robotIndex(), 5.0, 200.0);
+  efTask_ = std::make_shared<mc_tasks::TransformTask>(robot().frame(body), 5.0, 200.0);
   solver().addTask(efTask_);
   if(robot().mb().joint(0).dof() != 0)
   {
-    comTask_ = std::make_shared<mc_tasks::CoMTask>(robots(), robots().robotIndex());
+    comTask_ = std::make_shared<mc_tasks::CoMTask>(robot());
     solver().addTask(comTask_);
   }
-  postureTask->weight(1.0);
+  postureTask_->weight(1.0);
   if(config.has(robot().name()))
   {
     auto tasks = config(robot().name())("tasks", std::vector<mc_rtc::Configuration>{});

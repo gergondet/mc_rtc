@@ -24,7 +24,8 @@ void PositionTask::addToLogger(mc_rtc::Logger & logger)
   logger.addLogEntry(name_ + "_target", this, [this]() { return position(); });
   logger.addLogEntry(name_ + "_curPos", this,
                      [this]() -> const Eigen::Vector3d & { return frame().position().translation(); });
-  logger.addLogEntry(name_ + "_curVel", this, [this]() -> const Eigen::Vector3d & { return frame().velocity().linear(); });
+  logger.addLogEntry(name_ + "_curVel", this,
+                     [this]() -> const Eigen::Vector3d & { return frame().velocity().linear(); });
 }
 
 void PositionTask::addToGUI(mc_rtc::gui::StateBuilder & gui)

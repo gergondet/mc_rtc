@@ -6,7 +6,7 @@ void Door_Initial::configure(const mc_rtc::Configuration &) {}
 
 void Door_Initial::start(mc_control::fsm::Controller & ctl)
 {
-  ctl.gui()->addElement({}, mc_rtc::gui::Button("Open door", [this]() { openDoor_ = true; }));
+  ctl.gui().addElement({}, mc_rtc::gui::Button("Open door", [this]() { openDoor_ = true; }));
 }
 
 bool Door_Initial::run(mc_control::fsm::Controller &)

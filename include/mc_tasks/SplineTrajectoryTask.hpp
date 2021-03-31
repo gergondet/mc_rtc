@@ -353,7 +353,8 @@ template<typename Derived>
 void SplineTrajectoryTask<Derived>::addToLogger(mc_rtc::Logger & logger)
 {
   TrajectoryBase::addToLogger(logger);
-  logger.addLogEntry(name_ + "_pose", this, [this]() -> const sva::PTransformd & { return errorT_->frame().position(); });
+  logger.addLogEntry(name_ + "_pose", this,
+                     [this]() -> const sva::PTransformd & { return errorT_->frame().position(); });
   logger.addLogEntry(name_ + "_targetPose", this, [this]() { return this->target(); });
   logger.addLogEntry(name_ + "_refPose", this, [this]() -> const sva::PTransformd & { return this->refPose(); });
   logger.addLogEntry(name_ + "_speed", this, [this]() { return this->speed(); });

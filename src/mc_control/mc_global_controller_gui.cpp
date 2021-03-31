@@ -31,22 +31,22 @@ void MCGlobalController::initGUI()
         auto g_ptr = g.second.get();
         std::vector<std::string> category = {"Global", "Grippers", robot->name(), g.first};
         gui.addElement(category, mc_rtc::gui::Button("Open", [g_ptr]() { g_ptr->setTargetOpening(1); }),
-                        mc_rtc::gui::Button("Close", [g_ptr]() { g_ptr->setTargetOpening(0); }),
-                        mc_rtc::gui::NumberSlider("Opening percentage", [g_ptr]() { return g_ptr->opening(); },
-                                                  [g_ptr](double op) { g_ptr->setTargetOpening(op); }, 0, 1),
-                        mc_rtc::gui::NumberSlider("Maximum velocity percentage",
-                                                  [g_ptr]() { return g_ptr->percentVMAX(); },
-                                                  [g_ptr](double op) { g_ptr->percentVMAX(op); }, 0, 1));
+                       mc_rtc::gui::Button("Close", [g_ptr]() { g_ptr->setTargetOpening(0); }),
+                       mc_rtc::gui::NumberSlider("Opening percentage", [g_ptr]() { return g_ptr->opening(); },
+                                                 [g_ptr](double op) { g_ptr->setTargetOpening(op); }, 0, 1),
+                       mc_rtc::gui::NumberSlider("Maximum velocity percentage",
+                                                 [g_ptr]() { return g_ptr->percentVMAX(); },
+                                                 [g_ptr](double op) { g_ptr->percentVMAX(op); }, 0, 1));
 
         auto targetCat = category;
         targetCat.push_back("Targets");
         for(const auto & joint : g_ptr->activeJoints())
         {
           gui.addElement(targetCat,
-                          mc_rtc::gui::NumberSlider(
-                              joint, [joint, g_ptr]() { return g_ptr->curOpening(joint); },
-                              [joint, g_ptr](double targetOpening) { g_ptr->setTargetOpening(joint, targetOpening); },
-                              0, 1));
+                         mc_rtc::gui::NumberSlider(
+                             joint, [joint, g_ptr]() { return g_ptr->curOpening(joint); },
+                             [joint, g_ptr](double targetOpening) { g_ptr->setTargetOpening(joint, targetOpening); }, 0,
+                             1));
         }
 
         category.push_back("Safety");

@@ -6,7 +6,7 @@
 
 #include <mc_rbdyn/configuration_io.h>
 #include <mc_rtc/logging.h>
-#include <mc_solver/ConstraintSetLoader.h>
+#include <mc_solver/ConstraintLoader.h>
 #include <mc_tasks/MetaTaskLoader.h>
 
 namespace mc_control
@@ -27,7 +27,7 @@ MCTextController::MCTextController(std::shared_ptr<mc_rbdyn::RobotModule> robot,
 
 void MCTextController::reset(const mc_control::ControllerResetData & data)
 {
-  mc_control::MCController::reset(data);
+  MCController::reset(data);
   if(!config_.has("constraints"))
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("No constraints in the provided text file");
@@ -38,21 +38,20 @@ void MCTextController::reset(const mc_control::ControllerResetData & data)
   }
   for(const auto & c : config_("constraints"))
   {
-    constraints_.push_back(mc_solver::ConstraintSetLoader::load(solver(), c));
-    solver().addConstraintSet(*constraints_.back());
+    constraints_.push_back(mc_solver::ConstraintLoader::load(solver(), c));
+    solver().addConstraint(constraints_.back());
   }
-  solver().addTask(postureTask);
+  solver().addTask(postureTask_);
   for(const auto & t : config_("tasks"))
   {
     tasks_.push_back(mc_tasks::MetaTaskLoader::load(solver(), t));
     solver().addTask(tasks_.back());
   }
-  std::vector<mc_rbdyn::Contact> contacts = {};
-  if(config_.has("contacts"))
+  auto contacts = config_("contacts", std::vector<mc_rbdyn::Contact>{});
+  for(const auto & c : contacts)
   {
-    contacts = mc_rbdyn::Contact::loadVector(robots(), config_("contacts"));
+    solver().addContact(c);
   }
-  solver().setContacts(contacts);
 }
 
 } // namespace mc_control

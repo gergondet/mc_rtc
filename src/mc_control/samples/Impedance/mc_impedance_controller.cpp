@@ -12,15 +12,14 @@ namespace mc_control
 MCImpedanceController::MCImpedanceController(std::shared_ptr<mc_rbdyn::RobotModule> robot_module, double dt)
 : MCController(robot_module, dt)
 {
-  solver().addConstraintSet(contactConstraint);
-  solver().addConstraintSet(kinematicsConstraint);
-  solver().addConstraintSet(selfCollisionConstraint);
-  solver().addConstraintSet(*compoundJointConstraint);
+  solver().addConstraint(kinematicsConstraint_);
+  solver().addConstraint(collisionConstraint_);
+  solver().addConstraint(compoundJointConstraint_);
 
   // add PostureTask
-  solver().addTask(postureTask);
-  postureTask->stiffness(1);
-  postureTask->weight(1);
+  solver().addTask(postureTask_);
+  postureTask_->stiffness(1);
+  postureTask_->weight(1);
 
   if(!robot().hasSurface("LeftGripper"))
   {
@@ -34,15 +33,14 @@ MCImpedanceController::MCImpedanceController(std::shared_ptr<mc_rbdyn::RobotModu
       mc_rtc::log::error_and_throw<std::runtime_error>(
           "The Impedance sample controller cannot handle this robot as it has no Left|RightFoot surfaces");
     }
-    comTask_ = std::make_shared<mc_tasks::CoMTask>(robots(), robots().robotIndex());
+    comTask_ = std::make_shared<mc_tasks::CoMTask>(robot());
   }
 
   // add ImpedanceTask of left hand
   Eigen::Vector3d posM = Eigen::Vector3d::Constant(1.0);
   Eigen::Vector3d posK = Eigen::Vector3d(100.0, 100.0, 1000.0);
   Eigen::Vector3d posD = Eigen::Vector3d(50.0, 50.0, 100.0);
-  impedanceTask_ =
-      std::make_shared<mc_tasks::force::ImpedanceTask>("LeftGripper", robots(), robots().robotIndex(), 100.0);
+  impedanceTask_ = std::make_shared<mc_tasks::force::ImpedanceTask>(robot().frame("LeftGripper"), 100.0);
   auto & gains = impedanceTask_->gains();
   gains.mass() = {100 * posM, posM};
   gains.damper() = {100 * posD, posD};
@@ -58,8 +56,8 @@ void MCImpedanceController::reset(const ControllerResetData & reset_data)
   {
     comTask_->reset();
     solver().addTask(comTask_);
-    solver().setContacts(
-        {mc_rbdyn::Contact(robots(), "LeftFoot", "AllGround"), mc_rbdyn::Contact(robots(), "RightFoot", "AllGround")});
+    solver().addContact({robot().name(), "ground", "LeftFoot", "AllGround"});
+    solver().addContact({robot().name(), "ground", "RightFoot", "AllGround"});
   }
 
   impedanceTask_->reset();
@@ -96,15 +94,15 @@ void MCImpedanceController::addGUI()
     auto angle = 2 * mc_rtc::constants::PI * static_cast<double>(i) / static_cast<double>(circleSamples.size() - 1);
     circleSamples[i] = circleTrajectory(angle);
   }
-  gui()->addElement({"Impedance"}, mc_rtc::gui::Trajectory("Circle Trajectory",
-                                                           [circleSamples]() -> const std::vector<Eigen::Vector3d> & {
-                                                             return circleSamples;
-                                                           }));
+  gui().addElement({"Impedance"}, mc_rtc::gui::Trajectory("Circle Trajectory",
+                                                          [circleSamples]() -> const std::vector<Eigen::Vector3d> & {
+                                                            return circleSamples;
+                                                          }));
 }
 
 void MCImpedanceController::stop()
 {
-  gui()->removeCategory({"Impedance"});
+  gui().removeCategory({"Impedance"});
 }
 
 } // namespace mc_control

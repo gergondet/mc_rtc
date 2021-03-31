@@ -8,7 +8,7 @@
 #include <mc_control/mc_controller.h>
 
 #include <mc_tasks/CoMTask.h>
-#include <mc_tasks/EndEffectorTask.h>
+#include <mc_tasks/TransformTask.h>
 
 namespace mc_control
 {
@@ -23,7 +23,7 @@ public:
   void reset(const ControllerResetData & reset_data) override;
 
 private:
-  std::shared_ptr<mc_tasks::EndEffectorTask> efTask_;
+  std::shared_ptr<mc_tasks::TransformTask> efTask_;
   std::shared_ptr<mc_tasks::CoMTask> comTask_;
   std::vector<mc_tasks::MetaTaskPtr> tasks_;
 };
