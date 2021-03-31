@@ -359,10 +359,6 @@ protected:
 
   void addToLogger(mc_rtc::Logger & logger) override;
 
-  std::function<bool(const mc_tasks::MetaTask & task, std::string &)> buildCompletionCriteria(
-      double dt,
-      const mc_rtc::Configuration & config) const override;
-
   mc_rbdyn::RobotPtr robot_;
   std::shared_ptr<T> errorT_ = nullptr;
   tvm::TaskWithRequirementsPtr task_; // null if the task is not in solver
