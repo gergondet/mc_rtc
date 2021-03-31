@@ -21,7 +21,9 @@ public:
     auto rm = mc_rbdyn::RobotLoader::get_robot_module("JVRC1");
     auto env = mc_rbdyn::RobotLoader::get_robot_module("env", std::string(mc_rtc::MC_ENV_DESCRIPTION_PATH),
                                                        std::string("ground"));
-    robots_ = mc_rbdyn::loadRobots({rm, env});
+    robots_ = std::make_shared<mc_rbdyn::Robots>();
+    robots_->load(*rm, rm->name);
+    robots_->load(*env, env->name);
   }
 
   void TearDown(const ::benchmark::State &)
@@ -42,10 +44,10 @@ BENCHMARK_DEFINE_F(SimulationContactPairFixture, Creation)(benchmark::State & st
 {
   auto & robots = get_robots();
   auto & robot = robots.robot();
-  auto & env = robots.env();
+  auto & env = robots.robot("ground");
   while(state.KeepRunning())
   {
-    mc_control::SimulationContactPair pair(robot.surfaces().at("LeftFoot"), env.surfaces().at("AllGround"));
+    mc_control::SimulationContactPair pair(robot.surface("LeftFoot"), env.surface("AllGround"));
   }
 }
 BENCHMARK_REGISTER_F(SimulationContactPairFixture, Creation)->Unit(benchmark::kMicrosecond);
@@ -54,16 +56,16 @@ BENCHMARK_DEFINE_F(SimulationContactPairFixture, Update)(benchmark::State & stat
 {
   auto & robots = get_robots();
   auto & robot = robots.robot();
-  auto & env = robots.env();
+  auto & env = robots.robot("ground");
 
-  mc_control::SimulationContactPair pair(robot.surfaces().at("LeftFoot"), env.surfaces().at("AllGround"));
+  mc_control::SimulationContactPair pair(robot.surface("LeftFoot"), env.surface("AllGround"));
 
   while(state.KeepRunning())
   {
     robot.mbc().q[0].back() += 1e-6;
     robot.forwardKinematics();
     auto start = std::chrono::high_resolution_clock::now();
-    pair.update(robot, env);
+    pair.update();
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
     state.SetIterationTime(elapsed_seconds.count());
