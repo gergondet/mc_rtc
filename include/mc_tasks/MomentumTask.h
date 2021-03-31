@@ -57,7 +57,6 @@ public:
 protected:
   void addToGUI(mc_rtc::gui::StateBuilder & gui) override;
   void addToLogger(mc_rtc::Logger & logger) override;
-  void removeFromLogger(mc_rtc::Logger & logger) override;
 };
 
 } // namespace mc_tasks
