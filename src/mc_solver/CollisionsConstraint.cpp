@@ -298,4 +298,32 @@ std::vector<mc_rbdyn::Collision> CollisionsConstraint::collisions() const noexce
 
 } // namespace mc_solver
 
-// FIXME Write loader function
+namespace
+{
+
+static auto registered = mc_solver::ConstraintLoader::register_load_function(
+    "collision",
+    [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) {
+      auto ret = std::make_shared<mc_solver::CollisionsConstraint>();
+      auto & r1 = solver.robots().fromConfig(config, "CollisionsConstraint", false, "r1Index", "r1");
+      auto & r2 = solver.robots().fromConfig(config, "CollisionsConstraint", false, "r2Index", "r2");
+      if(r1.name() == r2.name())
+      {
+        bool useCommon = config("useCommon", false);
+        if(useCommon)
+        {
+          ret->addCollisions(solver, {r1.name(), r1.name(), r1.module().commonSelfCollisions()});
+        }
+        bool useMinimal = config("useMinimal", false);
+        if(useMinimal)
+        {
+          ret->addCollisions(solver, {r1.name(), r1.name(), r1.module().minimalSelfCollisions()});
+        }
+      }
+      {
+        auto collisions = config("collisions", std::vector<mc_rbdyn::CollisionDescription>{});
+        ret->addCollisions(solver, {r1.name(), r2.name(), collisions});
+      }
+      return ret;
+    });
+}
