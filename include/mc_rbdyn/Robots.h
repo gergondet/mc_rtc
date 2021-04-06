@@ -189,9 +189,12 @@ public:
    *   that its use is deprecated in favor of \p robotNameKey
    *
    * @param config Configuration from which to look for
-   * robotNameKey/robotIndexKey @param prefix Prefix used for printing outputs
-   * to the user (deprecation warning, non-existing robot, etc).  @param
-   * required
+   * robotNameKey/robotIndexKey
+   *
+   * @param prefix Prefix used for printing outputs to the user (deprecation
+   * warning, non-existing robot, etc).
+   *
+   * @param required
    * - When true, throws if the robotName/robotIndex is missing.
    * - When false, returns the main robot if the robotName/robotIndex is
    *   missing.
