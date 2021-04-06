@@ -36,6 +36,12 @@ public:
   /*! \brief Set the desired dislacement speed */
   void speed(double s);
 
+  /*! \brief Get the desired displacement speed */
+  inline double desiredSpeed() const noexcept
+  {
+    return speed_;
+  }
+
   inline void update(mc_solver::QPSolver &) override {}
 
   /** This is managed by this task */

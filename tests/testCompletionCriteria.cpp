@@ -22,13 +22,14 @@ mc_rbdyn::Robots & get_robots()
   }
   configureRobotLoader();
   auto rm = mc_rbdyn::RobotLoader::get_robot_module("JVRC1");
-  robots_ptr = mc_rbdyn::loadRobot(*rm);
+  robots_ptr = std::make_shared<mc_rbdyn::Robots>();
+  robots_ptr->load(*rm, rm->name);
   return *robots_ptr;
 }
 
 struct MockTask : public mc_tasks::CoMTask
 {
-  MockTask() : mc_tasks::CoMTask(get_robots(), 0) {}
+  MockTask() : mc_tasks::CoMTask(get_robots().robot()) {}
 
   Eigen::VectorXd eval() const override
   {

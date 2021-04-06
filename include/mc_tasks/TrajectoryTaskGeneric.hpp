@@ -57,11 +57,13 @@ void TrajectoryTaskGeneric<T>::addToSolver(mc_solver::QPSolver & solver)
                                                   tvm::requirements::AnisotropicWeight(dimWeight_)};
       if(error->variables()[0]->derivativeNumber() == 0)
       {
+        dynamicIsPD_ = true;
         task_ = solver.problem().add(error == 0., tvm::task_dynamics::PD(stiffness_, damping_), reqs);
       }
       else
       {
         assert(error->variables()[0]->derivativeNumber() == 1);
+        dynamicIsPD_ = false;
         task_ = solver.problem().add(error == 0., tvm::task_dynamics::P(stiffness_), reqs);
       }
     };
@@ -102,8 +104,16 @@ void TrajectoryTaskGeneric<T>::setGains(const Eigen::VectorXd & stiffness, const
   damping_ = damping;
   if(task_)
   {
-    auto & PDImpl = static_cast<tvm::task_dynamics::PD::Impl &>(*task_->task.taskDynamics());
-    PDImpl.gains(stiffness_, damping_);
+    if(dynamicIsPD_)
+    {
+      auto & PDImpl = static_cast<tvm::task_dynamics::PD::Impl &>(*task_->task.taskDynamics());
+      PDImpl.gains(stiffness_, damping_);
+    }
+    else
+    {
+      auto & PImpl = static_cast<tvm::task_dynamics::P::Impl &>(*task_->task.taskDynamics());
+      PImpl.gain(stiffness_);
+    }
   }
 }
 

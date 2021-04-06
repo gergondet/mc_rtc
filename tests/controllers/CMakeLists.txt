@@ -170,7 +170,7 @@ set(LOG_POLICY "non-threaded")
 controller_test_run(TestCoMTaskController 4001)
 controller_test_run(TestPositionTaskController 5000)
 controller_test_run(TestOrientationTaskController 6001)
-controller_test_run(TestEndEffectorTaskController 4001)
+controller_test_run(TestTransformTaskController 4001)
 
 # Test FSM generic state configuration option
 set(FSM_STATES_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/src/mc_control/fsm/states/")

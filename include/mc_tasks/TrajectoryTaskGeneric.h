@@ -362,6 +362,7 @@ protected:
   mc_rbdyn::RobotPtr robot_;
   std::shared_ptr<T> errorT_ = nullptr;
   tvm::TaskWithRequirementsPtr task_; // null if the task is not in solver
+  bool dynamicIsPD_ = false; // is task_ dynamic a PD or a P, irrelevant if task_ is null
 
   void addToSolver(mc_solver::QPSolver & solver) override;
 

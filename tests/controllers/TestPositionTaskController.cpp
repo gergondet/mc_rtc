@@ -25,20 +25,20 @@ public:
     BOOST_CHECK_EQUAL(robots().robots().size(), 2);
     // Check that JVRC-1 was loaded
     BOOST_CHECK_EQUAL(robot().name(), "jvrc1");
-    solver().addConstraintSet(contactConstraint);
-    solver().addConstraintSet(dynamicsConstraint);
-    postureTask->stiffness(1);
-    postureTask->weight(1);
-    solver().addTask(postureTask.get());
-    solver().setContacts(
-        {mc_rbdyn::Contact(robots(), "LeftFoot", "AllGround"), mc_rbdyn::Contact(robots(), "RightFoot", "AllGround")});
+    BOOST_REQUIRE(robots().hasRobot("ground"));
+    solver().addConstraint(dynamicsConstraint_);
+    postureTask_->stiffness(1);
+    postureTask_->weight(1);
+    solver().addTask(postureTask_);
+    solver().addContact({"jvrc1", "ground", "LeftFoot", "AllGround"});
+    solver().addContact({"jvrc1", "ground", "RightFoot", "AllGround"});
 
     /* Create and add the position task with the default stiffness/weight */
-    posTask = std::make_shared<mc_tasks::PositionTask>("R_WRIST_Y_S", robots(), 0);
+    posTask = std::make_shared<mc_tasks::PositionTask>(robot().frame("R_WRIST_Y_S"));
     posTask->stiffness(10);
     solver().addTask(posTask);
 
-    comTask = std::make_shared<mc_tasks::CoMTask>(robots(), 0);
+    comTask = std::make_shared<mc_tasks::CoMTask>(robot());
     solver().addTask(comTask);
 
     mc_rtc::log::success("Created TestPositionTaskController");
@@ -79,16 +79,16 @@ public:
 
       /* Now move the hand down again, forbid rep movement in all tasks */
       posTask->reset();
-      posTask->selectUnactiveJoints(solver(), {"R_ELBOW_P"});
+      posTask->selectInactiveJoints(solver(), {"R_ELBOW_P"});
       orig_rep = robot().mbc().q[robot().jointIndexByName("R_ELBOW_P")][0];
       posTask->position(posTask->position() + Eigen::Vector3d(0, 0, -0.15));
 
-      comTask->selectUnactiveJoints(solver(), {"R_ELBOW_P"});
+      comTask->selectInactiveJoints(solver(), {"R_ELBOW_P"});
 
       /* Also reset the joint target in posture task */
-      auto p = postureTask->posture();
+      auto p = postureTask_->posture();
       p[robot().jointIndexByName("R_ELBOW_P")][0] = orig_rep;
-      postureTask->posture(p);
+      postureTask_->posture(p);
     }
     if(nrIter == 4999)
     {

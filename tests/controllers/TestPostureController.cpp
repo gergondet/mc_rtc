@@ -23,14 +23,13 @@ public:
     BOOST_CHECK_EQUAL(robots().robots().size(), 2);
     // Check that JVRC-1 was loaded
     BOOST_CHECK_EQUAL(robot().name(), "jvrc1");
-    qpsolver->addConstraintSet(contactConstraint);
-    qpsolver->addConstraintSet(kinematicsConstraint);
-    postureTask->stiffness(20);
-    qpsolver->addTask(postureTask.get());
-    qpsolver->setContacts({});
+    solver().addConstraint(kinematicsConstraint_);
+    postureTask_->stiffness(20);
+    solver().addTask(postureTask_);
     BOOST_CHECK(robot().hasJoint("NECK_P"));
     BOOST_CHECK_NO_THROW(head_joint_index = robot().jointIndexByName("NECK_P"));
-    head_joint_target = std::min(std::abs(robot().ql()[head_joint_index][0]), robot().qu()[head_joint_index][0]) - 0.1;
+    auto idxParam = robot().mb().jointPosInParam(static_cast<int>(head_joint_index));
+    head_joint_target = std::min(std::abs(robot().limits().ql[idxParam]), robot().limits().qu[idxParam]) - 0.1;
     mc_rtc::log::success("Created TestPostureController");
   }
 
@@ -48,7 +47,7 @@ public:
   virtual void reset(const ControllerResetData & reset_data) override
   {
     MCController::reset(reset_data);
-    postureTask->target({{"NECK_P", {head_joint_target}}});
+    postureTask_->target({{"NECK_P", {head_joint_target}}});
   }
 
 private:
