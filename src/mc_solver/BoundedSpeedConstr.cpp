@@ -155,7 +155,25 @@ static auto registered = mc_solver::ConstraintLoader::register_load_function(
         for(const auto & c : config("constraints"))
         {
           auto & robot = solver.robots().fromConfig(c, "BoundedSpeedConstr");
-          auto & frame = robot.frame(c("frame"));
+          auto getFrame = [&]() -> mc_rbdyn::Frame & {
+            if(c.has("body"))
+            {
+              mc_rtc::log::warning(
+                  "Deprecated use of body while loading a bounded speed constraint, use \"frame\" instead");
+              std::string bodyName = c("body");
+              auto bPoint = c("bodyPoint", Eigen::Vector3d::Zero().eval());
+              if(bPoint != Eigen::Vector3d::Zero())
+              {
+                size_t i = 0;
+                while(robot.hasFrame(fmt::format("{}_bSpeed_{}", bodyName, ++i)))
+                  ;
+                return robot.makeFrame(fmt::format("{}_bSpeed_{}", bodyName, i), bodyName, bPoint);
+              }
+              return robot.frame(bodyName);
+            }
+            return robot.frame(c("frame"));
+          };
+          auto & frame = getFrame();
           Eigen::Vector6d dof = c("dof", Eigen::Vector6d::Ones().eval());
           if(c.has("speed"))
           {
