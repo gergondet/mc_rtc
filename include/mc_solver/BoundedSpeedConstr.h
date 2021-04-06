@@ -96,6 +96,11 @@ public:
 
   inline void update(QPSolver &) override {}
 
+  inline size_t nrBoundedSpeeds() const noexcept
+  {
+    return data_.size();
+  }
+
 private:
   bool inSolver_ = false;
 

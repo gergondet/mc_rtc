@@ -114,6 +114,11 @@ Robot & Robots::load(const RobotModule & module,
                      const std::optional<sva::PTransformd> & base,
                      const std::optional<std::string_view> & bName)
 {
+  if(hasRobot(name))
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>(
+        "Cannot load a robot named {}, a robot with this name already exists", name);
+  }
   return addRobot(std::allocate_shared<Robot>(Eigen::aligned_allocator_indirection<Robot>{}, Robot::make_shared_token{},
                                               module, name, true, base, bName));
 }

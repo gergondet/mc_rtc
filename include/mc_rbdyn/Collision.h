@@ -67,8 +67,8 @@ struct MC_RBDYN_DLLAPI Collision : public CollisionDescription
   /** Second robot in the collision */
   std::string robot2;
 
-  bool operator==(const Collision & rhs) const;
-  bool operator!=(const Collision & rhs) const;
+  bool operator==(const Collision & rhs) const noexcept;
+  bool operator!=(const Collision & rhs) const noexcept;
 };
 
 /** \class CollisionVector

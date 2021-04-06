@@ -9,7 +9,7 @@
 #include <mc_control/mc_controller.h>
 #include <mc_rtc/logging.h>
 #include <mc_tasks/CoMTask.h>
-#include <mc_tasks/EndEffectorTask.h>
+#include <mc_tasks/TransformTask.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -21,30 +21,29 @@
 namespace mc_control
 {
 
-struct MC_CONTROL_DLLAPI TestEndEffectorTaskController : public MCController
+struct MC_CONTROL_DLLAPI TestTransformTaskController : public MCController
 {
 public:
-  TestEndEffectorTaskController(std::shared_ptr<mc_rbdyn::RobotModule> rm, double dt) : MCController(rm, dt)
+  TestTransformTaskController(std::shared_ptr<mc_rbdyn::RobotModule> rm, double dt) : MCController(rm, dt)
   {
     // Check that the default constructor loads the robot + ground environment
     BOOST_CHECK_EQUAL(robots().robots().size(), 2);
     // Check that JVRC-1 was loaded
     BOOST_CHECK_EQUAL(robot().name(), "jvrc1");
-    solver().addConstraintSet(contactConstraint);
-    solver().addConstraintSet(dynamicsConstraint);
-    postureTask->stiffness(1);
-    postureTask->weight(1);
-    solver().addTask(postureTask.get());
-    solver().setContacts(
-        {mc_rbdyn::Contact(robots(), "LeftFoot", "AllGround"), mc_rbdyn::Contact(robots(), "RightFoot", "AllGround")});
+    BOOST_REQUIRE(robots().hasRobot("ground"));
+    solver().addConstraint(dynamicsConstraint_);
+    postureTask_->stiffness(1);
+    postureTask_->weight(1);
+    solver().addTask(postureTask_);
+    solver().addContact({"jvrc1", "ground", "LeftFoot", "AllGround"});
+    solver().addContact({"jvrc1", "ground", "RightFoot", "AllGround"});
 
     /* Create and add the position task with the default stiffness/weight */
-    efTask = std::make_shared<mc_tasks::EndEffectorTask>("R_WRIST_Y_S", robots(), 0);
-    efTask->positionTask->stiffness(5);
-    efTask->orientationTask->stiffness(5);
+    efTask = std::make_shared<mc_tasks::TransformTask>(robot().frame("R_WRIST_Y_S"));
+    efTask->stiffness(5);
     solver().addTask(efTask);
 
-    comTask = std::make_shared<mc_tasks::CoMTask>(robots(), 0);
+    comTask = std::make_shared<mc_tasks::CoMTask>(robot());
     solver().addTask(comTask);
 
     mc_rtc::log::success("Created TestEndEffectorTaskController");
@@ -62,11 +61,11 @@ public:
       BOOST_CHECK_SMALL(efTask->speed().norm(), 1e-3);
 
       /* Apply dimWeight and give a "crazy" position target */
-      postureTask->posture(robot().mbc().q);
+      postureTask_->posture(robot().mbc().q);
       Eigen::VectorXd dimW(6);
       dimW << 1., 1., 1., 1., 1., 0.;
       efTask->dimWeight(dimW);
-      efTask->add_ef_pose({Eigen::Vector3d(0., 0., 100.)});
+      efTask->target(sva::PTransformd{Eigen::Vector3d(0., 0., 100.)} * efTask->target());
     }
     if(nrIter == 2000)
     {
@@ -80,7 +79,7 @@ public:
       dimW << 1., 1., 1., 1., 1., 1.;
       efTask->dimWeight(dimW);
       efTask->selectActiveJoints(solver(), active_joints);
-      efTask->add_ef_pose({Eigen::Vector3d(0., 0., 0.15)});
+      efTask->target(sva::PTransformd{Eigen::Vector3d(0., 0., 0.15)} * efTask->target());
     }
     if(nrIter == 3000)
     {
@@ -90,14 +89,14 @@ public:
 
       /* Now move the hand down again, forbid elbow pitch movement in the task */
       efTask->reset();
-      efTask->selectUnactiveJoints(solver(), {"R_ELBOW_P"});
+      efTask->selectInactiveJoints(solver(), {"R_ELBOW_P"});
       orig_rep = robot().mbc().q[robot().jointIndexByName("R_ELBOW_P")][0];
-      efTask->add_ef_pose({Eigen::Vector3d(0., 0., -0.15)});
+      efTask->target(sva::PTransformd{Eigen::Vector3d(0., 0., -0.15)} * efTask->target());
 
-      comTask->selectUnactiveJoints(solver(), {"R_ELBOW_P"});
+      comTask->selectInactiveJoints(solver(), {"R_ELBOW_P"});
 
       /* Also reset the joint target in posture task */
-      postureTask->target({{"R_ELBOW_P", {orig_rep}}});
+      postureTask_->target({{"R_ELBOW_P", {orig_rep}}});
     }
     if(nrIter == 4000)
     {
@@ -120,13 +119,13 @@ public:
     efTask->reset();
     comTask->reset();
     /* Move the end-effector 10cm forward, 10 cm to the right and 10 cm upward */
-    efTask->set_ef_pose(sva::PTransformd(sva::RotY<double>(-M_PI / 2),
-                                         efTask->get_ef_pose().translation() + Eigen::Vector3d(0.3, -0.1, 0.2)));
+    efTask->target(sva::PTransformd(sva::RotY<double>(-M_PI / 2),
+                                    efTask->target().translation() + Eigen::Vector3d(0.3, -0.1, 0.2)));
   }
 
 private:
   unsigned int nrIter = 0;
-  std::shared_ptr<mc_tasks::EndEffectorTask> efTask = nullptr;
+  std::shared_ptr<mc_tasks::TransformTask> efTask = nullptr;
   std::shared_ptr<mc_tasks::CoMTask> comTask = nullptr;
   std::vector<std::string> active_joints = {"R_SHOULDER_P", "R_SHOULDER_R", "R_SHOULDER_Y", "R_ELBOW_P",
                                             "R_ELBOW_Y",    "R_WRIST_R",    "R_WRIST_Y"};
@@ -135,4 +134,4 @@ private:
 
 } // namespace mc_control
 
-SIMPLE_CONTROLLER_CONSTRUCTOR("TestEndEffectorTaskController", mc_control::TestEndEffectorTaskController)
+SIMPLE_CONTROLLER_CONSTRUCTOR("TestTransformTaskController", mc_control::TestTransformTaskController)

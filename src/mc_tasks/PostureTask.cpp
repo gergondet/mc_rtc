@@ -158,6 +158,22 @@ void PostureTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
   }
 }
 
+void PostureTask::setJointGains(const std::string & name, double stiffness, double damping)
+{
+  if(!robot().hasJoint(name))
+  {
+    mc_rtc::log::error_and_throw<std::runtime_error>("[{}] Cannot specify gains for non-existing joint {}",
+                                                     this->name(), name);
+  }
+  auto jIdx = robot().jointIndexByName(name);
+  auto gainIdx = robot().mb().jointPosInDof(static_cast<int>(jIdx)) - robot().mb().joint(0).dof();
+  auto stiff = dimStiffness();
+  stiff(gainIdx) = stiffness;
+  auto damp = dimDamping();
+  damp(gainIdx) = damping;
+  setGains(stiff, damp);
+}
+
 } // namespace mc_tasks
 
 namespace

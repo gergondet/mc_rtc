@@ -79,6 +79,9 @@ public:
 
   void update(QPSolver & solver) override;
 
+  /** Access all the collisions in the constraint */
+  std::vector<mc_rbdyn::Collision> collisions() const noexcept;
+
 private:
   bool inSolver_ = false;
 

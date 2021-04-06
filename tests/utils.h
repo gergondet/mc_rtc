@@ -5,6 +5,12 @@
 #pragma once
 
 #include <mc_rbdyn/RobotLoader.h>
+#include <mc_rbdyn/Robots.h>
+
+#include <mc_rtc/gui/StateBuilder.h>
+#include <mc_rtc/log/Logger.h>
+
+#include <mc_solver/QPSolver.h>
 
 #include <SpaceVecAlg/SpaceVecAlg>
 #include <Eigen/Core>
@@ -27,7 +33,7 @@ bool allclose(
   return ((a.derived() - b.derived()).array().abs() <= (atol + rtol * b.derived().array().abs())).all();
 }
 
-bool configureRobotLoader()
+inline bool configureRobotLoader()
 {
   static bool done = false;
   if(!done)
@@ -38,6 +44,28 @@ bool configureRobotLoader()
     mc_rbdyn::RobotLoader::update_robot_module_path({std::string(ROBOTS_BUILD_DIR)});
   }
   return true;
+}
+
+inline mc_rbdyn::RobotsPtr makeRobots()
+{
+  configureRobotLoader();
+  auto rm = mc_rbdyn::RobotLoader::get_robot_module("JVRC1");
+  auto env = mc_rbdyn::RobotLoader::get_robot_module("env", std::string(mc_rtc::MC_ENV_DESCRIPTION_PATH),
+                                                     std::string("ground"));
+  auto robots = std::make_shared<mc_rbdyn::Robots>();
+  robots->load(*rm, rm->name);
+  robots->load(*env, env->name);
+  return robots;
+}
+
+inline std::unique_ptr<mc_solver::QPSolver> makeSolver()
+{
+  auto robots = makeRobots();
+  auto realRobots = std::make_shared<mc_rbdyn::Robots>(*robots);
+  auto solver = std::make_unique<mc_solver::QPSolver>(
+      robots, realRobots, std::make_shared<mc_rtc::Logger>(mc_rtc::Logger::Policy::NON_THREADED, "", ""),
+      std::make_shared<mc_rtc::GUI>(), 0.005);
+  return solver;
 }
 
 /** This file contains various functions that are useful in unit tests */
@@ -62,7 +90,7 @@ inline int mkstemp(char * out)
 #endif
 
 /** Return a temporary file */
-std::string getTmpFile()
+inline std::string getTmpFile()
 {
 #ifndef WIN32
   char fIn[17] = "/tmp/tConfXXXXXX";
@@ -80,7 +108,7 @@ std::string getTmpFile()
 }
 
 /** Make a temporary configuration file from the content provided */
-std::string makeConfigFile(const std::string & data, const std::string & ext = ".json")
+inline std::string makeConfigFile(const std::string & data, const std::string & ext = ".json")
 {
   std::string fIn = getTmpFile() + ext;
   std::ofstream ofs(fIn);
@@ -88,31 +116,31 @@ std::string makeConfigFile(const std::string & data, const std::string & ext = "
   return fIn;
 }
 
-Eigen::Quaterniond random_quat()
+inline Eigen::Quaterniond random_quat()
 {
   Eigen::Quaterniond q{Eigen::Vector4d::Random()};
   q.normalize();
   return q;
 }
 
-sva::PTransformd random_pt()
+inline sva::PTransformd random_pt()
 {
   Eigen::Vector3d t = Eigen::Vector3d::Random();
   Eigen::Quaterniond q = random_quat();
   return {q, t};
 }
 
-sva::ForceVecd random_fv()
+inline sva::ForceVecd random_fv()
 {
   return {Eigen::Vector3d::Random(), Eigen::Vector3d::Random()};
 }
 
-sva::MotionVecd random_mv()
+inline sva::MotionVecd random_mv()
 {
   return {Eigen::Vector3d::Random(), Eigen::Vector3d::Random()};
 }
 
-double rnd()
+inline double rnd()
 {
   static std::random_device rd;
   static std::mt19937_64 gen(rd());
@@ -120,7 +148,7 @@ double rnd()
   return dis(gen);
 }
 
-size_t random_size()
+inline size_t random_size()
 {
   static std::random_device rd;
   static std::mt19937_64 gen(rd());
@@ -128,7 +156,7 @@ size_t random_size()
   return dis(gen);
 }
 
-bool random_bool()
+inline bool random_bool()
 {
   static std::random_device rd;
   static std::mt19937_64 gen(rd());
@@ -136,7 +164,20 @@ bool random_bool()
   return dis(gen);
 }
 
-std::vector<double> random_vector()
+inline Eigen::Vector6d random_dof()
+{
+  Eigen::Vector6d out = Eigen::Vector6d::Zero();
+  for(int i = 0; i < 6; ++i)
+  {
+    if(random_bool())
+    {
+      out(i) = 1.0;
+    }
+  }
+  return out;
+}
+
+inline std::vector<double> random_vector()
 {
   std::vector<double> v(random_size());
   for(size_t i = 0; i < v.size(); ++i)
@@ -146,7 +187,7 @@ std::vector<double> random_vector()
   return v;
 }
 
-char random_char()
+inline char random_char()
 {
   static const std::array<char, 70> chars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D',
                                              'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
@@ -159,7 +200,7 @@ char random_char()
   return chars[dis(gen)];
 }
 
-std::string random_string()
+inline std::string random_string()
 {
   std::string s(random_size(), 'a');
   std::generate_n(s.begin(), s.size(), random_char);

@@ -35,8 +35,8 @@ bool compare_vectors(const std::vector<T, A> & lhs, const std::vector<T, A> & rh
 }
 
 template<typename T>
-bool compare_vector_maps(const std::map<std::string, std::vector<T>> & lhs,
-                         const std::map<std::string, std::vector<T>> & rhs)
+bool compare_vector_maps(const mc_rtc::map<std::string, std::vector<T>> & lhs,
+                         const mc_rtc::map<std::string, std::vector<T>> & rhs)
 {
   for(const auto & el : lhs)
   {
@@ -100,107 +100,7 @@ bool operator==(const mc_rbdyn::BodySensor & lhs, const mc_rbdyn::BodySensor & r
 template<>
 mc_rbdyn::Collision make_ref()
 {
-  return {"Body1", "Body2", 0.05, 0.01, 0.123};
-}
-
-template<>
-std::shared_ptr<mc_rbdyn::PlanarSurface> make_ref()
-{
-  std::vector<std::pair<double, double>> pPoints = {{0.1, 2.3}, {4.5, 6.7}, {8.9, 0.1}};
-  return std::make_shared<mc_rbdyn::PlanarSurface>("planarSurfaceName", "bodyName", random_pt(), "material", pPoints);
-}
-
-/* Note: mc_rbdyn already defines comparison between two surfaces but it checks very superficially */
-bool operator==(const std::shared_ptr<mc_rbdyn::PlanarSurface> & lhs_p,
-                const std::shared_ptr<mc_rbdyn::PlanarSurface> & rhs_p)
-{
-  assert(lhs_p);
-  assert(rhs_p);
-  const auto & lhs = *lhs_p;
-  const auto & rhs = *rhs_p;
-  return lhs.name() == rhs.name() && lhs.bodyName() == rhs.bodyName() && lhs.X_b_s() == rhs.X_b_s()
-         && lhs.materialName() == rhs.materialName() && lhs.planarPoints() == rhs.planarPoints();
-}
-
-template<>
-std::shared_ptr<mc_rbdyn::CylindricalSurface> make_ref()
-{
-  return std::make_shared<mc_rbdyn::CylindricalSurface>("planarSurfaceName", "bodyName", random_pt(), "material", 0.42,
-                                                        1.42);
-}
-
-bool operator==(const std::shared_ptr<mc_rbdyn::CylindricalSurface> & lhs_p,
-                const std::shared_ptr<mc_rbdyn::CylindricalSurface> & rhs_p)
-{
-  assert(lhs_p);
-  assert(rhs_p);
-  const auto & lhs = *lhs_p;
-  const auto & rhs = *rhs_p;
-  return lhs.name() == rhs.name() && lhs.bodyName() == rhs.bodyName() && lhs.X_b_s() == rhs.X_b_s()
-         && lhs.materialName() == rhs.materialName() && lhs.radius() == rhs.radius() && lhs.width() == rhs.width();
-}
-
-template<>
-std::shared_ptr<mc_rbdyn::GripperSurface> make_ref()
-{
-  std::vector<sva::PTransformd> pFo = {random_pt(), random_pt(), random_pt()};
-  return std::make_shared<mc_rbdyn::GripperSurface>("planarSurfaceName", "bodyName", random_pt(), "material", pFo,
-                                                    random_pt(), 1.42);
-}
-
-bool operator==(const std::shared_ptr<mc_rbdyn::GripperSurface> & lhs_p,
-                const std::shared_ptr<mc_rbdyn::GripperSurface> & rhs_p)
-{
-  assert(lhs_p);
-  assert(rhs_p);
-  const auto & lhs = *lhs_p;
-  const auto & rhs = *rhs_p;
-  return lhs.name() == rhs.name() && lhs.bodyName() == rhs.bodyName() && lhs.X_b_s() == rhs.X_b_s()
-         && lhs.materialName() == rhs.materialName() && lhs.pointsFromOrigin() == rhs.pointsFromOrigin()
-         && lhs.X_b_motor() == rhs.X_b_motor() && lhs.motorMaxTorque() == rhs.motorMaxTorque();
-}
-
-template<>
-std::shared_ptr<mc_rbdyn::Surface> make_ref()
-{
-  static int i = -1;
-  i++;
-  if(i % 3 == 0)
-  {
-    return make_ref<std::shared_ptr<mc_rbdyn::PlanarSurface>>();
-  }
-  else if(i % 3 == 1)
-  {
-    return make_ref<std::shared_ptr<mc_rbdyn::CylindricalSurface>>();
-  }
-  else
-  {
-    return make_ref<std::shared_ptr<mc_rbdyn::GripperSurface>>();
-  }
-}
-
-bool operator==(const std::shared_ptr<mc_rbdyn::Surface> & lhs, const std::shared_ptr<mc_rbdyn::Surface> & rhs)
-{
-  if(lhs->type() == rhs->type())
-  {
-    auto type = lhs->type();
-    if(type == "planar")
-    {
-      return std::static_pointer_cast<mc_rbdyn::PlanarSurface>(lhs)
-             == std::static_pointer_cast<mc_rbdyn::PlanarSurface>(rhs);
-    }
-    else if(type == "cylindrical")
-    {
-      return std::static_pointer_cast<mc_rbdyn::CylindricalSurface>(lhs)
-             == std::static_pointer_cast<mc_rbdyn::CylindricalSurface>(rhs);
-    }
-    else if(type == "gripper")
-    {
-      return std::static_pointer_cast<mc_rbdyn::GripperSurface>(lhs)
-             == std::static_pointer_cast<mc_rbdyn::GripperSurface>(rhs);
-    }
-  }
-  return false;
+  return {"Robot1", "Robot2", "Body1", "Body2", 0.05, 0.01, 0.123};
 }
 
 template<>
@@ -407,10 +307,15 @@ bool operator==(const RobotModule::Gripper & lhs, const RobotModule::Gripper & r
          && compareMimics();
 }
 
+bool operator==(const CollisionDescription & lhs, const CollisionDescription & rhs)
+{
+  return lhs.object1 == rhs.object1 && lhs.object2 == rhs.object2;
+}
+
 } // namespace mc_rbdyn
 
-bool compareHulls(const std::map<std::string, std::pair<std::string, std::string>> & lhs,
-                  const std::map<std::string, std::pair<std::string, std::string>> & rhs)
+bool compareHulls(const mc_rtc::map<std::string, std::pair<std::string, std::string>> & lhs,
+                  const mc_rtc::map<std::string, std::pair<std::string, std::string>> & rhs)
 {
   for(const auto & itm : lhs)
   {
@@ -439,11 +344,10 @@ bool operator==(const mc_rbdyn::RobotModule & lhs, const mc_rbdyn::RobotModule &
          && bfs::path(lhs.calib_dir) == bfs::path(rhs.calib_dir) && lhs._bounds == rhs._bounds
          && lhs._accelerationBounds == rhs._accelerationBounds
          && lhs._torqueDerivativeBounds == rhs._torqueDerivativeBounds && lhs._stance == rhs._stance
-         && compareHulls(lhs._convexHull, rhs._convexHull) && compareHulls(lhs._stpbvHull, rhs._stpbvHull)
-         && compare_vector_maps(lhs._visual, rhs._visual) && lhs._collisionTransforms == rhs._collisionTransforms
-         && compare_vectors(lhs._flexibility, rhs._flexibility) && compare_vectors(lhs._forceSensors, rhs._forceSensors)
-         && compare_vectors(lhs._bodySensors, rhs._bodySensors) && lhs._springs == rhs._springs
-         && lhs._minimalSelfCollisions == rhs._minimalSelfCollisions
+         && compareHulls(lhs._convexHull, rhs._convexHull) && compare_vector_maps(lhs._visual, rhs._visual)
+         && lhs._collisionTransforms == rhs._collisionTransforms && compare_vectors(lhs._flexibility, rhs._flexibility)
+         && compare_vectors(lhs._forceSensors, rhs._forceSensors) && compare_vectors(lhs._bodySensors, rhs._bodySensors)
+         && lhs._springs == rhs._springs && lhs._minimalSelfCollisions == rhs._minimalSelfCollisions
          && lhs._commonSelfCollisions == rhs._commonSelfCollisions && compare_vectors(lhs._grippers, rhs._grippers)
          && lhs._ref_joint_order == rhs._ref_joint_order && lhs._default_attitude == rhs._default_attitude
          && lhs._gripperSafety == rhs._gripperSafety;
@@ -452,10 +356,6 @@ bool operator==(const mc_rbdyn::RobotModule & lhs, const mc_rbdyn::RobotModule &
 typedef boost::mpl::list<mc_rbdyn::Base,
                          mc_rbdyn::BodySensor,
                          mc_rbdyn::Collision,
-                         std::shared_ptr<mc_rbdyn::PlanarSurface>,
-                         std::shared_ptr<mc_rbdyn::CylindricalSurface>,
-                         std::shared_ptr<mc_rbdyn::GripperSurface>,
-                         std::shared_ptr<mc_rbdyn::Surface>,
                          mc_rbdyn::Flexibility,
                          mc_rbdyn::ForceSensor,
                          mc_rbdyn::Plane,

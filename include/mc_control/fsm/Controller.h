@@ -116,7 +116,7 @@ private:
   /** Teardown the idle state */
   void teardownIdleState();
 
-private:
+protected:
   /** Holds dynamics, kinematics and contact constraints that are added
    * from the start by the controller */
   std::vector<mc_solver::ConstraintPtr> constraints_;

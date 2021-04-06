@@ -7,12 +7,12 @@
 namespace mc_rbdyn
 {
 
-bool Collision::operator==(const Collision & rhs) const
+bool Collision::operator==(const Collision & rhs) const noexcept
 {
   return robot1 == rhs.robot1 && robot2 == rhs.robot2 && object1 == rhs.object1 && object2 == rhs.object2;
 }
 
-bool Collision::operator!=(const Collision & rhs) const
+bool Collision::operator!=(const Collision & rhs) const noexcept
 {
   return !(*this == rhs);
 }

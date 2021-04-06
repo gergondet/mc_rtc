@@ -24,16 +24,16 @@ public:
     BOOST_CHECK_EQUAL(robots().robots().size(), 2);
     // Check that JVRC-1 was loaded
     BOOST_CHECK_EQUAL(robot().name(), "jvrc1");
-    solver().addConstraintSet(contactConstraint);
-    solver().addConstraintSet(dynamicsConstraint);
-    postureTask->stiffness(1);
-    postureTask->weight(1);
-    solver().addTask(postureTask.get());
-    solver().setContacts(
-        {mc_rbdyn::Contact(robots(), "LeftFoot", "AllGround"), mc_rbdyn::Contact(robots(), "RightFoot", "AllGround")});
+    BOOST_REQUIRE(robots().hasRobot("ground"));
+    solver().addConstraint(dynamicsConstraint_);
+    postureTask_->stiffness(1);
+    postureTask_->weight(1);
+    solver().addTask(postureTask_);
+    solver().addContact({"jvrc1", "ground", "LeftFoot", "AllGround"});
+    solver().addContact({"jvrc1", "ground", "RightFoot", "AllGround"});
 
     /* Create and add the CoM task with the default stiffness/weight */
-    comTask = std::make_shared<mc_tasks::CoMTask>(robots(), 0);
+    comTask = std::make_shared<mc_tasks::CoMTask>(robot());
     comTask->stiffness(10);
     solver().addTask(comTask);
 
@@ -53,8 +53,8 @@ public:
 
       /* Apply dimWeight and give a "crazy" position target */
       comTask->dimWeight(Eigen::Vector3d(1., 1., 0.));
-      comTask->move_com(Eigen::Vector3d(0., 0., 100.));
-      postureTask->posture(robot().mbc().q);
+      comTask->com(comTask->com() + Eigen::Vector3d(0., 0., 100.));
+      postureTask_->posture(robot().mbc().q);
     }
     if(nrIter == 2000)
     {
@@ -75,13 +75,14 @@ public:
 
       /* Lower the CoM, forbid right knee movement in all tasks */
       comTask->reset();
-      comTask->selectUnactiveJoints(solver(), {"R_KNEE"});
+      comTask->selectInactiveJoints(solver(), {"R_KNEE"});
       orig_rkj = robot().mbc().q[robot().jointIndexByName("R_KNEE")][0];
       comTask->com(comTask->com() + Eigen::Vector3d(0., 0., -0.05));
 
       /* Also reset the joint target in posture task */
-      postureTask->reset();
-      postureTask->jointStiffness(solver(), {{"R_KNEE", 1e5}});
+      postureTask_->reset();
+      auto stiffness = postureTask_->dimStiffness();
+      postureTask_->setJointStiffness("R_KNEE", 1e5);
     }
     if(nrIter == 4000)
     {

@@ -133,7 +133,8 @@ BOOST_AUTO_TEST_CASE(TestRobotDataStore)
 
   DataStore store;
   auto & robots = store.make<mc_rbdyn::Robots>("robots");
-  robots.load({rm, env});
+  robots.load(*rm, rm->name);
+  robots.load(*env, env->name);
   BOOST_REQUIRE(robots.size() == 2);
 
   // Get another reference to robots

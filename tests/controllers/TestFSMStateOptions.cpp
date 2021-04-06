@@ -51,13 +51,13 @@ public:
     if(iter_ == 1) // TestCollisionsManipulation
     {
       BOOST_REQUIRE(executor_.state() == "TestCollisionsManipulation");
-      BOOST_REQUIRE(hasCollision("jvrc1", "ground", {"L_WRIST_Y_S", "ground", 0.05, 0.01, 0}));
-      BOOST_REQUIRE(!hasCollision("jvrc1", "jvrc1", {"R_WRIST_Y_S", "R_HIP_Y_S", 0.05, 0.025, 0}));
+      BOOST_REQUIRE(hasCollision({"jvrc1", "ground", "L_WRIST_Y_S", "ground", 0.05, 0.01, 0}));
+      BOOST_REQUIRE(!hasCollision({"jvrc1", "jvrc1", "R_WRIST_Y_S", "R_HIP_Y_S", 0.05, 0.025, 0}));
     }
     else
     {
-      BOOST_REQUIRE(!hasCollision("jvrc1", "ground", {"L_WRIST_Y_S", "ground", 0.05, 0.01, 0}));
-      BOOST_REQUIRE(hasCollision("jvrc1", "jvrc1", {"R_WRIST_Y_S", "R_HIP_Y_S", 0.05, 0.025, 0}));
+      BOOST_REQUIRE(!hasCollision({"jvrc1", "ground", "L_WRIST_Y_S", "ground", 0.05, 0.01, 0}));
+      BOOST_REQUIRE(hasCollision({"jvrc1", "jvrc1", "R_WRIST_Y_S", "R_HIP_Y_S", 0.05, 0.025, 0}));
     }
     if(iter_ == 2) // TestRemovePostureTask
     {
@@ -79,7 +79,7 @@ public:
       BOOST_REQUIRE(executor_.state() == "TestConstraintsAndTasks");
       // There is now a constraint to set l_wrist speed to a constant
       auto bIndex = robot().bodyIndexByName("l_wrist");
-      auto speed = robot().bodyVelW()[bIndex].vector();
+      auto speed = robot().mbc().bodyVelW[bIndex].vector();
       Eigen::Vector6d ref = Eigen::Vector6d::Zero();
       ref(5) = 0.001;
       BOOST_REQUIRE((speed - ref).norm() < 5e-4);
@@ -102,17 +102,17 @@ public:
 
   using fsm::Controller::hasContact;
 
-  const fsm::Contact & contact(const fsm::Contact & c)
+  const mc_rbdyn::Contact & contact(const mc_rbdyn::Contact & c)
   {
     assert(hasContact(c));
-    return *contacts().find(c);
+    return *std::find(contacts().begin(), contacts().end(), c);
   }
 
   bool hasContact(const std::string & s,
                   double friction = mc_rbdyn::Contact::defaultFriction,
                   const Eigen::Vector6d & dof = Eigen::Vector6d::Ones())
   {
-    fsm::Contact c("jvrc1", "ground", s, "AllGround", friction, dof);
+    mc_rbdyn::Contact c("jvrc1", "ground", s, "AllGround", friction, dof);
     if(!hasContact(c))
     {
       return false;
@@ -121,13 +121,9 @@ public:
     return ref.friction == c.friction && ref.dof == c.dof;
   }
 
-  bool hasCollision(const std::string & r1, const std::string & r2, const mc_rbdyn::Collision & col)
+  bool hasCollision(const mc_rbdyn::Collision & col)
   {
-    if(!collision_constraints_.count({r1, r2}))
-    {
-      return false;
-    }
-    const auto & cols = collision_constraints_.at({r1, r2})->cols;
+    const auto & cols = collisionConstraint_->collisions();
     return std::find(cols.begin(), cols.end(), col) != cols.end();
   }
 
@@ -136,7 +132,7 @@ public:
   {
     for(const auto & t : solver().tasks())
     {
-      if(dynamic_cast<const T *>(t) != nullptr)
+      if(dynamic_cast<const T *>(t.get()) != nullptr)
       {
         return true;
       }

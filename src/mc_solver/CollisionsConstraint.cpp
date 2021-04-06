@@ -286,4 +286,16 @@ void CollisionsConstraint::removeCollision(QPSolver & solver, CollisionData & da
   mc_rtc::log::info("Removed collision {}::{}/{}::{}", col.robot1, col.object1, col.robot2, col.object2);
 }
 
+std::vector<mc_rbdyn::Collision> CollisionsConstraint::collisions() const noexcept
+{
+  std::vector<mc_rbdyn::Collision> out;
+  for(const auto & d : data_)
+  {
+    out.push_back(d.collision);
+  }
+  return out;
+}
+
 } // namespace mc_solver
+
+// FIXME Write loader function
