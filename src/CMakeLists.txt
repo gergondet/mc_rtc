@@ -241,6 +241,7 @@ set(mc_tvm_HDR
   ${mc_tvm_HDR_DIR}/MomentumFunction.h
   ${mc_tvm_HDR_DIR}/OrientationFunction.h
   ${mc_tvm_HDR_DIR}/PositionFunction.h
+  ${mc_tvm_HDR_DIR}/PositionBasedVisServoFunction.h
   ${mc_tvm_HDR_DIR}/PostureFunction.h
   ${mc_tvm_HDR_DIR}/TransformFunction.h
   ${mc_tvm_HDR_DIR}/VectorOrientationFunction.h
@@ -259,6 +260,7 @@ set(mc_tvm_SRC
   mc_tvm/MomentumFunction.cpp
   mc_tvm/OrientationFunction.cpp
   mc_tvm/PositionFunction.cpp
+  mc_tvm/PositionBasedVisServoFunction.cpp
   mc_tvm/PostureFunction.cpp
   mc_tvm/TransformFunction.cpp
   mc_tvm/VectorOrientationFunction.cpp
@@ -402,7 +404,7 @@ mc_tasks/ImpedanceTask.cpp
 mc_tasks/AdmittanceTask.cpp
 mc_tasks/DampingTask.cpp
 
-#mc_tasks/PositionBasedVisServoTask.cpp
+mc_tasks/PositionBasedVisServoTask.cpp
 
 mc_tasks/AddRemoveContactTask.cpp
 

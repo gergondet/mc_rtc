@@ -1,65 +1,30 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2021 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
-#include <mc_rbdyn/configuration_io.h>
-#include <mc_tasks/MetaTaskLoader.h>
 #include <mc_tasks/PositionBasedVisServoTask.h>
+
+#include <mc_tasks/MetaTaskLoader.h>
 
 #include <Eigen/Geometry>
 
 namespace mc_tasks
 {
 
-PositionBasedVisServoTask::PositionBasedVisServoTask(const std::string & bodyName,
-                                                     const sva::PTransformd & X_t_s,
-                                                     const sva::PTransformd & X_b_s,
-                                                     const mc_rbdyn::Robots & robots,
-                                                     unsigned int robotIndex,
-                                                     double stiffness,
-                                                     double weight)
-: TrajectoryTaskGeneric<tasks::qp::PositionBasedVisServoTask>(robots, robotIndex, stiffness, weight)
+PositionBasedVisServoTask::PositionBasedVisServoTask(mc_rbdyn::Frame & frame, double stiffness, double weight)
+: TrajectoryBase(frame.robot(), stiffness, weight)
 {
-  finalize(robots.mbs(), static_cast<int>(rIndex), bodyName, X_t_s, X_b_s);
   type_ = "pbvs";
-  name_ = "pbvs_" + robots.robot(robotIndex).name() + "_" + bodyName;
-}
-
-PositionBasedVisServoTask::PositionBasedVisServoTask(const std::string & surfaceName,
-                                                     const sva::PTransformd & X_t_s,
-                                                     const mc_rbdyn::Robots & robots,
-                                                     unsigned int robotIndex,
-                                                     double stiffness,
-                                                     double weight)
-: PositionBasedVisServoTask(robots.robot(robotIndex).surface(surfaceName).bodyName(),
-                            X_t_s,
-                            robots.robot(robotIndex).surface(surfaceName).X_b_s(),
-                            robots,
-                            robotIndex,
-                            stiffness,
-                            weight)
-{
-}
-
-void PositionBasedVisServoTask::reset()
-{
-  TrajectoryTaskGeneric::reset();
-  X_t_s_ = sva::PTransformd::Identity();
-  errorT->error(X_t_s_);
-}
-
-void PositionBasedVisServoTask::error(const sva::PTransformd & X_t_s)
-{
-  X_t_s_ = X_t_s;
-  errorT->error(X_t_s_);
+  name_ = fmt::format("{}_{}", type_, frame.name());
+  finalize(frame);
 }
 
 void PositionBasedVisServoTask::addToLogger(mc_rtc::Logger & logger)
 {
   TrajectoryBase::addToLogger(logger);
-  MC_RTC_LOG_HELPER(name_ + "_error", X_t_s_);
+  logger.addLogEntry(name_ + "_error", this, [this]() -> const sva::PTransformd & { return error(); });
   logger.addLogEntry(name_ + "_eval", this, [this]() -> sva::PTransformd {
-    Eigen::Vector6d eval = errorT->eval();
+    Eigen::Vector6d eval = errorT_->value();
     Eigen::Vector3d angleAxis = eval.head(3);
     Eigen::Vector3d axis = angleAxis / angleAxis.norm();
     double angle = angleAxis.dot(axis);
@@ -77,17 +42,23 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
     "pbvs",
     [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) {
       std::shared_ptr<mc_tasks::PositionBasedVisServoTask> t;
-      auto robotIndex = robotIndexFromConfig(config, solver.robots(), "pbvs");
+      using Allocator = Eigen::aligned_allocator<mc_tasks::PositionBasedVisServoTask>;
+      auto & robot = solver.robots().fromConfig(config, "PositionBasedVisServoTask");
       if(config.has("surface"))
       {
-        t = std::make_shared<mc_tasks::PositionBasedVisServoTask>(config("surface"), sva::PTransformd::Identity(),
-                                                                  solver.robots(), robotIndex);
+        mc_rtc::log::warning(
+            "Deprecated use of surface in PositionBasedVisServoTask specification, use \"frame\" instead");
+        t = std::allocate_shared<mc_tasks::PositionBasedVisServoTask>(Allocator{}, robot.frame(config("surface")));
       }
       else if(config.has("body"))
       {
-        t = std::make_shared<mc_tasks::PositionBasedVisServoTask>(config("body"), sva::PTransformd::Identity(),
-                                                                  config("X_b_s", sva::PTransformd::Identity()),
-                                                                  solver.robots(), robotIndex);
+        mc_rtc::log::warning(
+            "Deprecated use of body in PositionBasedVisServoTask specification, use \"frame\" instead");
+        t = std::allocate_shared<mc_tasks::PositionBasedVisServoTask>(Allocator{}, robot.frame(config("body")));
+      }
+      else
+      {
+        t = std::allocate_shared<mc_tasks::PositionBasedVisServoTask>(Allocator{}, robot.frame(config("frame")));
       }
       t->load(solver, config);
       return t;
