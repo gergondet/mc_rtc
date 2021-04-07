@@ -102,7 +102,7 @@ struct TaskTester<mc_tasks::CoMTask>
   {                                                                                                                  \
     mc_tasks::MetaTaskPtr make_ref()                                                                                 \
     {                                                                                                                \
-      auto ret = std::make_shared<T>(robot.frame("LeftFoot"), IsAddContactTask ? speed : -speed, stiffness, weight); \
+      auto ret = std::make_shared<T>(robot.frame("LeftFoot"), IsAddContactTask ? -speed : speed, stiffness, weight); \
       return ret;                                                                                                    \
     }                                                                                                                \
                                                                                                                      \
@@ -121,8 +121,8 @@ struct TaskTester<mc_tasks::CoMTask>
                                                                                                                      \
     void check(const mc_tasks::MetaTaskPtr & ref_p, const mc_tasks::MetaTaskPtr & loaded_p)                          \
     {                                                                                                                \
-      auto ref = std::dynamic_pointer_cast<T>(ref_p);                                                                \
-      auto loaded = std::dynamic_pointer_cast<T>(loaded_p);                                                          \
+      auto ref = std::dynamic_pointer_cast<mc_tasks::AddRemoveContactTask>(ref_p);                                   \
+      auto loaded = std::dynamic_pointer_cast<mc_tasks::AddRemoveContactTask>(loaded_p);                             \
       BOOST_REQUIRE(ref);                                                                                            \
       BOOST_REQUIRE(loaded);                                                                                         \
       BOOST_CHECK_CLOSE(ref->stiffness(), loaded->stiffness(), 1e-6);                                                \
@@ -488,7 +488,7 @@ struct TaskTester<mc_tasks::BSplineTrajectoryTask>
     config.add("stiffness", stiffness);
     config.add("weight", weight);
     config.add("duration", d);
-    config.add("frame", "LeftFoot");
+    config.add("surface", "LeftFoot");
     config.add("target", target);
     auto ret = getTmpFile();
     config.save(ret);
@@ -532,7 +532,7 @@ struct TaskTester<mc_tasks::ExactCubicTrajectoryTask>
     config.add("stiffness", stiffness);
     config.add("weight", weight);
     config.add("duration", d);
-    config.add("frame", "LeftFoot");
+    config.add("surface", "LeftFoot");
     config.add("target", target);
     auto ret = getTmpFile();
     config.save(ret);
