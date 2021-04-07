@@ -8,6 +8,8 @@
 
 #include <mc_rtc/gui/Transform.h>
 
+#include <mc_rtc/deprecated.h>
+
 namespace mc_tasks
 {
 
@@ -30,26 +32,26 @@ void TransformTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configurati
   // Apply global world transformations first
   if(config.has("targetSurface"))
   {
-    mc_rtc::log::warning("Deprecate use of targetSurface while loading {}, use \"target\" with special members instead",
-                         name_);
+    mc_rtc::log::deprecated("TransformTask", "targetSurface", "target",
+                            "Note: target should contain specific keys to mimic the behavior of targetSurface");
     const auto & c = config("targetSurface");
     const auto & robot = solver.robots().fromConfig(c, "TransformTask::targetSurface");
     sva::PTransformd offset = config("offset", sva::PTransformd::Identity());
     // FIXME Remove at a later point
     if(config.has("offset_rotation"))
     {
-      mc_rtc::log::warning("Deprecated use of offset_rotation while loading {}, use \"offset\" instead", name_);
+      mc_rtc::log::deprecated("TransformTask", "offset_rotation", "offset");
       offset.rotation() = config("offset_rotation");
     }
     if(config.has("offset_translation"))
     {
-      mc_rtc::log::warning("Deprecated use of offset_translation while loading {}, use \"offset\" instead", name_);
+      mc_rtc::log::deprecated("TransformTask", "offset_translation", "offset");
       offset.translation() = config("offset_translation");
     }
     // FIXME Remove at a later point
     if(config.has("surface"))
     {
-      mc_rtc::log::warning("Deprecated use of surface while loading {}, use \"frame\" instead", name_);
+      mc_rtc::log::deprecated("TransformTask", "surface", "frame");
       target(robot.frame(config("surface")), offset);
     }
     else
@@ -79,7 +81,7 @@ void TransformTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configurati
     std::string_view f1;
     if(relative.has("s1"))
     {
-      mc_rtc::log::warning("Deprecated use of s1 while loading {}, use \"f1\" instead", name_);
+      mc_rtc::log::deprecated("TransformTask", "s1", "f1");
       f1 = relative("s1");
     }
     else
@@ -89,7 +91,7 @@ void TransformTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configurati
     std::string_view f2;
     if(relative.has("s2"))
     {
-      mc_rtc::log::warning("Deprecated use of s2 while loading {}, use \"f2\" instead", name_);
+      mc_rtc::log::deprecated("TransformTask", "s2", "f2");
       f2 = relative("s2");
     }
     else
@@ -152,13 +154,13 @@ static mc_tasks::MetaTaskPtr loadTransformTask(mc_solver::QPSolver & solver, con
 {
   if constexpr(Deprecated)
   {
-    mc_rtc::log::warning("Loading with type surfaceTransform is deprecated, use \"transform\" instead");
+    mc_rtc::log::deprecated("TaskLoading", "surfaceTransform", "transform");
   }
   auto & robot = solver.robots().fromConfig(config, "TransformTask");
   // FIXME Remove after a while
   if(config.has("surface"))
   {
-    mc_rtc::log::warning("Deprecate use of surface while loading a TransformTask, use \"frame\" instead");
+    mc_rtc::log::deprecated("TransformTask", "surface", "frame");
     auto t = std::make_shared<mc_tasks::TransformTask>(robot.frame(config("surface")));
     t->load(solver, config);
     return t;

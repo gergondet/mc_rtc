@@ -9,6 +9,7 @@
 #include <mc_rbdyn/configuration_io.h>
 #include <mc_rbdyn/rpy_utils.h>
 
+#include <mc_rtc/deprecated.h>
 #include <mc_rtc/gui/ArrayLabel.h>
 #include <mc_rtc/gui/Transform.h>
 
@@ -83,7 +84,7 @@ void AdmittanceTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configurat
   }
   else if(config.has("targetPose"))
   {
-    mc_rtc::log::warning("[{}] property \"targetPose\" is deprecated, use \"target\" instead", name());
+    mc_rtc::log::deprecated("AdmittanceTask", "targetPose", "target");
     targetPose(config("targetPose"));
   }
   if(config.has("wrench"))
@@ -152,7 +153,7 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       auto & robot = solver.robots().fromConfig(config, "AdmittanceTask");
       if(config.has("surface"))
       {
-        mc_rtc::log::warning("Deprecated use of surface while loading an AdmittanceTask, use \"frame\" instead");
+        mc_rtc::log::deprecated("AdmittanceTask", "surface", "frame");
         auto t = std::make_shared<mc_tasks::force::AdmittanceTask>(robot.frame(config("surface")));
         t->reset();
         t->load(solver, config);

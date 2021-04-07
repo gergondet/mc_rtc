@@ -5,6 +5,8 @@
 #include <mc_rbdyn/RobotModule.h>
 #include <mc_rbdyn/Robots.h>
 #include <mc_rbdyn/SCHAddon.h>
+
+#include <mc_rtc/deprecated.h>
 #include <mc_rtc/logging.h>
 #include <mc_rtc/pragma.h>
 
@@ -230,9 +232,7 @@ mc_rbdyn::Robot & Robots::fromConfig(const mc_rtc::Configuration & config,
   }
   else if(config.has(robotIndexKey))
   {
-    mc_rtc::log::warning("[MC_RTC_DEPRECATED]{} \"robotIndex\" will be deprecated in future versions, use \"{}: "
-                         "<robot name>\" instead",
-                         p, robotNameKey);
+    mc_rtc::log::deprecated(prefix, robotIndexKey, robotNameKey);
     size_t robotIndex = config(robotIndexKey);
     if(robotIndex < robots_.size())
     {

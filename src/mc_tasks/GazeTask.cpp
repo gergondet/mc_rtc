@@ -6,6 +6,8 @@
 
 #include <mc_tasks/MetaTaskLoader.h>
 
+#include <mc_rtc/deprecated.h>
+
 namespace mc_tasks
 {
 
@@ -29,7 +31,7 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       auto & robot = solver.robots().fromConfig(config, "GazeTask");
       if(config.has("body"))
       {
-        mc_rtc::log::warning("Deprecated use of body in GazeTask specification, use \"frame\" instead");
+        mc_rtc::log::deprecated("GazeTask", "body", "frame");
         config.add("frame", config("body"));
       }
       auto t = std::make_shared<mc_tasks::GazeTask>(robot.frame(config("frame")));

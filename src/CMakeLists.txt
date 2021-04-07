@@ -86,6 +86,7 @@ set(mc_rtc_utils_SRC
   mc_rtc/MessagePackBuilder.cpp
   mc_rtc/logging.cpp
   mc_rtc/version.cpp
+  mc_rtc/deprecated.cpp
   ${DEBUG_SOURCE}
 )
 
@@ -112,6 +113,7 @@ set(mc_rtc_utils_HDR
   ../include/mc_rtc/map.h
   ../include/mc_rtc/robin_hood/robin_hood.h
   ../include/mc_rtc/shared.h
+  ../include/mc_rtc/deprecated.h
 )
 
 add_library(mc_rtc_utils SHARED ${mc_rtc_utils_SRC} ${mc_rtc_utils_HDR})

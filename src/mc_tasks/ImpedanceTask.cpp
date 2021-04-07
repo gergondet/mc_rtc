@@ -10,6 +10,8 @@
 #include <mc_rtc/gui/Checkbox.h>
 #include <mc_rtc/gui/Transform.h>
 
+#include <mc_rtc/deprecated.h>
+
 namespace mc_tasks
 {
 
@@ -269,7 +271,7 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       std::shared_ptr<mc_tasks::force::ImpedanceTask> t;
       if(config.has("surface"))
       {
-        mc_rtc::log::warning("Deprecated use of surface while loading an ImpedanceTask, use \"frame\" instead");
+        mc_rtc::log::deprecated("ImpedanceTask", "surface", "frame");
         t = std::allocate_shared<mc_tasks::force::ImpedanceTask>(Allocator{}, robot.frame(config("surface")));
       }
       else

@@ -1,12 +1,17 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2021 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
+#include <mc_tasks/DampingTask.h>
+
+#include <mc_tasks/MetaTaskLoader.h>
+
 #include <mc_filter/utils/clamp.h>
+
 #include <mc_rbdyn/configuration_io.h>
 #include <mc_rbdyn/rpy_utils.h>
-#include <mc_tasks/DampingTask.h>
-#include <mc_tasks/MetaTaskLoader.h>
+
+#include <mc_rtc/deprecated.h>
 
 namespace mc_tasks
 {
@@ -55,7 +60,7 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       auto & robot = solver.robots().fromConfig(config, "DampingTask");
       if(config.has("surface"))
       {
-        mc_rtc::log::warning("Deprecated use of surface while loading a DampingTask, use \"frame\" instead");
+        mc_rtc::log::deprecated("DampingTask", "surface", "frame");
         t = std::make_shared<mc_tasks::force::DampingTask>(robot.frame(config("surface")));
       }
       else
@@ -74,8 +79,7 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
 
       if(config.has("targetSurface"))
       {
-        mc_rtc::log::warning(
-            "Deprecated use of targetSurface while loading a DampingTask, use \"targetFrame\" instead");
+        mc_rtc::log::deprecated("DampingTask", "targetSurface", "targetFrame");
         const auto & c = config("targetSurface");
         const auto & r = solver.robots().fromConfig(c, t->name() + "::targetSurface");
         t->targetPose(r.frame(c("surface")), {c("offset_rotation", Eigen::Matrix3d::Identity().eval()),
