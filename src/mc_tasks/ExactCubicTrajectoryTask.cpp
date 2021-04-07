@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2021 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #include <mc_tasks/ExactCubicTrajectoryTask.h>
@@ -9,6 +9,7 @@
 #include <mc_trajectory/ExactCubic.h>
 #include <mc_trajectory/InterpolatedRotation.h>
 
+#include <mc_rtc/deprecated.h>
 #include <mc_rtc/gui/Arrow.h>
 
 namespace mc_tasks
@@ -57,18 +58,25 @@ namespace
 {
 static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
     "exact_cubic_trajectory",
-    [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) {
+    [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & configIn) {
+      auto config = configIn;
       sva::PTransformd finalTarget_;
       std::vector<std::pair<double, Eigen::Vector3d>> waypoints;
       std::vector<std::pair<double, Eigen::Matrix3d>> oriWp;
       auto & robot = solver.robots().fromConfig(config, "ExactCubicTrajectoryTask");
       Eigen::Vector3d init_vel, end_vel, init_acc, end_acc;
       if(config.has("targetSurface"))
+      {
+        mc_rtc::log::deprecated("ExactCubicTrajectoryTask", "targetSurface", "targetFrame");
+        config.add("targetFrame", config("targetSurface"));
+        config("targetFrame").add("frame", config("targetSurface")("surface"));
+      }
+      if(config.has("targetFrame"))
       { // Target defined from a target surface, with an offset defined
         // in the surface coordinates
-        const auto & c = config("targetSurface");
-        const auto & targetSurfaceName = c("surface");
-        const auto & robot = solver.robots().fromConfig(c, "ExactCubicTrajectoryTask::targetSurface");
+        const auto & c = config("targetFrame");
+        const auto & targetSurfaceName = c("frame");
+        const auto & robot = solver.robots().fromConfig(c, "ExactCubicTrajectoryTask::targetFrame");
 
         const auto & targetSurface = robot.frame(targetSurfaceName).position();
         const Eigen::Vector3d trans = c("translation", Eigen::Vector3d::Zero().eval());
@@ -126,8 +134,13 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
         oriWp = config("oriWaypoints", std::vector<std::pair<double, Eigen::Matrix3d>>{});
       }
 
-      std::shared_ptr<mc_tasks::ExactCubicTrajectoryTask> t = std::make_shared<mc_tasks::ExactCubicTrajectoryTask>(
-          robot.frame(config("surface")), config("duration", 10.), config("stiffness", 100.), config("weight", 500.),
+      if(config.has("surface"))
+      {
+        mc_rtc::log::deprecated("ExactCubicTrajectoryTask", "surface", "frame");
+        config.add("frame", config("surface"));
+      }
+      auto t = std::make_shared<mc_tasks::ExactCubicTrajectoryTask>(
+          robot.frame(config("frame")), config("duration", 10.), config("stiffness", 100.), config("weight", 500.),
           finalTarget_, waypoints, init_vel, init_acc, end_vel, end_acc, oriWp);
       t->load(solver, config);
       const auto displaySamples = config("displaySamples", t->displaySamples());

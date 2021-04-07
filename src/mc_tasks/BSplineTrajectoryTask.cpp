@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2021 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #include <mc_tasks/BSplineTrajectoryTask.h>
@@ -10,6 +10,8 @@
 #include <mc_trajectory/InterpolatedRotation.h>
 
 #include <mc_rbdyn/Surface.h>
+
+#include <mc_rtc/deprecated.h>
 
 namespace mc_tasks
 {
@@ -42,17 +44,24 @@ namespace
 {
 static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
     "bspline_trajectory",
-    [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) {
+    [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & configIn) {
+      auto config = configIn;
       sva::PTransformd finalTarget_;
       mc_tasks::BSplineTrajectoryTask::waypoints_t waypoints;
       std::vector<std::pair<double, Eigen::Matrix3d>> oriWp;
       auto & robot = solver.robots().fromConfig(config, "BSplineTrajectoryTask");
       if(config.has("targetSurface"))
-      { // Target defined from a target surface, with an offset defined
-        // in the surface coordinates
-        const auto & c = config("targetSurface");
-        const auto & targetSurfaceName = c("surface");
-        const auto & robot = solver.robots().fromConfig(c, "BSplineTrajectoryTask::targetSurface");
+      {
+        mc_rtc::log::deprecated("BSplineTrajectoryTask", "targetSurface", "targetFrame");
+        config.add("targetFrame", config("targetSurface"));
+        config("targetFrame").add("frame", config("targetSurface")("surface"));
+      }
+      if(config.has("targetFrame"))
+      { // Target defined from a target frame, with an offset defined
+        // in the frame coordinates
+        const auto & c = config("targetFrame");
+        const auto & targetSurfaceName = c("frame");
+        const auto & robot = solver.robots().fromConfig(c, "BSplineTrajectoryTask::targetFrame");
 
         const auto & targetSurface = robot.frame(targetSurfaceName).position();
         const Eigen::Vector3d trans = c("translation", Eigen::Vector3d::Zero().eval());
@@ -103,9 +112,14 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
         oriWp = config("oriWaypoints", std::vector<std::pair<double, Eigen::Matrix3d>>{});
       }
 
-      std::shared_ptr<mc_tasks::BSplineTrajectoryTask> t = std::make_shared<mc_tasks::BSplineTrajectoryTask>(
-          robot.frame(config("surface")), config("duration", 10.), config("stiffness", 100.), config("weight", 500.),
-          finalTarget_, waypoints, oriWp);
+      if(config.has("surface"))
+      {
+        mc_rtc::log::deprecated("BSplineTrajectoryTask", "surface", "frame");
+        config.add("frame", config("surface"));
+      }
+      auto t = std::make_shared<mc_tasks::BSplineTrajectoryTask>(robot.frame(config("frame")), config("duration", 10.),
+                                                                 config("stiffness", 100.), config("weight", 500.),
+                                                                 finalTarget_, waypoints, oriWp);
       t->load(solver, config);
       const auto displaySamples = config("displaySamples", t->displaySamples());
       t->displaySamples(displaySamples);
