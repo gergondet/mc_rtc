@@ -48,27 +48,27 @@ void TransformTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configurati
                             "Note: target should contain specific keys to mimic the behavior of targetSurface");
     const auto & c = config("targetSurface");
     const auto & robot = solver.robots().fromConfig(c, "TransformTask::targetSurface");
-    sva::PTransformd offset = config("offset", sva::PTransformd::Identity());
+    sva::PTransformd offset = c("offset", sva::PTransformd::Identity());
     // FIXME Remove at a later point
-    if(config.has("offset_rotation"))
+    if(c.has("offset_rotation"))
     {
       mc_rtc::log::deprecated("TransformTask", "offset_rotation", "offset");
-      offset.rotation() = config("offset_rotation");
+      offset.rotation() = c("offset_rotation");
     }
-    if(config.has("offset_translation"))
+    if(c.has("offset_translation"))
     {
       mc_rtc::log::deprecated("TransformTask", "offset_translation", "offset");
-      offset.translation() = config("offset_translation");
+      offset.translation() = c("offset_translation");
     }
     // FIXME Remove at a later point
-    if(config.has("surface"))
+    if(c.has("surface"))
     {
       mc_rtc::log::deprecated("TransformTask", "surface", "frame");
-      target(robot.frame(config("surface")), offset);
+      target(robot.frame(c("surface")), offset);
     }
     else
     {
-      target(robot.frame(config("frame")), offset);
+      target(robot.frame(c("frame")), offset);
     }
     X_0_t = this->target();
   }
