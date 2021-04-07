@@ -1,0 +1,7 @@
+{
+  "type": "lookAtFrame",
+  "frame": "dcamera",
+  "frameVector": [1.0, 0.0, 0.0],
+  "targetRobot": "ground",
+  "targetFrame": "AllGround"
+}
