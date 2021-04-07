@@ -1,11 +1,14 @@
 /*
- * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2021 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #include <mc_tasks/ComplianceTask.h>
 
 #include <mc_filter/utils/clamp.h>
+
 #include <mc_tasks/MetaTaskLoader.h>
+
+#include <mc_rtc/deprecated.h>
 
 namespace mc_tasks
 {
@@ -106,7 +109,7 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       std::string_view frame;
       if(config.has("body"))
       {
-        mc_rtc::log::warning("Deprecate use of body while loading a ComplianceTask, use \"frame\" instead");
+        mc_rtc::log::deprecated("ComplianceTask", "body", "frame");
         frame = config("body");
       }
       else
@@ -124,8 +127,7 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       }
       if(config.has("forceThresh"))
       {
-        mc_rtc::log::warning(
-            "Deprecate use of forceThresh while loading a ComplianceTask, use \"forceThreshold\" instead");
+        mc_rtc::log::deprecated("ComplianceTask", "forceThresh", "forceThreshold");
         t->forceThreshold(config("forceThresh"));
       }
       if(config.has("forceThreshold"))
@@ -134,8 +136,7 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       }
       if(config.has("torqueThresh"))
       {
-        mc_rtc::log::warning(
-            "Deprecate use of torqueThresh while loading a ComplianceTask, use \"torqueThreshold\" instead");
+        mc_rtc::log::deprecated("ComplianceTask", "torqueThresh", "torqueThreshold");
         t->torqueThreshold(config("torqueThresh"));
       }
       if(config.has("torqueThreshold"))

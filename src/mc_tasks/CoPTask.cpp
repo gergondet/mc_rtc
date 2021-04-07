@@ -9,6 +9,7 @@
 #include <mc_rbdyn/configuration_io.h>
 #include <mc_rbdyn/rpy_utils.h>
 
+#include <mc_rtc/deprecated.h>
 #include <mc_rtc/gui/ArrayLabel.h>
 
 namespace mc_tasks
@@ -123,7 +124,7 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       using Allocator = Eigen::aligned_allocator<mc_tasks::force::CoPTask>;
       if(config.has("surface"))
       {
-        mc_rtc::log::warning("Deprecated use of surface while loading a CoPTask, use \"frame\" instead");
+        mc_rtc::log::deprecated("CoPTask", "surface", "frame");
         t = std::allocate_shared<mc_tasks::force::CoPTask>(Allocator{}, robot.frame(config("surface")));
       }
       else
@@ -144,8 +145,7 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       }
       if(config.has("targetSurface"))
       {
-        mc_rtc::log::warning(
-            "Deprecated use of targetSurface while loading a DampingTask, use \"targetFrame\" instead");
+        mc_rtc::log::deprecated("CoPTask", "targetSurface", "targetFrame");
         const auto & c = config("targetSurface");
         const auto & r = solver.robots().fromConfig(c, t->name() + "::targetSurface");
         t->targetPose(r.frame(c("surface")), {c("offset_rotation", Eigen::Matrix3d::Identity().eval()),

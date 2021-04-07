@@ -1,11 +1,12 @@
 /*
- * Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2021 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #include <mc_tasks/LookAtTask.h>
 
 #include <mc_tasks/MetaTaskLoader.h>
 
+#include <mc_rtc/deprecated.h>
 #include <mc_rtc/gui/Point3D.h>
 
 namespace mc_tasks
@@ -55,12 +56,12 @@ static auto registered_lookat = mc_tasks::MetaTaskLoader::register_load_function
       auto & robot = solver.robots().fromConfig(config, "LookAt");
       if(config.has("body"))
       {
-        mc_rtc::log::warning("Deprecated use of body in VectorOrientationTask, use frame instead");
+        mc_rtc::log::deprecated("LookAtTask", "body", "frame");
         config.add("frame", config("body"));
       }
       if(config.has("bodyVector"))
       {
-        mc_rtc::log::warning("Deprecated use of bodyVector in VectorOrientationTask, use frameVector instead");
+        mc_rtc::log::deprecated("LookAtTask", "bodyVector", "frameVector");
         config.add("frameVector", config("bodyVector"));
       }
       auto t = std::make_shared<mc_tasks::LookAtTask>(robot.frame(config("frame")), config("frameVector"));

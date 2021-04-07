@@ -4,6 +4,8 @@
 
 #include <mc_rbdyn/RobotModule.h>
 
+#include <mc_rtc/deprecated.h>
+
 namespace mc_rbdyn
 {
 
@@ -119,8 +121,9 @@ void RobotModule::Gripper::Safety::load(const mc_rtc::Configuration & config)
   }
   if(config.has("threshold"))
   {
-    mc_rtc::log::warning("[MC_RTC_DEPRECATED] Gripper safety property \"threshold\" (expressed in degrees) is "
-                         "deprecated, please use \"actualCommandDiffTrigger\" (expressed in radian) instead");
+    mc_rtc::log::deprecated(
+        "Gripper::Safety", "threshold", "actualCommandDiffTrigger",
+        "Note: threshold was expressed in degrees while actualCommandDiffTrigger is expressed in radians");
     actualCommandDiffTrigger = mc_rtc::constants::toRad(config("threshold"));
   }
 
@@ -131,8 +134,7 @@ void RobotModule::Gripper::Safety::load(const mc_rtc::Configuration & config)
   }
   else if(config.has("iter"))
   {
-    mc_rtc::log::warning("[MC_RTC_DEPRECATED] Gripper safety property \"iter\" is deprecated, please use "
-                         "\"overCommandLimitIterN\" instead");
+    mc_rtc::log::deprecated("Gripper::Safety", "iter", "overCommandLimitIterN");
     overCommandLimitIterN = std::max<unsigned int>(1, config("iter", DEFAULT_OVER_COMMAND_LIMIT_ITER_N));
   }
 
@@ -142,8 +144,8 @@ void RobotModule::Gripper::Safety::load(const mc_rtc::Configuration & config)
   }
   else if(config.has("release"))
   {
-    mc_rtc::log::warning("[MC_RTC_DEPRECATED] Gripper safety property \"release\" (expressed in degrees) is "
-                         "deprecated, please use \"releaseSafetyOffset\" instead (expressed in radian)");
+    mc_rtc::log::deprecated("Gripper::Safety", "release", "releaseSafetyOffset",
+                            "Note: release was expressed in degrees while releaseSafetyOffset is expressed in radians");
     releaseSafetyOffset = mc_rtc::constants::toRad(config("release"));
   }
 
@@ -153,8 +155,7 @@ void RobotModule::Gripper::Safety::load(const mc_rtc::Configuration & config)
   }
   else if(config.has("percentVMAX"))
   {
-    mc_rtc::log::warning("[MC_RTC_DEPRECATED] Gripper safety property \"percentVMAX\" is deprecated, please use "
-                         "\"percentVMax\" instead");
+    mc_rtc::log::deprecated("Gripper::Safety", "percentVMAX", "percentVmax");
     percentVMax = mc_filter::utils::clamp(static_cast<double>(config("percentVMAX")), 0, 1);
   }
 }

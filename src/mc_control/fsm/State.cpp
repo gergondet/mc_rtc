@@ -12,6 +12,8 @@
 
 #include <mc_rbdyn/configuration_io.h>
 
+#include <mc_rtc/deprecated.h>
+
 namespace mc_control
 {
 
@@ -62,8 +64,7 @@ void State::configure_(const mc_rtc::Configuration & config)
   }
   if(config.has("RemovePostureTask"))
   {
-    mc_rtc::log::warning("[MC_RTC_DEPRECATED][{}] RemovePostureTask is deprecated, use DisablePostureTask instead",
-                         name());
+    mc_rtc::log::deprecated(name(), "RemovePostureTask", "DisablePostureTask");
     remove_posture_task_.load(config("RemovePostureTask"));
   }
   if(config.has("DisablePostureTask"))

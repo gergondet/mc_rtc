@@ -6,6 +6,8 @@
 
 #include <mc_tasks/MetaTaskLoader.h>
 
+#include <mc_rtc/deprecated.h>
+
 namespace mc_tasks
 {
 
@@ -37,22 +39,22 @@ static mc_tasks::LookAtFrameTaskPtr loadLookAtFrameTask(mc_solver::QPSolver & so
   auto & robot = solver.robots().fromConfig(config, "LookAtFrame");
   if(config.has("body"))
   {
-    mc_rtc::log::warning("Deprecated use of body in LookAtFrameTask, use frame instead");
+    mc_rtc::log::deprecated("LookAtFrameTask", "body", "frame");
     config.add("frame", config("body"));
   }
   if(config.has("bodyVector"))
   {
-    mc_rtc::log::warning("Deprecated use of bodyVector in LookAtFrameTask, use frameVector instead");
+    mc_rtc::log::deprecated("LookAtFrameTask", "bodyVector", "frameVector");
     config.add("frameVector", config("bodyVector"));
   }
   if(config.has("surfaceRobot"))
   {
-    mc_rtc::log::warning("Deprecated use of surfaceRobot in LookAtFrameTask, use targetRobot instead");
+    mc_rtc::log::deprecated("LookAtFrameTask", "surfaceRobot", "targetRobot");
     config.add("targetRobot", config("surfaceRobot"));
   }
   if(config.has("surface"))
   {
-    mc_rtc::log::warning("Deprecated use of surface in LookAtFrameTask, use targetFrame instead");
+    mc_rtc::log::deprecated("LookAtFrameTask", "surface", "targetFrame");
     config.add("targetFrame", config("surface"));
   }
   const auto & targetRobot = solver.robots().fromConfig(config, "LookAtFrame", false, "", "targetRobot");
@@ -76,7 +78,7 @@ static auto registered_lookat_frame = mc_tasks::MetaTaskLoader::register_load_fu
 static auto registered_lookat_surface = mc_tasks::MetaTaskLoader::register_load_function(
     "lookAtSurface",
     [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & configIn) {
-      mc_rtc::log::warning("lookAtSurface is deprecated, use lookAtFrame instead");
+      mc_rtc::log::deprecated("TaskLoading", "lookAtSurface", "lookAtFrame");
       return loadLookAtFrameTask(solver, configIn);
     });
 } // namespace

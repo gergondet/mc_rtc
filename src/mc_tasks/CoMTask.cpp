@@ -9,6 +9,7 @@
 
 #include <mc_rbdyn/Surface.h>
 
+#include <mc_rtc/deprecated.h>
 #include <mc_rtc/gui/Point3D.h>
 
 namespace mc_tasks
@@ -49,8 +50,7 @@ void CoMTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & c
   }
   if(config.has("offset"))
   {
-    mc_rtc::log::warning("[MC_RTC_DEPRECATED][" + name()
-                         + "] The \"offset\" property is deprecated, use move_com instead");
+    mc_rtc::log::deprecated("CoMTask", "offset", "move_com");
     Eigen::Vector3d offset = config("offset", Eigen::Vector3d::Zero().eval());
     this->com(this->com() + offset);
   }

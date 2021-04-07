@@ -5,6 +5,7 @@
 #include <mc_rtc/logging.h>
 #include <mc_tasks/MetaTask.h>
 
+#include <mc_rtc/deprecated.h>
 #include <mc_rtc/gui/ArrayInput.h>
 #include <mc_rtc/gui/ArrayLabel.h>
 #include <mc_rtc/gui/Button.h>
@@ -36,7 +37,7 @@ void MetaTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & 
   }
   if(config.has("unactiveJoints"))
   {
-    mc_rtc::log::warning("[deprecated] unactiveJoints is deprecated, use inactiveJoints instead");
+    mc_rtc::log::deprecated("MetaTask", "unactiveJoints", "inactiveJoints");
     selectInactiveJoints(solver, config("unactiveJoints"));
   }
   if(config.has("name"))

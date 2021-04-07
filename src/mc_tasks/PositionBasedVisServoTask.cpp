@@ -6,6 +6,8 @@
 
 #include <mc_tasks/MetaTaskLoader.h>
 
+#include <mc_rtc/deprecated.h>
+
 #include <Eigen/Geometry>
 
 namespace mc_tasks
@@ -46,14 +48,12 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       auto & robot = solver.robots().fromConfig(config, "PositionBasedVisServoTask");
       if(config.has("surface"))
       {
-        mc_rtc::log::warning(
-            "Deprecated use of surface in PositionBasedVisServoTask specification, use \"frame\" instead");
+        mc_rtc::log::deprecated("PositionBasedVisServoTask", "surface", "frame");
         t = std::allocate_shared<mc_tasks::PositionBasedVisServoTask>(Allocator{}, robot.frame(config("surface")));
       }
       else if(config.has("body"))
       {
-        mc_rtc::log::warning(
-            "Deprecated use of body in PositionBasedVisServoTask specification, use \"frame\" instead");
+        mc_rtc::log::deprecated("PositionBasedVisServoTask", "body", "frame");
         t = std::allocate_shared<mc_tasks::PositionBasedVisServoTask>(Allocator{}, robot.frame(config("body")));
       }
       else

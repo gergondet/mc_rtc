@@ -6,6 +6,8 @@
 
 #include <mc_tasks/MetaTaskLoader.h>
 
+#include <mc_rtc/deprecated.h>
+
 namespace mc_tasks
 {
 
@@ -62,6 +64,17 @@ template<bool Negative>
 mc_tasks::AddRemoveContactTaskPtr load_add_remove_contact_task(mc_solver::QPSolver & solver,
                                                                const mc_rtc::Configuration & config)
 {
+  if(config.has("contact"))
+  {
+    mc_rtc::log::deprecated("AddRemoveContactTask", "contact", {"robot", "frame"});
+    auto cfg = config;
+    auto contact = config("contact");
+    auto & robot = solver.robots().fromConfig(contact, "AddRemoveContactTask", false, "r1Index", "r1");
+    cfg.add("robot", robot.name());
+    cfg.add("frame", contact("r1Surface"));
+    cfg.remove("contact");
+    return load_add_remove_contact_task<Negative>(solver, cfg);
+  }
   double speed = config("speed", 0.01);
   if constexpr(Negative)
   {

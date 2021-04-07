@@ -1,11 +1,12 @@
 /*
- * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2021 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #include <mc_tasks/VectorOrientationTask.h>
 
 #include <mc_tasks/MetaTaskLoader.h>
 
+#include <mc_rtc/deprecated.h>
 #include <mc_rtc/gui/Arrow.h>
 #include <mc_rtc/gui/Point3D.h>
 
@@ -63,12 +64,12 @@ static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
       auto & robot = solver.robots().fromConfig(config, "VectorOrientationTask");
       if(config.has("body"))
       {
-        mc_rtc::log::warning("Deprecated use of body in VectorOrientationTask, use frame instead");
+        mc_rtc::log::deprecated("VectorOrientationTask", "body", "frame");
         config.add("frame", config("body"));
       }
       if(config.has("bodyVector"))
       {
-        mc_rtc::log::warning("Deprecated use of bodyVector in VectorOrientationTask, use frameVector instead");
+        mc_rtc::log::deprecated("VectorOrientationTask", "bodyVector", "frameVector");
         config.add("frameVector", config("bodyVector"));
       }
       auto t = std::make_shared<mc_tasks::VectorOrientationTask>(robot.frame(config("frame")), config("frameVector"));

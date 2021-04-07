@@ -7,6 +7,8 @@
 #include <mc_solver/ConstraintLoader.h>
 #include <mc_solver/QPSolver.h>
 
+#include <mc_rtc/deprecated.h>
+
 #include <tvm/task_dynamics/Proportional.h>
 
 namespace mc_solver
@@ -158,8 +160,7 @@ static auto registered = mc_solver::ConstraintLoader::register_load_function(
           auto getFrame = [&]() -> mc_rbdyn::Frame & {
             if(c.has("body"))
             {
-              mc_rtc::log::warning(
-                  "Deprecated use of body while loading a bounded speed constraint, use \"frame\" instead");
+              mc_rtc::log::deprecated("BoundedSpeedConstraint", "body", "frame");
               std::string bodyName = c("body");
               auto bPoint = c("bodyPoint", Eigen::Vector3d::Zero().eval());
               if(bPoint != Eigen::Vector3d::Zero())
