@@ -29,6 +29,18 @@ void TransformTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configurati
   // Current surface position
   auto X_0_t = errorT_->frame().position();
 
+  // Apply backward compatible operators firt
+  if(config.has("position"))
+  {
+    mc_rtc::log::deprecated("TransformTask", "position", "target: translation");
+    X_0_t.translation() = config("position");
+  }
+  if(config.has("orientation"))
+  {
+    mc_rtc::log::deprecated("TransformTask", "orientation", "target: rotation");
+    X_0_t.rotation() = config("orientation");
+  }
+
   // Apply global world transformations first
   if(config.has("targetSurface"))
   {
@@ -157,23 +169,39 @@ static mc_tasks::MetaTaskPtr loadTransformTask(mc_solver::QPSolver & solver, con
     mc_rtc::log::deprecated("TaskLoading", "surfaceTransform", "transform");
   }
   auto & robot = solver.robots().fromConfig(config, "TransformTask");
-  // FIXME Remove after a while
-  if(config.has("surface"))
-  {
-    mc_rtc::log::deprecated("TransformTask", "surface", "frame");
-    auto t = std::make_shared<mc_tasks::TransformTask>(robot.frame(config("surface")));
-    t->load(solver, config);
-    return t;
-  }
-  else
-  {
-    auto t = std::make_shared<mc_tasks::TransformTask>(robot.frame(config("frame")));
-    t->load(solver, config);
-    return t;
-  }
+  auto & frame = [&]() -> mc_rbdyn::Frame & {
+    if(config.has("surface"))
+    {
+      mc_rtc::log::deprecated("TransformTask", "surface", "frame");
+      return robot.frame(config("surface"));
+    }
+    else if(config.has("body"))
+    {
+      std::string_view body = config("body");
+      if(!config.has("bodyPoint"))
+      {
+        return robot.frame(body);
+      }
+      Eigen::Vector3d bodyPoint = config("bodyPoint");
+      size_t i = 1;
+      while(robot.hasFrame(fmt::format("{}_tTask_{}", body, i)))
+      {
+        i++;
+      }
+      return robot.makeFrame(fmt::format("{}_tTask_{}", body, i), body, bodyPoint);
+    }
+    else
+    {
+      return robot.frame(config("frame"));
+    }
+  }();
+  auto t = std::make_shared<mc_tasks::TransformTask>(frame);
+  t->load(solver, config);
+  return t;
 }
 
 static auto reg_dep = mc_tasks::MetaTaskLoader::register_load_function("surfaceTransform", &loadTransformTask<true>);
+static auto reg_dep6d = mc_tasks::MetaTaskLoader::register_load_function("body6d", &loadTransformTask<true>);
 static auto reg = mc_tasks::MetaTaskLoader::register_load_function("transform", &loadTransformTask<false>);
 
 } // namespace
