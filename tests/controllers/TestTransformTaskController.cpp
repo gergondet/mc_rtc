@@ -69,8 +69,8 @@ public:
     }
     if(nrIter == 2000)
     {
-      BOOST_CHECK_SMALL(efTask->eval().norm(), 1e-2);
-      BOOST_CHECK_SMALL(efTask->speed().norm(), 1e-3);
+      BOOST_CHECK_SMALL(efTask->eval().norm(), 0.015);
+      BOOST_CHECK_SMALL(efTask->speed().norm(), 0.015);
 
       /* Reset the task and ask to raise the hand by 15 cm using only the
        * right arm joints */
