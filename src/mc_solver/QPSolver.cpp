@@ -244,7 +244,9 @@ void QPSolver::addContactToDynamics(const std::string & robot,
   }
   else
   {
+    it->second->removeFromSolver(*this);
     forces = it->second->dynamic().addContact(frame, points, dir);
+    it->second->addToSolver(*this);
   }
   for(int i = 0; i < forces.numberOfVariables(); ++i)
   {
@@ -333,12 +335,16 @@ void QPSolver::removeContact(const mc_rbdyn::Contact & contact)
   auto r1DynamicsIt = dynamics_.find(contact.r1);
   if(r1DynamicsIt != dynamics_.end())
   {
+    r1DynamicsIt->second->removeFromSolver(*this);
     r1DynamicsIt->second->dynamic().removeContact(robots_->robot(contact.r1).surface(contact.r1Surface).frame());
+    r1DynamicsIt->second->addToSolver(*this);
   }
   auto r2DynamicsIt = dynamics_.find(contact.r2);
   if(r2DynamicsIt != dynamics_.end())
   {
+    r2DynamicsIt->second->removeFromSolver(*this);
     r2DynamicsIt->second->dynamic().removeContact(robots_->robot(contact.r2).surface(contact.r2Surface).frame());
+    r2DynamicsIt->second->addToSolver(*this);
   }
   for(const auto & c : data.f1Constraints_)
   {
