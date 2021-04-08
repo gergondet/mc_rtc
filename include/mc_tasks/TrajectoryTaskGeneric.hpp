@@ -123,8 +123,7 @@ void TrajectoryTaskGeneric<T>::weight(double w)
   weight_ = w;
   if(task_)
   {
-    // FIXME Currently not possible
-    // task_->requirements.weight(weight_);
+    task_->requirements.weight() = weight_;
   }
 }
 
@@ -139,8 +138,7 @@ void TrajectoryTaskGeneric<T>::dimWeight(const Eigen::VectorXd & w)
   dimWeight_ = w;
   if(task_)
   {
-    // FIXME Currently not possible
-    // task_->requirements.anisotropicWeight(w);
+    task_->requirements.anisotropicWeight() = dimWeight_;
   }
 }
 
