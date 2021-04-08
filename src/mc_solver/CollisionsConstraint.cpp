@@ -185,7 +185,7 @@ void CollisionsConstraint::removeCollisions(QPSolver & solver, std::string_view 
     }
     return false;
   };
-  std::remove_if(data_.begin(), data_.end(), [&](auto & d) { return remove(d); });
+  data_.erase(std::remove_if(data_.begin(), data_.end(), [&](auto & d) { return remove(d); }), data_.end());
 }
 
 void CollisionsConstraint::reset(QPSolver & solver)
