@@ -7,6 +7,8 @@
 
 #include <RBDyn/parsers/urdf.h>
 
+#include <mc_rtc/deprecated.h>
+
 #include <boost/filesystem.hpp>
 namespace bfs = boost::filesystem;
 
@@ -138,16 +140,41 @@ mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::BodySensor>::save(const mc_r
   return config;
 }
 
+namespace
+{
+
+std::string object1OrBody1(const mc_rtc::Configuration & config)
+{
+  if(config.has("object1"))
+  {
+    return config("object1");
+  }
+  mc_rtc::log::deprecated("Collision", "object1", "body1");
+  return config("body1");
+}
+
+std::string object2OrBody2(const mc_rtc::Configuration & config)
+{
+  if(config.has("object2"))
+  {
+    return config("object2");
+  }
+  mc_rtc::log::deprecated("Collision", "object2", "body2");
+  return config("body2");
+}
+
+} // namespace
+
 mc_rbdyn::Collision ConfigurationLoader<mc_rbdyn::Collision>::load(const mc_rtc::Configuration & config)
 {
   if(config.has("robot"))
   {
-    return {config("robot"),       config("object1"),     config("object2"),
-            config("iDist", 0.05), config("sDist", 0.01), config("damping", 0.0)};
+    return {config("robot"),       object1OrBody1(config), object2OrBody2(config),
+            config("iDist", 0.05), config("sDist", 0.01),  config("damping", 0.0)};
   }
   else
   {
-    return {config("robot1"),      config("robot2"),      config("object1"),     config("object2"),
+    return {config("robot1"),      config("robot2"),      object1OrBody1(config), object2OrBody2(config),
             config("iDist", 0.05), config("sDist", 0.01), config("damping", 0.0)};
   }
 }
@@ -168,7 +195,7 @@ mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::Collision>::save(const mc_rb
 mc_rbdyn::CollisionDescription ConfigurationLoader<mc_rbdyn::CollisionDescription>::load(
     const mc_rtc::Configuration & config)
 {
-  return {config("object1"), config("object2"), config("iDist"), config("sDist"), config("damping")};
+  return {object1OrBody1(config), object2OrBody2(config), config("iDist"), config("sDist"), config("damping")};
 }
 
 mc_rtc::Configuration ConfigurationLoader<mc_rbdyn::CollisionDescription>::save(const mc_rbdyn::CollisionDescription & c)
