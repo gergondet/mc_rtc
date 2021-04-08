@@ -335,6 +335,7 @@ void QPSolver::removeContact(const mc_rbdyn::Contact & contact)
   auto r1DynamicsIt = dynamics_.find(contact.r1);
   if(r1DynamicsIt != dynamics_.end())
   {
+    gui_->removeCategory({"Forces", r1DynamicsIt->second->robot().name(), contact.r1Surface});
     r1DynamicsIt->second->removeFromSolver(*this);
     r1DynamicsIt->second->dynamic().removeContact(robots_->robot(contact.r1).surface(contact.r1Surface).frame());
     r1DynamicsIt->second->addToSolver(*this);
@@ -342,6 +343,7 @@ void QPSolver::removeContact(const mc_rbdyn::Contact & contact)
   auto r2DynamicsIt = dynamics_.find(contact.r2);
   if(r2DynamicsIt != dynamics_.end())
   {
+    gui_->removeCategory({"Forces", r2DynamicsIt->second->robot().name(), contact.r2Surface});
     r2DynamicsIt->second->removeFromSolver(*this);
     r2DynamicsIt->second->dynamic().removeContact(robots_->robot(contact.r2).surface(contact.r2Surface).frame());
     r2DynamicsIt->second->addToSolver(*this);
@@ -359,6 +361,8 @@ void QPSolver::removeContact(const mc_rbdyn::Contact & contact)
     problem_.remove(data.contactConstraint_.get());
     data.contactConstraint_.reset();
   }
+  contacts_.erase(contacts_.begin() + static_cast<decltype(contacts_)::difference_type>(idx));
+  contactsData_.erase(contactsData_.begin() + static_cast<decltype(contacts_)::difference_type>(idx));
   mc_rtc::log::info("Removed contact {}::{}/{}::{}", contact.r1, contact.r1Surface, contact.r2, contact.r2Surface);
 }
 
