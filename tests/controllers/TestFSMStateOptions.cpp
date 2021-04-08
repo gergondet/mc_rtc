@@ -78,10 +78,9 @@ public:
     {
       BOOST_REQUIRE(executor_.state() == "TestConstraintsAndTasks");
       // There is now a constraint to set l_wrist speed to a constant
-      auto bIndex = robot().bodyIndexByName("l_wrist");
-      auto speed = robot().mbc().bodyVelW[bIndex].vector();
       Eigen::Vector6d ref = Eigen::Vector6d::Zero();
-      ref(5) = 0.001;
+      ref(5) = 0.01;
+      auto speed = robot().mbc().bodyVelB[robot().bodyIndexByName("l_wrist")].vector();
       BOOST_REQUIRE((speed - ref).norm() < 5e-4);
       BOOST_REQUIRE(hasTask<mc_tasks::CoMTask>());
     }
