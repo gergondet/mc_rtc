@@ -118,11 +118,11 @@ bool BoundedSpeedConstr::removeBoundedSpeed(QPSolver & solver, mc_rbdyn::Frame &
 
 void BoundedSpeedConstr::addBoundedSpeed(QPSolver & solver, BoundedSpeedData & data)
 {
-  auto lower = data.fn->dof().cwiseProduct(data.lowerSpeed) / solver.dt();
-  auto upper = data.fn->dof().cwiseProduct(data.upperSpeed) / solver.dt();
+  auto lower = data.fn->dof().cwiseProduct(data.lowerSpeed);
+  auto upper = data.fn->dof().cwiseProduct(data.upperSpeed);
   data.task = solver.problem().add(lower <= data.fn <= upper, tvm::task_dynamics::Proportional(1 / solver.dt()),
                                    {tvm::requirements::PriorityLevel(0)});
-  mc_rtc::log::info("Added bounded speed constraint: {} <= {} <= {} (dof: {}", data.lowerSpeed.transpose(),
+  mc_rtc::log::info("Added bounded speed constraint: {} <= {} <= {} (dof: {})", data.lowerSpeed.transpose(),
                     data.fn->frame().name(), data.upperSpeed.transpose(), data.fn->dof().transpose());
 }
 
