@@ -1304,6 +1304,7 @@ void Robot::forwardAcceleration()
 void Robot::updateKinematics()
 {
   forwardKinematics();
+  forwardVelocity();
   com_->updateCoM();
   com_->updateVelocity();
   com_->updateAcceleration();
@@ -1311,6 +1312,7 @@ void Robot::updateKinematics()
   for(auto & f : frames_)
   {
     f.second->updatePosition();
+    f.second->updateVelocity();
   }
   // FIXME Does not work?
   // kinematicsGraph_.update();
