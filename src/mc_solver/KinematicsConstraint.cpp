@@ -79,8 +79,9 @@ void KinematicsConstraint::addToSolver(QPSolver & solver)
       Eigen::MatrixXd A = mimicMult.segment(startIdx, f->size());
       auto mimic = solver.problem().add(A * tvm::dot(leader, 2) - tvm::dot(f, 2) == 0., tvm::task_dynamics::None{},
                                         {tvm::requirements::PriorityLevel(0)});
-      solver.problem().add(tvm::hint::Substitution(solver.problem().constraint(mimic.get()), tvm::dot(f, 2),
-                                                   tvm::constant::fullRank, tvm::hint::internal::DiagonalCalculator{}));
+      // solver.problem().add(tvm::hint::Substitution(solver.problem().constraint(mimic.get()), tvm::dot(f, 2),
+      //                                             tvm::constant::fullRank,
+      //                                             tvm::hint::internal::DiagonalCalculator{}));
       constraints_.push_back(mimic);
       startIdx += f->size();
     }
