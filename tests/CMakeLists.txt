@@ -104,6 +104,13 @@ target_include_directories(test_controller_ticker PRIVATE ${CONFIG_HEADER_INCLUD
 # Adding a project configuration file (for MSVC only)
 generate_msvc_dot_user_file(test_controller_ticker)
 
+add_executable(test_controller_ticker_no_boost test_controller_ticker.cpp)
+set_target_properties(test_controller_ticker_no_boost PROPERTIES FOLDER tests/ticker)
+target_link_libraries(test_controller_ticker_no_boost PUBLIC mc_control Boost::unit_test_framework Boost::disable_autolinking)
+target_compile_definitions(test_controller_ticker_no_boost PRIVATE -DBOOST_TEST_DYN_LINK)
+target_include_directories(test_controller_ticker_no_boost PRIVATE ${CONFIG_HEADER_INCLUDE_DIR})
+generate_msvc_dot_user_file(test_controller_ticker_no_boost)
+
 if(NOT DISABLE_CONTROLLER_TESTS)
   add_subdirectory(controllers)
 endif()
