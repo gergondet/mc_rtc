@@ -10,6 +10,8 @@
 
 #include <tvm/function/abstract/Function.h>
 
+#include <RBDyn/Jacobian.h>
+
 #include <SpaceVecAlg/SpaceVecAlg>
 
 namespace mc_tvm
@@ -80,6 +82,14 @@ protected:
   void updateNormalAcceleration();
 
   mc_rbdyn::FramePtr frame_;
+
+  /** Computation intermediate */
+  rbd::Jacobian frameJac_;
+  Eigen::MatrixXd shortJacMat_;
+  Eigen::MatrixXd jacMat_;
+  sva::MotionVecd err_p_;
+  sva::MotionVecd w_p_p_;
+  sva::MotionVecd V_err_p_;
 
   /** Target */
   sva::PTransformd pose_;
