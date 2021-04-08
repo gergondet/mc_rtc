@@ -12,6 +12,8 @@
 
 static bool initialized = configureRobotLoader();
 
+#ifdef BOOST_TEST_MAIN
+
 BOOST_AUTO_TEST_CASE(CONSTRUCTION_FAILURE)
 {
   auto argc = boost::unit_test::framework::master_test_suite().argc;
@@ -27,10 +29,17 @@ BOOST_AUTO_TEST_CASE(CONSTRUCTION_FAILURE)
   BOOST_CHECK_THROW(mc_control::MCGlobalController controller(conf), std::exception);
 }
 
+#endif
+
+#ifdef BOOST_TEST_MAIN
 BOOST_AUTO_TEST_CASE(RUN)
 {
   auto argc = boost::unit_test::framework::master_test_suite().argc;
   auto argv = boost::unit_test::framework::master_test_suite().argv;
+#else
+int main(int argc, char * argv[])
+{
+#endif
   // In older versions of Boost, -- is not filtered out from argv
   int argi = 1;
   if(std::string(argv[1]) == "--")
