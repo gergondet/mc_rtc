@@ -25,6 +25,11 @@ void deprecated(std::string_view source,
                        fmt::join(replace, " and "), extra);
 }
 
+void missing(std::string_view source, std::string_view missing, std::optional<std::string_view> extra)
+{
+  mc_rtc::log::warning("[MC_RTC_DEPRECATED][{}] {} is missing but is now required{}", source, missing, extra);
+}
+
 } // namespace mc_rtc::log
 
 template<>

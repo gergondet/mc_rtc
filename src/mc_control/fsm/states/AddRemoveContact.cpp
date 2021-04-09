@@ -14,6 +14,8 @@
 #include <mc_rbdyn/Contact.h>
 #include <mc_rbdyn/configuration_io.h>
 
+#include <mc_rtc/deprecated.h>
+
 namespace mc_control
 {
 
@@ -84,6 +86,19 @@ struct AddRemoveContactStateImpl
   };
   void start(Controller & ctl)
   {
+    {
+      auto c = config_("contact");
+      if(!c.has("r1"))
+      {
+        mc_rtc::log::missing("AddRemoveContactState", "r1");
+        c.add("r1", ctl.robot().name());
+      }
+      if(!c.has("r2"))
+      {
+        mc_rtc::log::missing("AddRemoveContactState", "r2");
+        c.add("r2", ctl.robots().robots()[1]->name());
+      }
+    }
     mc_rbdyn::Contact contact = config_("contact");
     config_("useCoM", useCoM_);
     if(useCoM_)

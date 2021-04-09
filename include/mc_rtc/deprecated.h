@@ -38,6 +38,11 @@ MC_RTC_UTILS_DLLAPI void deprecated(std::string_view source,
                                     std::initializer_list<internal::quoted> replace,
                                     std::optional<std::string_view> extra = std::nullopt);
 
+/** Used when a key (\p missing) is missing */
+MC_RTC_UTILS_DLLAPI void missing(std::string_view source,
+                                 std::string_view missing,
+                                 std::optional<std::string_view> extra = std::nullopt);
+
 } // namespace log
 
 } // namespace mc_rtc

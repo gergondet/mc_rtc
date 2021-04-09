@@ -4,10 +4,14 @@
 
 #include "mc_text_controller.h"
 
-#include <mc_rbdyn/configuration_io.h>
-#include <mc_rtc/logging.h>
 #include <mc_solver/ConstraintLoader.h>
+
 #include <mc_tasks/MetaTaskLoader.h>
+
+#include <mc_rbdyn/configuration_io.h>
+
+#include <mc_rtc/deprecated.h>
+#include <mc_rtc/logging.h>
 
 namespace mc_control
 {
@@ -47,9 +51,19 @@ void MCTextController::reset(const mc_control::ControllerResetData & data)
     tasks_.push_back(mc_tasks::MetaTaskLoader::load(solver(), t));
     solver().addTask(tasks_.back());
   }
-  auto contacts = config_("contacts", std::vector<mc_rbdyn::Contact>{});
-  for(const auto & c : contacts)
+  auto contacts = config_("contacts", std::vector<mc_rtc::Configuration>{});
+  for(auto & c : contacts)
   {
+    if(!c.has("r1"))
+    {
+      mc_rtc::log::missing("Text", "r1", "In \"contacts\" configuration");
+      c.add("r1", robots().robot().name());
+    }
+    if(!c.has("r2"))
+    {
+      mc_rtc::log::missing("Text", "r2", "In \"contacts\" configuration");
+      c.add("r2", robots().robots()[1]->name());
+    }
     solver().addContact(c);
   }
 }
