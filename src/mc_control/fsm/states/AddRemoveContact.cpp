@@ -261,8 +261,7 @@ void AddRemoveContactStateImplHelper<ContactOp::Add>::make_run_impl(AddRemoveCon
           mc_rtc::log::info("Force contact detected");
         }
         ctl.addContact(contact_);
-        auto t = std::static_pointer_cast<mc_tasks::AddRemoveContactTask>(impl.task_);
-        t->speed(0.0);
+        ctl.solver().removeTask(impl.task_);
         done_ = true;
       }
       return true;
