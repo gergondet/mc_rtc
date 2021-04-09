@@ -78,7 +78,7 @@ public:
     // Check that the second pipeline BodySensor observer works as expected
     checkPose("Second pipeline", robot().posW(), realRobot("jvrc1_2").posW());
 
-    for(const auto joint : robot().refJointOrder())
+    for(const auto & joint : robot().refJointOrder())
     {
       auto j = robot().jointIndexByName(joint);
       BOOST_CHECK_CLOSE(robot().mbc().q[j][0], realRobot().mbc().q[j][0], 1e-6);

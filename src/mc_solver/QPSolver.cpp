@@ -574,8 +574,9 @@ void QPSolver::updateRobot(mc_rbdyn::Robot & robot)
   Eigen::VectorXd q = robot.q()->value();
   rbd::paramToVector(mbc.q, q);
   robot.q()->value(q);
-  // FIXME We update the kinematics here for logging and display purpose mostly
-  robot.updateKinematics();
+  robot.forwardKinematics();
+  robot.forwardVelocity();
+  robot.forwardAcceleration();
 }
 
 } // namespace mc_solver
