@@ -51,7 +51,7 @@ static mc_rbdyn::Robot & loadRobot(mc_rbdyn::Robots & robots,
 {
   auto & r = robots.load(*rm, name);
   r.mbc().gravity = mc_rtc::constants::gravity;
-  r.updateKinematics();
+  r.forwardKinematics();
   auto data = gui.data();
   if(!data.has("robots"))
   {
@@ -311,7 +311,7 @@ void MCController::reset(const ControllerResetData & reset_data)
   robot().mbc().zero(robot().mb());
   robot().mbc().q = reset_data.q;
   postureTask_->posture(reset_data.q);
-  robot().updateKinematics();
+  robot().forwardKinematics();
   gui_->removeCategory({"Contacts"});
   gui_->addElement({"Contacts"}, mc_rtc::gui::Label("Contacts", [this]() {
                      std::string ret;

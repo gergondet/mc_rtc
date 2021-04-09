@@ -900,17 +900,14 @@ public:
     return grippersRef_;
   }
 
-  /** Shortcut for forward kinematics */
+  /** Update the robot's kinematic state */
   void forwardKinematics();
 
-  /** Shortcut for forward velocity */
+  /** Update the robot's velocity state */
   void forwardVelocity();
 
   /** Shortcut for forward acceleration */
   void forwardAcceleration();
-
-  /** Update the robot's kinematic state */
-  void updateKinematics();
 
 private:
   /** Name of the robot */

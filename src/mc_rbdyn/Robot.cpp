@@ -218,7 +218,7 @@ Robot::Robot(make_shared_token,
       initQ[0] = {std::begin(attitude), std::end(attitude)};
     }
     mbc().q = initQ;
-    forwardKinematics();
+    rbd::forwardKinematics(mb(), mbc());
   }
 
   forceSensors_ = module_.forceSensors();
@@ -1038,12 +1038,12 @@ void Robot::posW(const sva::PTransformd & pt)
     rotation.normalize();
     mbc().q[0] = {rotation.w(),         rotation.x(),         rotation.y(),        rotation.z(),
                   pt.translation().x(), pt.translation().y(), pt.translation().z()};
-    updateKinematics();
+    forwardKinematics();
   }
   else if(mb().joint(0).type() == rbd::Joint::Type::Fixed)
   {
     mb().transform(0, pt);
-    updateKinematics();
+    forwardKinematics();
   }
   else
   {
@@ -1289,34 +1289,28 @@ Frame & Robot::updateFrameForceSensors(Frame & frame)
 void Robot::forwardKinematics()
 {
   updateFK();
+  com_->updateCoM();
+  momentum_->updateMomentum();
+  for(auto & f : frames_)
+  {
+    f.second->updatePosition();
+  }
 }
 
 void Robot::forwardVelocity()
 {
   updateFV();
+  com_->updateVelocity();
+  com_->updateAcceleration();
+  for(auto & f : frames_)
+  {
+    f.second->updateVelocity();
+  }
 }
 
 void Robot::forwardAcceleration()
 {
   updateFA();
-}
-
-void Robot::updateKinematics()
-{
-  forwardKinematics();
-  forwardVelocity();
-  com_->updateCoM();
-  com_->updateVelocity();
-  com_->updateAcceleration();
-  momentum_->updateMomentum();
-  for(auto & f : frames_)
-  {
-    f.second->updatePosition();
-    f.second->updateVelocity();
-  }
-  // FIXME Does not work?
-  // kinematicsGraph_.update();
-  // kinematicsGraph_.execute();
 }
 
 tvm::VariablePtr Robot::qJoint(size_t jIdx)
