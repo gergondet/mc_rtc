@@ -69,6 +69,9 @@ struct MC_RBDYN_DLLAPI Collision : public CollisionDescription
 
   bool operator==(const Collision & rhs) const noexcept;
   bool operator!=(const Collision & rhs) const noexcept;
+
+  /** Invalid collision constructor */
+  Collision() = default;
 };
 
 /** \class CollisionVector

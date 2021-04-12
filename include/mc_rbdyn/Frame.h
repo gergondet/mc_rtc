@@ -88,7 +88,7 @@ public:
   }
 
   /** The frame's name */
-  inline std::string_view name() const noexcept
+  inline const std::string & name() const noexcept
   {
     return name_;
   }

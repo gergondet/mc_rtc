@@ -28,15 +28,6 @@ struct NoOpDeleter
 namespace mc_rbdyn
 {
 
-std::string CollisionToString(const Collision & c)
-{
-  std::stringstream ss;
-  ss << c;
-  return ss.str();
-}
-
-typedef std::shared_ptr<mc_rbdyn::RobotModule> RobotModulePtr;
-
 template<typename... Args>
 RobotModulePtr get_robot_module(const std::string & name, const Args &... args)
 {
@@ -140,6 +131,15 @@ const BodySensor & getBodySensor(const T & rm, size_t i)
 RobotModulePtr copyRobotModule(const RobotModule & rm)
 {
   return std::make_shared<RobotModule>(rm);
+}
+
+CollisionDescription makeCollisionDescription(const std::string & o1,
+                                              const std::string & o2,
+                                              double i,
+                                              double s,
+                                              double d)
+{
+  return {o1, o2, i, s, d};
 }
 
 } // namespace mc_rbdyn
