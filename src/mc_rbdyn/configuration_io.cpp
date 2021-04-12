@@ -149,7 +149,7 @@ std::string object1OrBody1(const mc_rtc::Configuration & config)
   {
     return config("object1");
   }
-  mc_rtc::log::deprecated("Collision", "object1", "body1");
+  mc_rtc::log::deprecated("Collision", "body1", "object");
   return config("body1");
 }
 
@@ -159,7 +159,7 @@ std::string object2OrBody2(const mc_rtc::Configuration & config)
   {
     return config("object2");
   }
-  mc_rtc::log::deprecated("Collision", "object2", "body2");
+  mc_rtc::log::deprecated("Collision", "body2", "object2");
   return config("body2");
 }
 
