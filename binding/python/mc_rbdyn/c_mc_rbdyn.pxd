@@ -43,6 +43,13 @@ cdef extern from "<mc_rbdyn/Collision.h>" namespace "mc_rbdyn":
         cppbool operator==(const Collision&)
         cppbool operator!=(const Collision&)
 
+    cdef cppclass CollisionVector:
+        CollisionVector()
+        CollisionVector(string, const vector[CollisionDescription]&)
+        CollisionVector(string, string, const vector[CollisionDescription]&)
+        CollisionVector(const vector[Collision]&)
+        CollisionVector(const CollisionVector&)
+
 cdef extern from "<mc_rbdyn/BodySensor.h>" namespace "mc_rbdyn":
     cdef cppclass BodySensor:
         BodySensor()

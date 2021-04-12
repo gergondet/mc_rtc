@@ -8,10 +8,6 @@ from cython.operator cimport dereference as deref
 
 cimport mc_rtc.c_mc_rtc as c_mc_rtc
 
-cimport mc_rbdyn.mc_rbdyn as mc_rbdyn
-cimport mc_control.c_mc_control as c_mc_control
-cimport mc_control.mc_control as mc_control
-
 cimport eigen.c_eigen as c_eigen
 cimport eigen.eigen as eigen
 

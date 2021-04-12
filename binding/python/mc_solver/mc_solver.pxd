@@ -1,47 +1,22 @@
 #
-# Copyright 2015-2019 CNRS-UM LIRMM, CNRS-AIST JRL
+# Copyright 2015-2021 CNRS-UM LIRMM, CNRS-AIST JRL
 #
 
 cimport c_mc_solver
 
-from libcpp cimport bool as cppbool
+from libcpp.memory cimport shared_ptr
 
-cdef class ConstraintSet(object):
-  cdef c_mc_solver.ConstraintSet * cs_base
+cdef class Constraint(object):
+  cdef shared_ptr[c_mc_solver.Constraint] base
 
-cdef class ContactConstraint(ConstraintSet):
-  cdef c_mc_solver.ContactConstraint * impl
-  cdef cppbool __own_impl
-
-cdef ContactConstraint ContactConstraintFromPtr(c_mc_solver.ContactConstraint *)
-
-cdef class KinematicsConstraint(ConstraintSet):
-  cdef c_mc_solver.KinematicsConstraint * impl
-  cdef cppbool __own_impl
-
-cdef KinematicsConstraint KinematicsConstraintFromPtr(c_mc_solver.KinematicsConstraint *)
+cdef class KinematicsConstraint(Constraint):
+  cdef shared_ptr[c_mc_solver.KinematicsConstraint] impl
 
 cdef class DynamicsConstraint(KinematicsConstraint):
-  cdef c_mc_solver.DynamicsConstraint * d_impl
+  cdef shared_ptr[c_mc_solver.DynamicsConstraint] d_impl
 
-cdef DynamicsConstraint DynamicsConstraintFromPtr(c_mc_solver.DynamicsConstraint *)
-
-cdef class CollisionsConstraint(ConstraintSet):
-  cdef c_mc_solver.CollisionsConstraint * impl
-  cdef cppbool __own_impl
-
-cdef CollisionsConstraint CollisionsConstraintFromPtr(c_mc_solver.CollisionsConstraint*)
-
-cdef class RobotEnvCollisionsConstraint(ConstraintSet):
-  cdef c_mc_solver.RobotEnvCollisionsConstraint * impl
-  cdef cppbool __own_impl
-
-cdef RobotEnvCollisionsConstraint RobotEnvCollisionsConstraintFromPtr(c_mc_solver.RobotEnvCollisionsConstraint*)
+cdef class CollisionsConstraint(Constraint):
+  cdef shared_ptr[c_mc_solver.CollisionsConstraint] impl
 
 cdef class QPSolver(object):
-  cdef c_mc_solver.QPSolver * impl
-  cdef cppbool __own_impl
-
-cdef QPSolver QPSolverFromPtr(c_mc_solver.QPSolver*)
-
-cdef QPSolver QPSolverFromRef(c_mc_solver.QPSolver&)
+  cdef shared_ptr[c_mc_solver.QPSolver] impl
