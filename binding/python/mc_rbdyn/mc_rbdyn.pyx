@@ -177,6 +177,38 @@ cdef Collision CollisionFromC(const c_mc_rbdyn.Collision & col):
     ret.impl = c_mc_rbdyn.Collision(col)
     return ret
 
+cdef class CollisionVector(object):
+    def __cinit__(self, *args):
+        cdef vector[c_mc_rbdyn.CollisionDescription] descArg
+        cdef vector[c_mc_rbdyn.Collision] colsArg
+        if len(args) == 0:
+            return
+        if len(args) == 2 or len(args) == 3:
+            r1 = args[0]
+            if isinstance(r1, unicode):
+                r1 = r1.encode(u'ascii')
+            if len(args) == 3:
+                r2 = args[1]
+                cols = args[2]
+                if isinstance(r2, unicode):
+                    r2 = r2.encode(u'ascii')
+            else:
+                r2 = r1
+                cols = args[1]
+            for col in cols:
+                descArg.push_back((<CollisionDescription>col).impl)
+            self.impl = c_mc_rbdyn.CollisionVector(r1, r2, descArg)
+            return
+        if len(args) == 1:
+            if isinstance(args[0], CollisionVector):
+                self.impl = (<CollisionVector>(args[0])).impl
+            else:
+                for col in args[0]:
+                    colsArg.push_back((<Collision>col).impl)
+                self.impl = c_mc_rbdyn.CollisionVector(colsArg)
+            return
+        raise TypeError("Invalid arguments passed to CollisionVector ctor")
+
 cdef class Flexibility(object):
     def __cinit__(self, *args):
         if len(args) == 4:

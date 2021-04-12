@@ -97,6 +97,9 @@ struct MC_RBDYN_DLLAPI CollisionVector : public std::vector<Collision>
 
   /** Move construct from an existing vector of collisions */
   CollisionVector(std::vector<Collision> && cols);
+
+  /** Create an empty vector */
+  CollisionVector();
 };
 
 } // namespace mc_rbdyn

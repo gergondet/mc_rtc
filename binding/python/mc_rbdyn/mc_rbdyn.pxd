@@ -23,6 +23,9 @@ cdef class Collision(object):
 
 cdef Collision CollisionFromC(const c_mc_rbdyn.Collision&)
 
+cdef class CollisionVector(object):
+    cdef c_mc_rbdyn.CollisionVector impl
+
 cdef class BodySensor(object):
     cdef cppbool __own_impl
     cdef c_mc_rbdyn.BodySensor * impl
