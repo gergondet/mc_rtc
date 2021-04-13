@@ -10,7 +10,7 @@ from libcpp cimport bool as cppbool
 from libcpp.memory cimport shared_ptr
 
 cdef class MetaTask(object):
-  cdef c_mc_tasks.MetaTaskPtr mt_base
+  cdef shared_ptr[c_mc_tasks.MetaTask] mt_base
 
 cdef class _PostureTrajectoryTask(MetaTask):
   cdef shared_ptr[c_mc_tasks.TrajectoryTaskGeneric[c_mc_tvm.PostureFunction]] ttg_base
@@ -27,16 +27,13 @@ cdef class _OrientationTrajectoryTask(MetaTask):
 cdef class _VectorOrientationTrajectoryTask(MetaTask):
   cdef shared_ptr[c_mc_tasks.TrajectoryTaskGeneric[c_mc_tvm.VectorOrientationFunction]] ttg_base
 
-cdef class _SplineTrajectoryTask(MetaTask):
+cdef class _TransformTrajectoryTask(MetaTask):
   cdef shared_ptr[c_mc_tasks.TrajectoryTaskGeneric[c_mc_tvm.TransformFunction]] ttg_base
 
-cdef class _TransformTask(MetaTask):
-  cdef shared_ptr[c_mc_tasks.TrajectoryTaskGeneric[c_mc_tvm.TransformFunction]] ttg_base
-
-cdef class BSplineTrajectoryTask(_SplineTrajectoryTask):
+cdef class BSplineTrajectoryTask(_TransformTrajectoryTask):
   cdef shared_ptr[c_mc_tasks.BSplineTrajectoryTask] impl
 
-cdef class ExactCubicTrajectoryTask(_SplineTrajectoryTask):
+cdef class ExactCubicTrajectoryTask(_TransformTrajectoryTask):
   cdef shared_ptr[c_mc_tasks.ExactCubicTrajectoryTask] impl
 
 cdef class CoMTask(_CoMTrajectoryTask):
@@ -54,25 +51,5 @@ cdef class OrientationTask(_OrientationTrajectoryTask):
 cdef class VectorOrientationTask(_VectorOrientationTrajectoryTask):
   cdef shared_ptr[c_mc_tasks.VectorOrientationTask] impl
 
-cdef class TransformTask(_TransformTask):
+cdef class TransformTask(_TransformTrajectoryTask):
   cdef shared_ptr[c_mc_tasks.TransformTask] impl
-
-ctypedef fused AnyTTG:
-  PostureTask
-  CoMTask
-  PositionTask
-  OrientationTask
-  VectorOrientationTask
-  TransformTask
-
-#Note : In recent versions of Cython, fused types can be fused and thus
-# AnyTask can simply be the fusion of AnyTTG and other tasks
-ctypedef fused AnyTask:
-  PostureTask
-  CoMTask
-  PositionTask
-  OrientationTask
-  VectorOrientationTask
-  TransformTask
-  BSplineTrajectoryTask
-  ExactCubicTrajectoryTask
