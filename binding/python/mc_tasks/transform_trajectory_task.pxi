@@ -1,4 +1,4 @@
-cdef class {T}(MetaTask):
+cdef class _TransformTrajectoryTask(MetaTask):
   def __cinit__(self):
     pass
   def refVel(self, eigen.VectorXd refVel):

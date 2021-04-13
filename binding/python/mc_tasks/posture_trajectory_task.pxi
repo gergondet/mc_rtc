@@ -1,12 +1,6 @@
-cdef class {T}(MetaTask):
+cdef class _PostureTrajectoryTask(MetaTask):
   def __cinit__(self):
     pass
-  def refVel(self, eigen.VectorXd refVel):
-    assert(self.ttg_base.get())
-    deref(self.ttg_base).refVel(refVel.impl)
-  def refAccel(self, eigen.VectorXd refAccel):
-    assert(self.ttg_base.get())
-    deref(self.ttg_base).refAccel(refAccel.impl)
   def stiffness(self, stiff = None):
     assert(self.ttg_base.get())
     if stiff is None:
@@ -25,3 +19,4 @@ cdef class {T}(MetaTask):
       return deref(self.ttg_base).weight()
     else:
       deref(self.ttg_base).weight(w)
+
