@@ -126,7 +126,7 @@ void ImpedanceTask::update(mc_solver::QPSolver & solver)
     // Transform to target pose frame (see compliancePose implementation)
     sva::PTransformd T_0_d(targetPoseW_.rotation());
     // The previous compliancePose() is stored in SurfaceTransformTask::target()
-    deltaCompPoseW_ = T_0_d.inv() * SurfaceTransformTask::target() * targetPoseW_.inv() * T_0_d;
+    deltaCompPoseW_ = T_0_d.inv() * TransformTask::target() * targetPoseW_.inv() * T_0_d;
   }
 
   // 5. Set compliance values to the targets of SurfaceTransformTask
