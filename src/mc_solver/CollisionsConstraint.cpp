@@ -263,7 +263,10 @@ void CollisionsConstraint::addCollision(QPSolver & solver, CollisionData & data)
 void CollisionsConstraint::updateCollision(QPSolver & solver, CollisionData & data)
 {
   const auto & col = data.collision;
-  solver.problem().remove(data.task.get());
+  if(data.task)
+  {
+    solver.problem().remove(*data.task);
+  }
   data.task = solver.problem().add(
       data.function >= 0.,
       tvm::task_dynamics::VelocityDamper(solver.dt(), {col.iDist, col.sDist, col.damping, defaultDampingOffset},
@@ -281,7 +284,10 @@ void CollisionsConstraint::removeCollision(QPSolver & solver, CollisionData & da
     toggleCollisionMonitor(solver, data, Monitoring::OFF);
   }
   removeMonitorButton(solver, data);
-  solver.problem().remove(data.task.get());
+  if(data.task)
+  {
+    solver.problem().remove(*data.task);
+  }
   data.task.reset();
   mc_rtc::log::info("Removed collision {}::{}/{}::{}", col.robot1, col.object1, col.robot2, col.object2);
 }

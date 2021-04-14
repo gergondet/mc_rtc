@@ -41,7 +41,7 @@ void TrajectoryTaskGeneric<T>::removeFromSolver(mc_solver::QPSolver & solver)
 {
   if(task_)
   {
-    solver.problem().remove(task_.get());
+    solver.problem().remove(*task_);
     task_.reset();
   }
 }

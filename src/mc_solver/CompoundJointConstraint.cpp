@@ -35,7 +35,7 @@ void CompoundJointConstraint::removeFromSolver(QPSolver & solver)
 {
   for(const auto & c : constraints_)
   {
-    solver.problem().remove(c.get());
+    solver.problem().remove(*c);
   }
   constraints_.clear();
 }

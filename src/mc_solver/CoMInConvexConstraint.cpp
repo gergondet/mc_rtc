@@ -27,7 +27,7 @@ void CoMInConvexConstraint::removeFromSolver(QPSolver & solver)
 {
   if(constraint_)
   {
-    solver.problem().remove(constraint_.get());
+    solver.problem().remove(*constraint_);
     constraint_.reset();
   }
 }

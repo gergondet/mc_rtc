@@ -135,7 +135,10 @@ void BoundedSpeedConstr::updateBoundedSpeed(QPSolver & solver, BoundedSpeedData 
 
 void BoundedSpeedConstr::removeBoundedSpeed(QPSolver & solver, BoundedSpeedData & data)
 {
-  solver.problem().remove(data.task.get());
+  if(data.task)
+  {
+    solver.problem().remove(*data.task);
+  }
 }
 
 auto BoundedSpeedConstr::getData(const mc_rbdyn::Frame & frame) -> std::vector<BoundedSpeedData>::iterator
