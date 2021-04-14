@@ -51,4 +51,6 @@ CollisionVector::CollisionVector(const std::vector<Collision> & cols) : std::vec
 
 CollisionVector::CollisionVector(std::vector<Collision> && cols) : std::vector<Collision>(cols) {}
 
+CollisionVector::CollisionVector() = default;
+
 } // namespace mc_rbdyn

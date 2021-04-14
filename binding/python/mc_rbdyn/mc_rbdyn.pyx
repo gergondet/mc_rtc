@@ -1118,7 +1118,7 @@ cdef class Contact(object):
         else:
             raise NotImplementedError("This comparison is not supported")
 
-cdef Contact ContactFromC(c_mc_rbdyn.Contact& c, cppbool copy=True):
+cdef Contact ContactFromC(c_mc_rbdyn.Contact& c):
     cdef Contact ret = Contact()
     ret.impl = c
     return ret
