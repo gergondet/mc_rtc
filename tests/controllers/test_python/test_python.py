@@ -15,15 +15,12 @@ from functools import partial
 
 class TestPythonController(mc_control.MCPythonController):
   def __init__(self, rm, dt):
-    self.qpsolver.addConstraintSet(self.dynamicsConstraint)
-    self.qpsolver.addConstraintSet(self.contactConstraint)
+    self.qpsolver.addConstraint(self.dynamicsConstraint)
     self.qpsolver.addTask(self.postureTask)
-    self.positionTask = mc_tasks.PositionTask("R_WRIST_Y_S", self.robots(), 0)
+    self.positionTask = mc_tasks.PositionTask(self.robot().frame("R_WRIST_Y_S"))
     self.qpsolver.addTask(self.positionTask)
-    self.qpsolver.setContacts([
-          mc_rbdyn.Contact(self.robots(), "LeftFoot", "AllGround"),
-          mc_rbdyn.Contact(self.robots(), "RightFoot", "AllGround")
-        ])
+    self.qpsolver.addContact(mc_rbdyn.Contact(self.robot().name(), "ground", "LeftFoot", "AllGround"))
+    self.qpsolver.addContact(mc_rbdyn.Contact(self.robot().name(), "ground", "RightFoot", "AllGround"))
     self.hj1_name = "NECK_P"
     self.hj1_index = self.robot().jointIndexByName(self.hj1_name)
     self.hj1_q = 0.5
@@ -43,18 +40,18 @@ class TestPythonController(mc_control.MCPythonController):
     self.quat_data = eigen.Quaterniond(sva.RotZ(self.theta))
     assert(self.observerPipeline("FirstPipeline").success())
     if abs(self.d_data - 2.0) < 1e-6:
-      self.removeAnchorFrameCallback("KinematicAnchorFrame::{}".format(self.robot().name()))
-      self.addAnchorFrameCallback("KinematicAnchorFrame::{}".format(self.robot().name()), self.anchorFrameCallback)
+      self.removeAnchorFrameCallback("KinematicAnchorFrame::{}".format(self.robot().name().decode()))
+      self.addAnchorFrameCallback("KinematicAnchorFrame::{}".format(self.robot().name().decode()), self.anchorFrameCallback)
     return True
   def get_pt(self):
     return self.robot().mbc.bodyPosW[0]
   def anchorFrameCallback(self, r):
-    return sva.interpolate(r.surfacePose("LeftFoot"), r.surfacePose("RightFoot"), 0.5)
+    return sva.interpolate(r.frame("LeftFoot").position(), r.frame("RightFoot").position(), 0.5)
   def reset_callback(self, reset_data):
     assert(len(self.observerPipelines()) == 1)
     assert(self.hasObserverPipeline("FirstPipeline"))
     assert(not self.hasObserverPipeline("NotAPipeline"))
-    self.addAnchorFrameCallback("KinematicAnchorFrame::{}".format(self.robot().name().decode()), lambda r: sva.interpolate(r.surfacePose("LeftFoot"), r.surfacePose("RightFoot"), 0.5))
+    self.addAnchorFrameCallback("KinematicAnchorFrame::{}".format(self.robot().name().decode()), lambda r: sva.interpolate(r.frame("LeftFoot").position(), r.frame("RightFoot").position(), 0.5))
     self.positionTask.reset()
     self.positionTask.position(self.positionTask.position() + eigen.Vector3d(0.1, 0, 0))
     self.logger().addLogEntry("PYTHONDOUBLE", lambda: self.d_data)
@@ -93,7 +90,7 @@ class TestPythonController(mc_control.MCPythonController):
     self.gui().addElement(["Python"], mc_rtc.gui.Point3D("Point3D ro", self.mypoint3dro))
     self.mypoint3d_ = [0., 0., 1.]
     self.gui().addElement(["Python"], mc_rtc.gui.Point3D("Point3D", self.mypoint3d, self.mypoint3d))
-    self.gui().addElement(["Python", "Form"], mc_rtc.gui.Form("Submit", lambda c: sys.stdout.write(c.dump(True) + '\n'),
+    self.gui().addElement(["Python", "Form"], mc_rtc.gui.Form("Submit", lambda c: sys.stdout.write(c.dump(True).decode() + '\n'),
                                                                 mc_rtc.gui.FormCheckbox("Enabled", False, True),
                                                                 mc_rtc.gui.FormIntegerInput("INT", False, 42),
                                                                 mc_rtc.gui.FormNumberInput("NUMBER", False, 0.42),
