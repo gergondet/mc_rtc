@@ -10,12 +10,6 @@
 namespace mc_control
 {
 
-struct PythonRWCallback
-{
-  bool success;
-  std::string out;
-};
-
 struct MC_CONTROL_DLLAPI MCPythonController : public MCController
 {
 public:
@@ -27,6 +21,25 @@ public:
 
   std::function<bool()> run_callback;
   std::function<void(const ControllerResetData &)> reset_callback;
+
+  // Expose some protected members
+
+  inline mc_solver::DynamicsConstraintPtr dynamicsConstraint() noexcept
+  {
+    return dynamicsConstraint_;
+  }
+  inline mc_solver::KinematicsConstraintPtr kinematicsConstraint() noexcept
+  {
+    return kinematicsConstraint_;
+  }
+  inline mc_solver::CollisionsConstraintPtr collisionConstraint() noexcept
+  {
+    return collisionConstraint_;
+  }
+  inline mc_tasks::PostureTaskPtr postureTask() noexcept
+  {
+    return postureTask_;
+  }
 };
 
 } // namespace mc_control

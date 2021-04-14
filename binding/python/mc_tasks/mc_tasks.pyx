@@ -194,10 +194,18 @@ cdef class ExactCubicTrajectoryTask(_TransformTrajectoryTask):
         self.target(sva.PTransformd(pos))
 
 cdef class PostureTask(_PostureTrajectoryTask):
-  def __cinit__(self, mc_rbdyn.Robot robot, double stiffness = 1.0, double weight = 10.0):
-    self.impl = make_shared[c_mc_tasks.PostureTask](deref(robot.impl), stiffness, weight)
+  def __ctor__(self, mc_rbdyn.Robot robot, double stiffness = 1.0, double weight = 10.0):
+    self.__ptrinit__(make_shared[c_mc_tasks.PostureTask](deref(robot.impl), stiffness, weight))
+  cdef __ptrinit__(self, shared_ptr[c_mc_tasks.PostureTask] ptr):
+    self.impl = ptr
     self.ttg_base = c_mc_tasks.cast[c_mc_tasks.TrajectoryTaskGeneric[c_mc_tvm.PostureFunction]](self.impl)
     self.mt_base = c_mc_tasks.cast[c_mc_tasks.MetaTask](self.impl)
+  def __cinit__(self, *args, skip_alloc = False, **kwargs):
+    if skip_alloc:
+      assert(len(args) + len(kwargs) == 0)
+      return
+    else:
+      self.__ctor__(*args, **kwargs)
   def posture(self, target = None):
     cdef cppmap[string, vector[double]] tgt
     cdef pair[string, vector[double]] elem
@@ -219,3 +227,8 @@ cdef class PostureTask(_PostureTrajectoryTask):
   def target(self, in_):
     assert(self.impl.get())
     c_mc_tasks.PostureTaskTarget(deref(self.impl), in_)
+
+cdef PostureTask PostureTaskFromPtr(shared_ptr[c_mc_tasks.PostureTask] ptr):
+  cdef PostureTask ret = PostureTask(skip_alloc = True)
+  ret.__ptrinit__(ptr)
+  return ret
