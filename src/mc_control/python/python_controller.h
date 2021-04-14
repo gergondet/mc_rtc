@@ -17,6 +17,6 @@ extern "C"
                                                       const std::string & controller_name,
                                                       const std::shared_ptr<mc_rbdyn::RobotModule> & robot,
                                                       const double & dt,
-                                                      const mc_control::Configuration &);
+                                                      const mc_rtc::Configuration &);
   MC_CONTROL_DLLAPI void LOAD_GLOBAL();
 }
