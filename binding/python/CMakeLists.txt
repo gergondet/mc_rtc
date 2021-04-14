@@ -59,6 +59,8 @@ add_cython_bindings(mc_rtc
     mc_tasks/__init__.py
     mc_tasks/mc_tasks.pxd
     mc_tasks/c_mc_tasks.pxd
+    mc_tvm/__init__.py
+    mc_tvm/c_mc_tvm.pxd
   PRIVATE_SOURCES
     include/mc_control_fsm_wrapper.hpp
     include/mc_control_wrapper.hpp
@@ -66,6 +68,7 @@ add_cython_bindings(mc_rtc
     include/mc_rtc_wrapper.hpp
     include/mc_solver_wrapper.hpp
     include/mc_rbdyn_wrapper.hpp
+    include/mc_tasks_wrapper.hpp
     mc_control/fsm/fsm.pyx
     mc_control/mc_control.pyx
     mc_observers/mc_observers.pyx
@@ -73,11 +76,14 @@ add_cython_bindings(mc_rtc
     mc_rtc/gui/gui.pyx
     mc_rtc/mc_rtc.pyx
     mc_solver/mc_solver.pyx
-    mc_tasks/force/force.pyx
     mc_tasks/mc_tasks.pyx
+    mc_tasks/force/force.pyx
     mc_tasks/com_trajectory_task.pxi
     mc_tasks/position_trajectory_task.pxi
+    mc_tasks/posture_trajectory_task.pxi
     mc_tasks/orientation_trajectory_task.pxi
+    mc_tasks/spline_trajectory_task.pxi
+    mc_tasks/transform_trajectory_task.pxi
     mc_tasks/vector_orientation_trajectory_task.pxi
     tests/test_mc_rtc.py
   GENERATE_SOURCES
