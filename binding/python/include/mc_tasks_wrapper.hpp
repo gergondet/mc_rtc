@@ -4,6 +4,7 @@
 
 #include <Eigen/Core>
 
+#include <mc_tasks/ImpedanceGains.h>
 #include <mc_tasks/PostureTask.h>
 
 namespace mc_tasks
@@ -31,5 +32,18 @@ void PostureTaskTarget(mc_tasks::PostureTask & task, const std::map<std::string,
   }
   task.target(tgt);
 }
+
+namespace force
+{
+
+namespace details
+{
+
+using ImpedanceVecdStrictlyPositive = ImpedanceVecd<true>;
+using ImpedanceVecdPositive = ImpedanceVecd<false>;
+
+} // namespace details
+
+} // namespace force
 
 } // namespace mc_tasks
