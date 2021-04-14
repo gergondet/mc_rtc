@@ -28,8 +28,8 @@ void DynamicsConstraint::addToSolver(QPSolver & solver)
   KinematicsConstraint::addToSolver(solver);
   auto dyn = solver.problem().add(dynamic_ == 0., tvm::task_dynamics::None(), {tvm::requirements::PriorityLevel(0)});
   constraints_.push_back(dyn);
-  auto cstr = solver.problem().constraint(dyn.get());
-  // solver.problem().add(tvm::hint::Substitution(cstr, robot_->tau()));
+  auto cstr = solver.problem().constraint(*dyn);
+  solver.problem().add(tvm::hint::Substitution(cstr, robot_->tau()));
   auto tL = solver.problem().add(robot_->limits().tl <= robot_->tau() <= robot_->limits().tu,
                                  tvm::task_dynamics::None(), {tvm::requirements::PriorityLevel(0)});
   constraints_.push_back(tL);

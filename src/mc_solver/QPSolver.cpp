@@ -170,7 +170,7 @@ void QPSolver::removeDynamicsConstraint(const DynamicsConstraintPtr & cs)
       }
       for(auto & c : constraints)
       {
-        problem_.remove(c.get());
+        problem_.remove(*c);
       }
       constraints.clear();
       forces = tvm::VariableVector();
@@ -237,7 +237,7 @@ void QPSolver::addContactToDynamics(const std::string & robot,
     // FIXME Instead of this we should be able to change C
     for(const auto & c : constraints)
     {
-      problem_.remove(c.get());
+      problem_.remove(*c);
     }
     constraints.clear();
     gui_->removeCategory({"Forces", robot, std::string(frame.name())});
@@ -350,15 +350,15 @@ void QPSolver::removeContact(const mc_rbdyn::Contact & contact)
   }
   for(const auto & c : data.f1Constraints_)
   {
-    problem_.remove(c.get());
+    problem_.remove(*c);
   }
   for(const auto & c : data.f2Constraints_)
   {
-    problem_.remove(c.get());
+    problem_.remove(*c);
   }
   if(data.contactConstraint_)
   {
-    problem_.remove(data.contactConstraint_.get());
+    problem_.remove(*data.contactConstraint_);
     data.contactConstraint_.reset();
   }
   contacts_.erase(contacts_.begin() + static_cast<decltype(contacts_)::difference_type>(idx));
