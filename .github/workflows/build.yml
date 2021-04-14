@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, macos-latest, windows-latest]
+        os: [ubuntu-18.04, ubuntu-20.04, macos-latest, windows-latest]
         build-type: [Debug, RelWithDebInfo, script]
         compiler: [gcc, clang]
         exclude:
