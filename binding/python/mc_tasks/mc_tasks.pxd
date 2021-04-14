@@ -44,6 +44,9 @@ cdef class PositionTask(_PositionTrajectoryTask):
 
 cdef class PostureTask(_PostureTrajectoryTask):
   cdef shared_ptr[c_mc_tasks.PostureTask] impl
+  cdef __ptrinit__(self, shared_ptr[c_mc_tasks.PostureTask])
+
+cdef PostureTask PostureTaskFromPtr(shared_ptr[c_mc_tasks.PostureTask])
 
 cdef class OrientationTask(_OrientationTrajectoryTask):
   cdef shared_ptr[c_mc_tasks.OrientationTask] impl

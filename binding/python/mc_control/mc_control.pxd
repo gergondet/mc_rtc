@@ -16,9 +16,6 @@ cdef public api class MCController(object)[object MCControllerObject, type MCCon
 
 cdef MCController MCControllerFromPtr(c_mc_control.MCController *)
 
-cdef class PythonRWCallback(object):
-  cdef c_mc_control.PythonRWCallback impl
-
 cdef public api class MCPythonController(MCController)[object MCPythonControllerObject, type MCPythonControllerType]:
   cdef c_mc_control.MCPythonController * impl
 

@@ -6,9 +6,9 @@ from eigen.c_eigen cimport *
 from sva.c_sva cimport *
 from rbdyn.c_rbdyn cimport *
 cimport sch.c_sch as sch
-cimport tasks.qp.c_qp as c_qp
 from mc_rbdyn.c_mc_rbdyn cimport *
 from mc_solver.c_mc_solver cimport *
+cimport mc_solver.c_mc_solver as c_mc_solver
 cimport mc_observers.c_mc_observers as c_mc_observers
 cimport mc_rtc.c_mc_rtc as c_mc_rtc
 cimport mc_rtc.gui.c_gui as c_mc_rtc_gui
@@ -33,20 +33,36 @@ cdef extern from "<mc_control/mc_controller.h>" namespace "mc_control":
   cdef cppclass MCController:
     cppbool run()
     void reset(const ControllerResetData&)
-    Robot& robot()
-    Robot& env()
-    Robots& robots()
-    c_mc_rtc.Configuration & config()
-    void supported_robots(vector[string] &)
-    c_mc_rtc.Logger & logger()
-    shared_ptr[c_mc_rtc_gui.StateBuilder] gui()
 
-    double timeStep
-    ContactConstraint contactConstraint
-    DynamicsConstraint dynamicsConstraint
-    KinematicsConstraint kinematicsConstraint
-    CollisionsConstraint selfCollisionConstraint
-    shared_ptr[c_mc_tasks.PostureTask] postureTask
+    void addContact(c_mc_rbdyn.Contact &)
+    void removeContact(c_mc_rbdyn.Contact &)
+    vector[c_mc_rbdyn.Contact] contacts()
+    bool hasContact(c_mc_rbdyn.Contact &)
+
+    void addCollisions(string, string, vector[c_mc_rbdyn.CollisionDescription] &)
+    void removeCollisions(string, string)
+    void removeCollisions(string, string, vector[c_mc_rbdyn.CollisionDescription] &)
+
+    bool hasRobot(string)
+    Robot & robot()
+    Robot & robot(string)
+    Robots & robots()
+
+    Robot & realRobot()
+    Robot & realRobot(string)
+    Robots & realRobots()
+
+    Robot & loadRobot(c_mc_rbdyn.RobotModulePtr, string, PTransformd)
+    void removeRobot(string)
+
+    void supported_robots(vector[string] &)
+
+    c_mc_rtc.Configuration & config()
+
+    c_mc_rtc.Logger & logger()
+
+    c_mc_rtc_gui.StateBuilder & gui()
+
     QPSolver & solver()
 
     cppbool hasObserverPipeline(const string &)
@@ -55,12 +71,12 @@ cdef extern from "<mc_control/mc_controller.h>" namespace "mc_control":
     vector[c_mc_observers.ObserverPipeline] & observerPipelines()
 
 cdef extern from "<mc_control/mc_python_controller.h>" namespace "mc_control":
-  cdef cppclass PythonRWCallback:
-    cppbool success
-    string out
-
   cdef cppclass MCPythonController(MCController):
     MCPythonController(const vector[RobotModulePtr]&, double)
+    shared_ptr[c_mc_solver.KinematicsConstraint] kinematicsConstraint()
+    shared_ptr[c_mc_solver.DynamicsConstraint] dynamicsConstraint()
+    shared_ptr[c_mc_solver.CollisionsConstraint] collisionConstraint()
+    shared_ptr[c_mc_tasks.PostureTask] postureTask()
 
 cdef extern from "<array>" namespace "std" nogil:
   cdef cppclass array[T, N]:

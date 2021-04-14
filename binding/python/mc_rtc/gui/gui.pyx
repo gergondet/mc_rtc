@@ -350,73 +350,79 @@ cdef class Form(Element):
 cdef class StateBuilder(object):
   ELEMENTS = {}
   def addElement(self, category, element, *args):
-    assert(self.impl.get() != NULL)
+    assert(self.impl)
     t = type(element)
     StateBuilder.ELEMENTS.setdefault("/".join(category), []).append(element)
     if t is Label:
-      self.impl.get().addElement[c_gui.LabelImpl[c_gui.get_fn]](py2cpp(category), (<Label>element).impl)
+      self.impl.addElement[c_gui.LabelImpl[c_gui.get_fn]](py2cpp(category), (<Label>element).impl)
     elif t is ArrayLabel:
-      self.impl.get().addElement[c_gui.ArrayLabelImpl[c_gui.get_fn]](py2cpp(category), (<ArrayLabel>element).impl)
+      self.impl.addElement[c_gui.ArrayLabelImpl[c_gui.get_fn]](py2cpp(category), (<ArrayLabel>element).impl)
     elif t is Button:
-      self.impl.get().addElement[c_gui.ButtonImpl[c_gui.void_cb]](py2cpp(category), (<Button>element).impl)
+      self.impl.addElement[c_gui.ButtonImpl[c_gui.void_cb]](py2cpp(category), (<Button>element).impl)
     elif t is Checkbox:
-      self.impl.get().addElement[c_gui.CheckboxImpl[c_gui.get_fn,c_gui.void_cb]](py2cpp(category), (<Checkbox>element).impl)
+      self.impl.addElement[c_gui.CheckboxImpl[c_gui.get_fn,c_gui.void_cb]](py2cpp(category), (<Checkbox>element).impl)
     elif t is StringInput:
-      self.impl.get().addElement[c_gui.StringInputImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<StringInput>element).impl)
+      self.impl.addElement[c_gui.StringInputImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<StringInput>element).impl)
     elif t is IntegerInput:
-      self.impl.get().addElement[c_gui.IntegerInputImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<IntegerInput>element).impl)
+      self.impl.addElement[c_gui.IntegerInputImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<IntegerInput>element).impl)
     elif t is NumberInput:
-      self.impl.get().addElement[c_gui.NumberInputImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<NumberInput>element).impl)
+      self.impl.addElement[c_gui.NumberInputImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<NumberInput>element).impl)
     elif t is NumberSlider:
-      self.impl.get().addElement[c_gui.NumberSliderImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<NumberSlider>element).impl)
+      self.impl.addElement[c_gui.NumberSliderImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<NumberSlider>element).impl)
     elif t is ArrayInput:
-      self.impl.get().addElement[c_gui.ArrayInputImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<ArrayInput>element).impl)
+      self.impl.addElement[c_gui.ArrayInputImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<ArrayInput>element).impl)
     elif t is ComboInput:
-      self.impl.get().addElement[c_gui.ComboInputImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<ComboInput>element).impl)
+      self.impl.addElement[c_gui.ComboInputImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<ComboInput>element).impl)
     elif t is DataComboInput:
-      self.impl.get().addElement[c_gui.DataComboInputImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<DataComboInput>element).impl)
+      self.impl.addElement[c_gui.DataComboInputImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<DataComboInput>element).impl)
     elif t is Point3D:
       is_ro = (<Point3D>element).is_ro
       if is_ro:
-        self.impl.get().addElement[c_gui.Point3DROImpl[c_gui.get_fn]](py2cpp(category), (<Point3D>element).ro_impl)
+        self.impl.addElement[c_gui.Point3DROImpl[c_gui.get_fn]](py2cpp(category), (<Point3D>element).ro_impl)
       else:
-        self.impl.get().addElement[c_gui.Point3DImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<Point3D>element).impl)
+        self.impl.addElement[c_gui.Point3DImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<Point3D>element).impl)
     elif t is Rotation:
       is_ro = (<Rotation>element).is_ro
       if is_ro:
-        self.impl.get().addElement[c_gui.RotationROImpl[c_gui.get_fn]](py2cpp(category), (<Rotation>element).ro_impl)
+        self.impl.addElement[c_gui.RotationROImpl[c_gui.get_fn]](py2cpp(category), (<Rotation>element).ro_impl)
       else:
-        self.impl.get().addElement[c_gui.RotationImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<Rotation>element).impl)
+        self.impl.addElement[c_gui.RotationImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<Rotation>element).impl)
     elif t is Transform:
       is_ro = (<Transform>element).is_ro
       if is_ro:
-        self.impl.get().addElement[c_gui.TransformROImpl[c_gui.get_fn]](py2cpp(category), (<Transform>element).ro_impl)
+        self.impl.addElement[c_gui.TransformROImpl[c_gui.get_fn]](py2cpp(category), (<Transform>element).ro_impl)
       else:
-        self.impl.get().addElement[c_gui.TransformImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<Transform>element).impl)
+        self.impl.addElement[c_gui.TransformImpl[c_gui.get_fn, c_gui.set_fn]](py2cpp(category), (<Transform>element).impl)
     elif t is Form:
-      self.impl.get().addElement[c_gui.FormImpl[c_gui.set_fn]](py2cpp(category), (<Form>element).impl)
+      self.impl.addElement[c_gui.FormImpl[c_gui.set_fn]](py2cpp(category), (<Form>element).impl)
     else:
       StateBuilder.ELEMENTS["/".join(category)].remove(element)
       print "Unsupported type {}, this element will not be added".format(t)
     if len(args):
       self.addElement(category, args[0], *args[1:])
   def reset(self):
-    self.impl.get().reset()
+    self.impl.reset()
   def removeCategory(self, category):
-    self.impl.get().removeCategory(py2cpp(category))
+    self.impl.removeCategory(py2cpp(category))
     StateBuilder.ELEMENTS.pop("/".join(category), None)
   def removeElement(self, category, name):
     if isinstance(name, unicode):
       name = name.encode(u'ascii')
-    self.impl.get().removeElement(py2cpp(category), name)
+    self.impl.removeElement(py2cpp(category), name)
     for i, el in enumerate(StateBuilder.ELEMENTS.get("/".join(category), [])):
       if el.name() == name:
         StateBuilder.ELEMENTS["/".join(category)].pop(i)
         break
   def data(self):
-    return mc_rtc.ConfigurationFromValue(self.impl.get().data())
+    return mc_rtc.ConfigurationFromValue(self.impl.data())
 
 cdef StateBuilder StateBuilderFromShPtr(c_gui.shared_ptr[c_gui.StateBuilder] ptr):
   cdef StateBuilder ret = StateBuilder()
-  ret.impl = ptr
+  ret.ptr = ptr
+  ret.impl = ptr.get()
+  return ret
+
+cdef StateBuilder StateBuilderFromRef(c_gui.StateBuilder & g):
+  cdef StateBuilder ret = StateBuilder()
+  ret.impl = &g
   return ret
