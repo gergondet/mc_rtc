@@ -251,7 +251,7 @@ Configuration::operator bool() const
   throw Exception("Stored Json value is not a bool", v);
 }
 
-Configuration::operator int() const
+int32_t Configuration::to_int32_t() const
 {
   assert(v.value_);
   auto value = static_cast<const internal::RapidJSONValue *>(v.value_);
@@ -262,7 +262,7 @@ Configuration::operator int() const
   throw Exception("Stored Json value is not an int", v);
 }
 
-Configuration::operator unsigned int() const
+uint32_t Configuration::to_uint32_t() const
 {
   assert(v.value_);
   auto value = static_cast<const internal::RapidJSONValue *>(v.value_);
@@ -273,7 +273,7 @@ Configuration::operator unsigned int() const
   throw Exception("Stored Json value is not an unsigned int", v);
 }
 
-Configuration::operator int64_t() const
+int64_t Configuration::to_int64_t() const
 {
   assert(v.value_);
   auto value = static_cast<const internal::RapidJSONValue *>(v.value_);
@@ -284,7 +284,7 @@ Configuration::operator int64_t() const
   throw Exception("Stored Json value is not an int64_t", v);
 }
 
-Configuration::operator uint64_t() const
+uint64_t Configuration::to_uint64_t() const
 {
   assert(v.value_);
   auto value = static_cast<const internal::RapidJSONValue *>(v.value_);
