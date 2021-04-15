@@ -94,6 +94,33 @@ template<typename T, typename... Args>
 struct has_configuration_save_object : decltype(_has_configuration_save_object::test<T, Args...>(nullptr))
 {
 };
+
+/** Compare two integral types, return true if T has the same sign has RefT and the same width
+ *
+ * \tparam RefT an integral type
+ *
+ * \tparam T tested type
+ */
+template<typename RefT, typename T>
+constexpr bool is_like()
+{
+  static_assert(std::is_integral_v<RefT>);
+  if constexpr(std::is_integral_v<T> && std::is_unsigned_v<T> == std::is_unsigned_v<RefT>)
+  {
+    return std::numeric_limits<T>::max() == std::numeric_limits<RefT>::max();
+  }
+  return false;
+}
+
+template<typename T>
+constexpr bool is_like_int32_t = is_like<int32_t, T>();
+template<typename T>
+constexpr bool is_like_uint32_t = is_like<uint32_t, T>();
+template<typename T>
+constexpr bool is_like_int64_t = is_like<int64_t, T>();
+template<typename T>
+constexpr bool is_like_uint64_t = is_like<uint64_t, T>();
+
 } // namespace internal
 
 /*! \brief Simplify access to values hold within a JSON file
@@ -211,39 +238,45 @@ public:
    */
   operator bool() const;
 
-  /*! \brief Cast to int
+  /*! \brief Cast to int32_t like
    *
-   * Strictly for int-typed entries
-   *
-   * \throws If the underlying value does not hold an int
+   * \throws If the underlying value does not hold an int32_t like value
    */
-  operator int() const;
+  template<typename T, std::enable_if_t<internal::is_like_int32_t<T>, int> = 0>
+  operator T() const
+  {
+    return to_int32_t();
+  }
 
-  /*! \brief Cast to unsigned int
+  /*! \brief Cast to uint32_t like
    *
-   * Int entries that are strictly positive will be treated as
-   * unsigned int entries
-   *
-   * \throws If the underlying value does not hold an unsigned int
+   * \throws If the underlying value does not hold an uint32_t like value
    */
-  operator unsigned int() const;
+  template<typename T, std::enable_if_t<internal::is_like_uint32_t<T>, int> = 0>
+  operator T() const
+  {
+    return to_uint32_t();
+  }
 
-  /*! \brief Cast to int64_t
+  /*! \brief Cast to int64_t like
    *
-   * Strictly for int64_t-typed entries
-   *
-   * \throws If the underlying value does not hold an int64_t
+   * \throws If the underlying value does not hold an int64_t like value
    */
-  operator int64_t() const;
+  template<typename T, std::enable_if_t<internal::is_like_int64_t<T>, int> = 0>
+  operator T() const
+  {
+    return to_int64_t();
+  }
 
-  /*! \brief Cast to uint64_t
+  /*! \brief Cast to uint64_t like
    *
-   * Int entries that are strictly positive will be treated as
-   * uint64_t entries
-   *
-   * \throws If the underlying value does not hold an uint64_t
+   * \throws If the underlying value does not hold an uint64_t like value
    */
-  operator uint64_t() const;
+  template<typename T, std::enable_if_t<internal::is_like_uint64_t<T>, int> = 0>
+  operator T() const
+  {
+    return to_uint64_t();
+  }
 
   /*! \brief Cast to double
    *
@@ -1403,6 +1436,10 @@ public:
 private:
   Json v;
   Configuration(const Json & v);
+  int32_t to_int32_t() const;
+  uint32_t to_uint32_t() const;
+  int64_t to_int64_t() const;
+  uint64_t to_uint64_t() const;
 };
 
 struct MC_RTC_UTILS_DLLAPI ConfigurationArrayIterator
