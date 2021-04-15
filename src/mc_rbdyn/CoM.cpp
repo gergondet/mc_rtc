@@ -41,7 +41,14 @@ CoM::CoM(ctor_token, Robot & robot) : robot_(robot), jac_(robot_.mb())
 
 void CoM::updateCoM()
 {
-  com_ = rbd::computeCoM(robot_.mb(), robot_.mbc());
+  if(robot_.mass() > 0)
+  {
+    com_ = rbd::computeCoM(robot_.mb(), robot_.mbc());
+  }
+  else
+  {
+    com_ = robot_.posW().translation();
+  }
 }
 
 void CoM::updateVelocity()
@@ -56,7 +63,14 @@ void CoM::updateNormalAcceleration()
 
 void CoM::updateAcceleration()
 {
-  acceleration_ = rbd::computeCoMAcceleration(robot_.mb(), robot_.mbc());
+  if(robot_.mass() > 0)
+  {
+    acceleration_ = rbd::computeCoMAcceleration(robot_.mb(), robot_.mbc());
+  }
+  else
+  {
+    acceleration_ = Eigen::Vector3d::Zero();
+  }
 }
 
 void CoM::updateJacobian()
