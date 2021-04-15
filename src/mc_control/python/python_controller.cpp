@@ -7,6 +7,7 @@
 #pragma GCC diagnostic push
 #ifdef __clang__
 #  pragma GCC diagnostic ignored "-Wdeprecated-register"
+#  pragma GCC diagnostic ignored "-Wregister"
 #endif
 #include <Python.h>
 #pragma GCC diagnostic pop
