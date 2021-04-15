@@ -30,6 +30,7 @@
 #include <tvm/graph/abstract/Node.h>
 
 #include <memory>
+#include <optional>
 #include <string_view>
 #include <unordered_map>
 
