@@ -9,8 +9,9 @@
 #pragma GCC diagnostic push
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Wdeprecated-register"
+#pragma GCC diagnostic ignored "-Wregister"
 #endif
-#include "Python.h"
+#include <Python.h>
 #pragma GCC diagnostic pop
 
 #include "mc_control/fsm/fsm.h"
