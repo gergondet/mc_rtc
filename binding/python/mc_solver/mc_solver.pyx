@@ -16,12 +16,15 @@ cimport eigen.eigen as eigen
 from cython.operator cimport preincrement as preinc
 from cython.operator cimport dereference as deref
 from libcpp.map cimport map as cppmap
-from libcpp.memory cimport make_shared, static_pointer_cast
+from libcpp.memory cimport make_shared
 from libcpp.pair cimport pair
 from libcpp.string cimport string
 from libcpp.vector cimport vector
 from libcpp cimport bool as cppbool
 from libcpp cimport nullptr
+
+cdef extern from "<memory>" namespace "std" nogil:
+    cdef shared_ptr[T] static_pointer_cast[T, U](const shared_ptr[U]&)
 
 cdef class Constraint(object):
   def __cinit__(self):
