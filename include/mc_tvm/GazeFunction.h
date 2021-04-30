@@ -12,6 +12,8 @@
 
 #include <RBDyn/Jacobian.h>
 
+#include <optional>
+
 namespace mc_tvm
 {
 

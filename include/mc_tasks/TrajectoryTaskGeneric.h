@@ -70,31 +70,19 @@ struct TrajectoryTaskGeneric : public MetaTask
    * \param vel New reference velocity
    *
    */
-  void refVel(const refVel_t & vel)
+  template<typename U = T>
+  std::enable_if_t<details::has_refVel_v<U>> refVel(const refVel_t & vel)
   {
-    if constexpr(hasRefVel)
-    {
-      errorT_->refVel(vel);
-    }
-    else
-    {
-      static_assert(details::always_false_v<T>, "refVel is not defined for this function");
-    }
+    errorT_->refVel(vel);
   }
 
   /*! \brief Get the trajectory reference velocity
    *
    */
-  refVel_return_t refVel() const noexcept
+  template<typename U = T>
+  std::enable_if_t<details::has_refVel_v<U>, refVel_return_t> refVel() const noexcept
   {
-    if constexpr(hasRefVel)
-    {
-      return errorT_->refVel();
-    }
-    else
-    {
-      static_assert(details::always_false_v<T>, "refVel is not defined for this function");
-    }
+    return errorT_->refVel();
   }
 
   /*! \brief Set the trajectory reference acceleration
@@ -102,31 +90,19 @@ struct TrajectoryTaskGeneric : public MetaTask
    * \param accel New reference acceleration
    *
    */
-  void refAccel(const refAccel_t & accel)
+  template<typename U = T>
+  std::enable_if_t<details::has_refAccel_v<U>> refAccel(const refAccel_t & accel)
   {
-    if constexpr(hasRefAccel)
-    {
-      errorT_->refAccel(accel);
-    }
-    else
-    {
-      static_assert(details::always_false_v<T>, "refAccel is not defined for this function");
-    }
+    errorT_->refAccel(accel);
   }
 
   /*! \brief Get the trajectory reference acceleration
    *
    */
-  refAccel_return_t refAccel() const noexcept
+  template<typename U = T>
+  std::enable_if_t<details::has_refAccel_v<U>, refAccel_return_t> refAccel() const noexcept
   {
-    if constexpr(hasRefAccel)
-    {
-      return errorT_->refAccel();
-    }
-    else
-    {
-      static_assert(details::always_false_v<T>, "refAccel is not defined for this function");
-    }
+    return errorT_->refAccel();
   }
 
   /*! \brief Set the task stiffness/damping
@@ -326,7 +302,8 @@ struct TrajectoryTaskGeneric : public MetaTask
   /** Expose the underlying TVM function to acess (e.g.) the jacobian */
   const tvm::function::abstract::Function & function() const noexcept
   {
-    return selectorT_ ? *selectorT_ : *errorT_;
+    return selectorT_ ? *static_cast<tvm::function::abstract::Function *>(selectorT_.get())
+                      : *static_cast<tvm::function::abstract::Function *>(errorT_.get());
   }
 
   /** Expose the underlying error function without the selector */

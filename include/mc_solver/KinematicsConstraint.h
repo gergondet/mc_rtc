@@ -10,6 +10,8 @@
 
 #include <tvm/ControlProblem.h>
 
+#include <array>
+
 namespace mc_solver
 {
 

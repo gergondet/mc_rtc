@@ -121,8 +121,8 @@ Robot & Robots::load(const RobotModule & module,
     mc_rtc::log::error_and_throw<std::runtime_error>(
         "Cannot load a robot named {}, a robot with this name already exists", name);
   }
-  return addRobot(std::allocate_shared<Robot>(Eigen::aligned_allocator_indirection<Robot>{}, Robot::make_shared_token{},
-                                              module, name, true, base, bName));
+  return addRobot(std::allocate_shared<Robot>(Eigen::aligned_allocator<Robot>{}, Robot::make_shared_token{}, module,
+                                              name, true, base, bName));
 }
 
 Robot & Robots::loadFromUrdf(std::string_view name,
