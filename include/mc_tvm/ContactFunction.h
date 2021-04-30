@@ -35,7 +35,7 @@ namespace mc_tvm
  * - Jacobian
  *
  */
-class TVM_DLLAPI ContactFunction : public tvm::function::abstract::Function
+class MC_TVM_DLLAPI ContactFunction : public tvm::function::abstract::Function
 {
 public:
   using Output = tvm::function::abstract::Function::Output;
