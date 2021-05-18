@@ -46,49 +46,55 @@ struct MC_RBDYN_DLLAPI Device
   virtual ~Device() noexcept = default;
 
   /** Returns the name of the sensor */
-  inline const std::string & name() const
+  inline const std::string & name() const noexcept
   {
     return name_;
   }
 
+  /** Rename a device */
+  inline void name(const std::string & name) noexcept
+  {
+    name_ = name;
+  }
+
   /** Returns the type of the sensor */
-  inline const std::string & type() const
+  inline const std::string & type() const noexcept
   {
     return type_;
   }
 
   /** Returns the parent body of the sensor */
-  inline const std::string & parent() const
+  inline const std::string & parent() const noexcept
   {
     return parent_;
   }
 
   /** Change the parent body of the sensor */
-  inline void parent(const std::string & p)
+  inline void parent(const std::string & p) noexcept
   {
     parent_ = p;
   }
 
   /** Returns the transformation from the parent body to the device */
-  inline const sva::PTransformd & X_p_d() const
+  inline const sva::PTransformd & X_p_d() const noexcept
   {
     return X_p_s_;
   }
 
   /** Returns the transformation from the parent body to the sensor */
-  inline const sva::PTransformd & X_p_s() const
+  inline const sva::PTransformd & X_p_s() const noexcept
   {
     return X_p_s_;
   }
 
   /** Change the parent to device transformation */
-  inline void X_p_d(const sva::PTransformd & pt)
+  inline void X_p_d(const sva::PTransformd & pt) noexcept
   {
     X_p_s_ = pt;
   }
 
   /** Change the parent to sensor transformation */
-  inline void X_p_s(const sva::PTransformd & pt)
+  inline void X_p_s(const sva::PTransformd & pt) noexcept
   {
     X_p_s_ = pt;
   }
