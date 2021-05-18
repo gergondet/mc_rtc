@@ -161,6 +161,7 @@ mc_rbdyn/RobotLoader.cpp
 mc_rbdyn/Collision.cpp
 mc_rbdyn/ForceSensor.cpp
 mc_rbdyn/RobotModule.cpp
+mc_rbdyn/RobotModule_connect.cpp
 mc_rbdyn/configuration_io.cpp
 mc_rbdyn/ZMP.cpp
 mc_control/generic_gripper.cpp
