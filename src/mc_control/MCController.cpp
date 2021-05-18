@@ -89,6 +89,11 @@ MCController::~MCController() {}
 
 mc_rbdyn::Robot & MCController::loadRobot(mc_rbdyn::RobotModulePtr rm, const std::string & name)
 {
+  return loadRobot(*rm, name);
+}
+
+mc_rbdyn::Robot & MCController::loadRobot(const mc_rbdyn::RobotModule & rm, const std::string & name)
+{
   loadRobot(rm, name, realRobots(), false);
   return loadRobot(rm, name, robots(), true);
 }
@@ -138,8 +143,16 @@ mc_rbdyn::Robot & MCController::loadRobot(mc_rbdyn::RobotModulePtr rm,
                                           mc_rbdyn::Robots & robots,
                                           bool updateNrVars)
 {
+  return loadRobot(*rm, name, robots, updateNrVars);
+}
+
+mc_rbdyn::Robot & MCController::loadRobot(const mc_rbdyn::RobotModule & rm,
+                                          const std::string & name,
+                                          mc_rbdyn::Robots & robots,
+                                          bool updateNrVars)
+{
   assert(rm);
-  auto & r = robots.load(name, *rm);
+  auto & r = robots.load(name, rm);
   r.mbc().gravity = mc_rtc::constants::gravity;
   r.forwardKinematics();
   r.forwardVelocity();
