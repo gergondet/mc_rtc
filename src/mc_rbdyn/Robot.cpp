@@ -1195,11 +1195,13 @@ void Robot::addDevice(DevicePtr device)
 
 void Robot::updateFK()
 {
+  rbd::vectorToParam(q_->value(), mbc().q);
   rbd::forwardKinematics(mb(), mbc());
 }
 
 void Robot::updateFV()
 {
+  rbd::vectorToParam(dq_->value(), mbc().alpha);
   rbd::forwardVelocity(mb(), mbc());
 }
 
