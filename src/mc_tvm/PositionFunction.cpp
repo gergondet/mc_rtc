@@ -34,6 +34,7 @@ PositionFunction::PositionFunction(mc_rbdyn::Frame & frame) : tvm::function::abs
 void PositionFunction::reset()
 {
   pos_ = frame_->position().translation();
+  refVel_.setZero();
 }
 
 void PositionFunction::updateValue()
