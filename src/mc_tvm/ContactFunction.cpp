@@ -39,9 +39,9 @@ ContactFunction::ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, c
       addInputDependency<ContactFunction>(Update::Value, fOut, mc_rbdyn::Frame::Output::Position);
     }
   };
+  X_f1_f2_init_ = f2->position() * f1->position().inv();
   addRobot(f1, f1_, use_f1_, f1Jacobian_);
   addRobot(f2, f2_, use_f2_, f2Jacobian_);
-  X_f1_f2_init_ = f2->position() * f1->position().inv();
 
   jacTmp_.resize(6, std::max(f1_->rbdJacobian().dof(), f2_->rbdJacobian().dof()));
   jac_.resize(6, std::max(f1_->robot().mb().nrDof(), f2_->robot().mb().nrDof()));
@@ -54,6 +54,7 @@ void ContactFunction::updateValue()
   const auto & X_f1cf_f2cf = X_0_f2cf * X_0_f1cf.inv();
   value_.head<3>() = dof_.head<3>().asDiagonal() * sva::rotationVelocity(X_f1cf_f2cf.rotation());
   value_.tail<3>() = dof_.tail<3>().asDiagonal() * X_f1cf_f2cf.translation();
+  value_ = -value_;
 }
 
 void ContactFunction::updateDerivatives()
@@ -64,30 +65,32 @@ void ContactFunction::updateDerivatives()
   {
     jacobian_[var.get()].setZero();
   }
-  auto updateDerivatives = [this](const mc_rbdyn::Frame & frame, rbd::Jacobian & jac, double sign) {
+  auto updateDerivatives = [this](const mc_rbdyn::Frame & frame, rbd::Jacobian & jac, double sign,
+                                  const sva::PTransformd & X_f_cf) {
     const auto & robot = frame.robot();
     const auto & mb = robot.mb();
     const auto & mbc = robot.mbc();
     const auto & NAB = robot.normalAccB();
 
-    const auto & X_0_f = frame.position();
+    const auto & X_0_f = X_f_cf * frame.position();
     const auto & jacMat = jac.jacobian(mb, mbc, X_0_f);
     jacTmp_.block(0, 0, 6, jac.dof()).noalias() = sign * dof_.asDiagonal() * jacMat;
     jac.fullJacobian(mb, jacTmp_.block(0, 0, 6, jac.dof()), jac_);
     jacobian_[robot.q().get()] += jac_.block(0, 0, 6, mb.nrDof());
 
-    normalAcceleration_ += sign * dof_.asDiagonal()
-                           * (jac.normalAcceleration(mb, mbc, NAB, frame.X_b_f(), sva::MotionVecd::Zero()).vector());
+    normalAcceleration_ +=
+        sign * dof_.asDiagonal()
+        * (jac.normalAcceleration(mb, mbc, NAB, X_f_cf * frame.X_b_f(), sva::MotionVecd::Zero()).vector());
 
-    velocity_ += sign * dof_.asDiagonal() * jac.velocity(mb, mbc, frame.X_b_f()).vector();
+    velocity_ += sign * dof_.asDiagonal() * jac.velocity(mb, mbc, X_f_cf * frame.X_b_f()).vector();
   };
   if(use_f1_)
   {
-    updateDerivatives(*f1_, f1Jacobian_, 1.0);
+    updateDerivatives(*f1_, f1Jacobian_, 1.0, sva::PTransformd::Identity());
   }
   if(use_f2_)
   {
-    updateDerivatives(*f2_, f2Jacobian_, -1.0);
+    updateDerivatives(*f2_, f2Jacobian_, -1.0, X_f1_f2_init_.inv());
   }
 }
 
