@@ -49,84 +49,46 @@ ContactFunction::ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, c
 
 void ContactFunction::updateValue()
 {
-  auto X_f1_f2 = f2_->position() * f1_->position().inv();
-  value_ = dof_.asDiagonal() * sva::transformError(X_f1_f2, X_f1_f2_init_).vector();
+  const auto & X_0_f1cf = f1_->position();
+  const auto & X_0_f2cf = X_f1_f2_init_.inv() * f2_->position();
+  const auto & X_f1cf_f2cf = X_0_f2cf * X_0_f1cf.inv();
+  value_.head<3>() = dof_.head<3>().asDiagonal() * sva::rotationVelocity(X_f1cf_f2cf.rotation());
+  value_.tail<3>() = dof_.tail<3>().asDiagonal() * X_f1cf_f2cf.translation();
 }
 
 void ContactFunction::updateDerivatives()
 {
-  const auto & r1 = f1_->robot();
-  const auto & mb1 = r1.mb();
-  const auto & mbc1 = r1.mbc();
-  const auto & NAB1 = r1.normalAccB();
-  const auto & r2 = f2_->robot();
-  const auto & mb2 = r2.mb();
-  const auto & mbc2 = r2.mbc();
-  const auto & NAB2 = r2.normalAccB();
-  // FIXME This implementation is wrong but the more correct one is obviously not correct :D
   velocity_.setZero();
   normalAcceleration_.setZero();
+  for(const auto & var : variables())
+  {
+    jacobian_[var.get()].setZero();
+  }
+  auto updateDerivatives = [this](const mc_rbdyn::Frame & frame, rbd::Jacobian & jac, double sign) {
+    const auto & robot = frame.robot();
+    const auto & mb = robot.mb();
+    const auto & mbc = robot.mbc();
+    const auto & NAB = robot.normalAccB();
+
+    const auto & X_0_f = frame.position();
+    const auto & jacMat = jac.jacobian(mb, mbc, X_0_f);
+    jacTmp_.block(0, 0, 6, jac.dof()).noalias() = sign * dof_.asDiagonal() * jacMat;
+    jac.fullJacobian(mb, jacTmp_.block(0, 0, 6, jac.dof()), jac_);
+    jacobian_[robot.q().get()] += jac_.block(0, 0, 6, mb.nrDof());
+
+    normalAcceleration_ += sign * dof_.asDiagonal()
+                           * (jac.normalAcceleration(mb, mbc, NAB, frame.X_b_f(), sva::MotionVecd::Zero()).vector());
+
+    velocity_ += sign * dof_.asDiagonal() * jac.velocity(mb, mbc, frame.X_b_f()).vector();
+  };
   if(use_f1_)
   {
-    velocity_ += dof_.asDiagonal() * f1_->velocity().vector();
-    normalAcceleration_ += dof_.asDiagonal() * f1_->normalAcceleration().vector();
-    splitJacobian(dof_.asDiagonal() * f1_->jacobian(), r1.q());
+    updateDerivatives(*f1_, f1Jacobian_, 1.0);
   }
   if(use_f2_)
   {
-    velocity_ -= dof_.asDiagonal() * f2_->velocity().vector();
-    normalAcceleration_ -= dof_.asDiagonal() * f2_->normalAcceleration().vector();
-    splitJacobian(dof_.asDiagonal() * f2_->jacobian(), r2.q());
+    updateDerivatives(*f2_, f2Jacobian_, -1.0);
   }
-  //// The error we computed previously in a MotionVecd
-  // sva::MotionVecd err_f1(value_);
-  //// Transformation from f1 to f2
-  // auto X_f1_f2 = f2_->position() * f1_->position().inv();
-  //// Rotation from f2 to f1
-  // auto E_f2_f1 = sva::PTransformd(Eigen::Matrix3d(X_f1_f2.rotation().transpose()));
-  //// f2 with f1 orientation in f2's body coordinates
-  // auto X_r2b_f2_f1 = E_f2_f1 * f2_->X_b_f();
-  //// Velocity of f1 expressed in f1
-  // auto V_f1_f1 = f1_->rbdJacobian().velocity(mb1, mbc1, f1_->X_b_f());
-  //// Angular velocity of f1 in f1
-  // auto w_f1_f1 = sva::MotionVecd(V_f1_f1.angular(), Eigen::Vector3d::Zero());
-  //// Velocity of f2 expressed in f1
-  // auto V_f2_f1 = f2_->rbdJacobian().velocity(mb2, mbc2, X_r2b_f2_f1);
-  //// Difference between the two velocities in the same frame
-  // auto V_err = V_f2_f1 - V_f1_f1;
-  //// Angular part of that difference
-  // auto w_err = sva::MotionVecd(V_err.angular(), Eigen::Vector3d::Zero());
-  //// Error derivative (i.e. the velocity difference in the moving frame f1)
-  // auto V_err_f1 = err_f1.cross(w_f1_f1) + V_err;
-  // velocity_ = V_err_f1.vector();
-  //// Normal acceleration of f1 in f1
-  // auto NA_f1_f1 = f1_->rbdJacobian().normalAcceleration(mb1, mbc1, NAB1, f1_->X_b_f(), sva::MotionVecd::Zero());
-  //// Angular part of the acceleration of f1 in f1
-  // auto wNA_f1_f1 = sva::MotionVecd(NA_f1_f1.angular(), Eigen::Vector3d::Zero());
-  //// Normal acceleration of f2 in f1
-  // auto NA_f2_f1 = f2_->rbdJacobian().normalAcceleration(mb2, mbc2, NAB2, X_r2b_f2_f1, w_err);
-  //// Difference between the two normal accelerations
-  // auto NA_err = NA_f2_f1 - NA_f1_f1;
-  //// Error normal acceleration (i.e. the normal acceleration difference in the moving frame f1)
-  // auto NA_err_f1 = V_err_f1.cross(w_f1_f1) + err_f1.cross(wNA_f1_f1) + NA_err;
-  // normalAcceleration_ = NA_err_f1.vector();
-  // if(use_f1_)
-  //{
-  //  jacTmp_.block(0, 0, 6, f1Jacobian_.dof()).noalias() = f1Jacobian_.jacobian(mb1, mbc1, f1_->position());
-  //  for(int i = 0; i < f1Jacobian_.dof(); ++i)
-  //  {
-  //    jacTmp_.col(i).head<6>() -=
-  //        err_f1.cross(sva::MotionVecd(jacTmp_.col(i).head<3>(), Eigen::Vector3d::Zero())).vector();
-  //  }
-  //  f1Jacobian_.fullJacobian(mb1, jacTmp_.block(0, 0, 6, f1Jacobian_.dof()), jac_);
-  //  splitJacobian(jac_.block(0, 0, 6, mb1.nrDof()), r1.q());
-  //}
-  // if(use_f2_)
-  //{
-  //  jacTmp_.block(0, 0, 6, f2Jacobian_.dof()).noalias() = -f2Jacobian_.jacobian(mb2, mbc2, E_f2_f1 * f2_->position());
-  //  f2Jacobian_.fullJacobian(mb2, jacTmp_.block(0, 0, 6, f2Jacobian_.dof()), jac_);
-  //  splitJacobian(jac_.block(0, 0, 6, mb2.nrDof()), r2.q());
-  //}
 }
 
 } // namespace mc_tvm
