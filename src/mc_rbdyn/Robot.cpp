@@ -117,7 +117,7 @@ Robot::Robot(make_shared_token,
 
   if(base)
   {
-    std::string baseName = bName ? mb().body(0).name() : std::string(bName.value());
+    std::string baseName = bName ? std::string(bName.value()) : mb().body(0).name();
     mb() = mbg().makeMultiBody(baseName, mb().joint(0).type() == rbd::Joint::Fixed, *base);
     mbc() = rbd::MultiBodyConfig(mb());
   }
@@ -1195,11 +1195,13 @@ void Robot::addDevice(DevicePtr device)
 
 void Robot::updateFK()
 {
+  rbd::vectorToParam(q_->value(), mbc().q);
   rbd::forwardKinematics(mb(), mbc());
 }
 
 void Robot::updateFV()
 {
+  rbd::vectorToParam(dq_->value(), mbc().alpha);
   rbd::forwardVelocity(mb(), mbc());
 }
 
