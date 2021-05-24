@@ -35,6 +35,8 @@ OrientationFunction::OrientationFunction(mc_rbdyn::Frame & frame) : tvm::functio
 void OrientationFunction::reset()
 {
   ori_ = frame_->position().rotation();
+  refVel_.setZero();
+  refAccel_.setZero();
 }
 
 void OrientationFunction::updateValue()

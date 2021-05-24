@@ -57,7 +57,7 @@ void MomentumFunction::updateJacobian()
 
 void MomentumFunction::updateNormalAcceleration()
 {
-  normalAcceleration_ = momentumAlgo_->normalAcceleration().vector();
+  normalAcceleration_ = momentumAlgo_->normalAcceleration().vector() - refAccel_;
 }
 
 void MomentumFunction::updateJDot()

@@ -51,6 +51,8 @@ void VectorOrientationFunction::reset()
   const auto & robot = frame_->robot();
   Eigen::Matrix3d E_0_b = robot.mbc().bodyPosW[robot.bodyIndexByName(frame_->body())].rotation().transpose();
   target_ = E_0_b * bodyVector_;
+  refVel_.setZero();
+  refAccel_.setZero();
 }
 
 void VectorOrientationFunction::updateValue()
@@ -81,7 +83,8 @@ void VectorOrientationFunction::updateNormalAcceleration()
 {
   const auto & robot = frame_->robot();
   Eigen::Vector3d bodyNormalAcc = jac_.bodyNormalAcceleration(robot.mb(), robot.mbc(), robot.normalAccB()).angular();
-  normalAcceleration_ = E_0_b_ * (w_b_b_.cross(w_b_b_.cross(bodyVector_)) + bodyNormalAcc.cross(bodyVector_));
+  normalAcceleration_ =
+      E_0_b_ * (w_b_b_.cross(w_b_b_.cross(bodyVector_)) + bodyNormalAcc.cross(bodyVector_)) - refAccel_;
 }
 
 } // namespace mc_tvm

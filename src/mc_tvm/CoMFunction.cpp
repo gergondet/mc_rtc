@@ -42,6 +42,8 @@ void CoMFunction::reset()
 void CoMFunction::updateValue()
 {
   value_ = comAlgo_->com() - com_;
+  refVel_.setZero();
+  refAccel_.setZero();
 }
 
 void CoMFunction::updateVelocity()
