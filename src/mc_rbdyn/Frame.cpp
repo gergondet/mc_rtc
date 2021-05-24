@@ -84,7 +84,7 @@ void Frame::updateJacobian()
   assert(jacobian_.rows() == 6 && jacobian_.cols() == robot_.mb().nrDof());
   const auto & partialJac = jac_.jacobian(robot_.mb(), robot_.mbc());
   jacTmp_ = partialJac;
-  jacTmp_.block(3, 0, 3, jac_.dof()).noalias() += h_ * partialJac.block(3, 0, 3, jac_.dof());
+  jacTmp_.bottomRows<3>().noalias() += h_ * partialJac.topRows<3>();
   jac_.fullJacobian(robot_.mb(), jacTmp_, jacobian_);
 
 }
@@ -104,7 +104,7 @@ void Frame::updateJDot()
   assert(jacobian_.rows() == 6 && jacobian_.cols() == robot_.mb().nrDof());
   const auto & partialJac = jac_.jacobianDot(robot_.mb(), robot_.mbc());
   jacTmp_ = partialJac;
-  jacTmp_.block(3, 0, 3, jac_.dof()).noalias() += h_ * partialJac.block(3, 0, 3, jac_.dof());
+  jacTmp_.bottomRows<3>().noalias() += h_ * partialJac.topRows<3>();
   jac_.fullJacobian(robot_.mb(), jacTmp_, jacDot_);
 
 }
