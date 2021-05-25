@@ -46,10 +46,10 @@ namespace internal
 
 static mc_rbdyn::Robot & loadRobot(mc_rbdyn::Robots & robots,
                                    mc_rtc::GUI & gui,
-                                   const mc_rbdyn::RobotModulePtr & rm,
+                                   const mc_rbdyn::RobotModule & rm,
                                    std::string_view name)
 {
-  auto & r = robots.load(*rm, name);
+  auto & r = robots.load(rm, name);
   r.mbc().gravity = mc_rtc::constants::gravity;
   r.forwardKinematics();
   auto data = gui.data();
@@ -91,7 +91,7 @@ static mc_rbdyn::RobotsPtr loadRobots(const std::vector<mc_rbdyn::RobotModulePtr
     if(it == count.end())
     {
       count[m->name] = 1;
-      const auto & r = loadRobot(*robots, gui, m, m->name);
+      const auto & r = loadRobot(*robots, gui, *m, m->name);
       const auto & real = realRobots.robotCopy(r, r.name());
       gui.addElement({"Robots", "Real"},
                      mc_rtc::gui::Robot(r.name(), [&real]() -> const mc_rbdyn::Robot & { return real; }));
@@ -99,7 +99,7 @@ static mc_rbdyn::RobotsPtr loadRobots(const std::vector<mc_rbdyn::RobotModulePtr
     else
     {
       count[m->name] += 1;
-      const auto & r = loadRobot(*robots, gui, m, fmt::format("{}_{}", m->name, count[m->name]));
+      const auto & r = loadRobot(*robots, gui, *m, fmt::format("{}_{}", m->name, count[m->name]));
       const auto & real = realRobots.robotCopy(r, r.name());
       gui.addElement({"Robots", "Real"},
                      mc_rtc::gui::Robot(r.name(), [&real]() -> const mc_rbdyn::Robot & { return real; }));
@@ -143,7 +143,7 @@ MCController::MCController(const std::vector<mc_rbdyn::RobotModulePtr> & modules
 
 MCController::~MCController() {}
 
-mc_rbdyn::Robot & MCController::loadRobot(mc_rbdyn::RobotModulePtr rm,
+mc_rbdyn::Robot & MCController::loadRobot(const mc_rbdyn::RobotModule & rm,
                                           std::string_view name,
                                           const sva::PTransformd & posW)
 {

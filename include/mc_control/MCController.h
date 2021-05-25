@@ -380,7 +380,26 @@ public:
    * \return The loaded control robot.
    * You may access the corresponding real robot through realRobots().robot(name)
    */
-  mc_rbdyn::Robot & loadRobot(mc_rbdyn::RobotModulePtr rm,
+  inline mc_rbdyn::Robot & loadRobot(mc_rbdyn::RobotModulePtr rm,
+                                     std::string_view name,
+                                     const sva::PTransformd & posW = sva::PTransformd::Identity())
+  {
+    return loadRobot(*rm, name, posW);
+  }
+
+  /** Load an additional robot into the controller (and its corresponding
+   * realRobot instance)
+   *
+   * \param rm RobotModule used to load the robot
+   *
+   * \param name Name of the robot
+   *
+   * \param posW Initial position of the robot
+   *
+   * \return The loaded control robot.
+   * You may access the corresponding real robot through realRobots().robot(name)
+   */
+  mc_rbdyn::Robot & loadRobot(const mc_rbdyn::RobotModule & rm,
                               std::string_view name,
                               const sva::PTransformd & posW = sva::PTransformd::Identity());
 
