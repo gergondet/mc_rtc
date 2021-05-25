@@ -1034,10 +1034,12 @@ void Robot::posW(const sva::PTransformd & pt)
 {
   if(mb().joint(0).type() == rbd::Joint::Type::Free)
   {
-    Eigen::Quaterniond rotation{pt.rotation().transpose()};
-    rotation.normalize();
-    mbc().q[0] = {rotation.w(),         rotation.x(),         rotation.y(),        rotation.z(),
-                  pt.translation().x(), pt.translation().y(), pt.translation().z()};
+    Eigen::Quaterniond r{pt.rotation().transpose()};
+    r.normalize();
+    const auto & t = pt.translation();
+    Eigen::Matrix<double, 7, 1> qFB;
+    qFB << r.w(), r.x(), r.y(), r.z(), t.x(), t.y(), t.z();
+    q_fb_->value(qFB);
     forwardKinematics();
   }
   else if(mb().joint(0).type() == rbd::Joint::Type::Fixed)
