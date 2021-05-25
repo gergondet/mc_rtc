@@ -20,6 +20,8 @@ ContactFunction::ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, c
   addOutputDependency<ContactFunction>(Output::NormalAcceleration, Update::Derivatives);
   addOutputDependency<ContactFunction>(Output::Jacobian, Update::Derivatives);
 
+  addInternalDependency<ContactFunction>(Update::Derivatives, Update::Value);
+
   auto addRobot = [this](mc_rbdyn::FramePtr & fIn, mc_rbdyn::FramePtr & fOut, bool & useF, rbd::Jacobian & jac) {
     fOut = fIn;
     if(fIn->rbdJacobian().dof() > 0)
@@ -39,7 +41,9 @@ ContactFunction::ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, c
       addInputDependency<ContactFunction>(Update::Value, fOut, mc_rbdyn::Frame::Output::Position);
     }
   };
-  X_f1_f2_init_ = f2->position() * f1->position().inv();
+  X_0_cf_ = f1->position();
+  X_cf_f1_ = sva::PTransformd::Identity();
+  X_cf_f2_ = f2->position() * X_0_cf_.inv();
   addRobot(f1, f1_, use_f1_, f1Jacobian_);
   addRobot(f2, f2_, use_f2_, f2Jacobian_);
 
@@ -49,8 +53,26 @@ ContactFunction::ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, c
 
 void ContactFunction::updateValue()
 {
-  const auto & X_0_f1cf = f1_->position();
-  const auto & X_0_f2cf = X_f1_f2_init_.inv() * f2_->position();
+  {
+    // Update X_f1_cf_ and X_f2_cf_ according to the motion allowed by dof
+    Eigen::Vector6d revDof = dof_.unaryExpr([](double a) { return a != 0.0 ? 0.0 : 1.0; });
+    auto updateX_cf_f = [&](const mc_rbdyn::FramePtr & f, sva::PTransformd & X_cf_f_init) {
+      const auto & X_cf_f = f->position() * X_0_cf_.inv();
+      Eigen::Vector6d error = revDof.asDiagonal() * sva::transformError(X_cf_f, X_cf_f_init).vector();
+      auto offset = sva::PTransformd(sva::RotX(error(0)) * sva::RotY(error(1)) * sva::RotZ(error(2)), error.tail<3>());
+      X_cf_f_init = offset * X_cf_f;
+    };
+    if(use_f1_)
+    {
+      updateX_cf_f(f1_, X_cf_f1_);
+    }
+    if(use_f2_)
+    {
+      updateX_cf_f(f2_, X_cf_f2_);
+    }
+  }
+  const auto & X_0_f1cf = X_cf_f1_.inv() * f1_->position();
+  const auto & X_0_f2cf = X_cf_f2_.inv() * f2_->position();
   const auto & X_f1cf_f2cf = X_0_f2cf * X_0_f1cf.inv();
   value_.head<3>() = dof_.head<3>().asDiagonal() * sva::rotationVelocity(X_f1cf_f2cf.rotation());
   value_.tail<3>() = dof_.tail<3>().asDiagonal() * X_f1cf_f2cf.translation();
@@ -86,11 +108,11 @@ void ContactFunction::updateDerivatives()
   };
   if(use_f1_)
   {
-    updateDerivatives(*f1_, f1Jacobian_, 1.0, sva::PTransformd::Identity());
+    updateDerivatives(*f1_, f1Jacobian_, 1.0, X_cf_f1_.inv());
   }
   if(use_f2_)
   {
-    updateDerivatives(*f2_, f2Jacobian_, -1.0, X_f1_f2_init_.inv());
+    updateDerivatives(*f2_, f2Jacobian_, -1.0, X_cf_f2_.inv());
   }
 }
 

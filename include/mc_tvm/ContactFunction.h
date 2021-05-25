@@ -74,7 +74,9 @@ private:
   rbd::Jacobian f1Jacobian_;
   bool use_f2_ = false;
   rbd::Jacobian f2Jacobian_;
-  sva::PTransformd X_f1_f2_init_;
+  sva::PTransformd X_0_cf_;
+  sva::PTransformd X_cf_f1_;
+  sva::PTransformd X_cf_f2_;
 
   Eigen::MatrixXd jacTmp_;
   Eigen::MatrixXd jac_;

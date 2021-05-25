@@ -31,12 +31,15 @@ struct MC_CONTROL_DLLAPI TestContactsController : public MCController
     solver().addTask(comTask_);
 
     lfTask_ = std::make_shared<mc_tasks::TransformTask>(robot().frame("LeftFoot"));
+    solver().addTask(lfTask_);
   }
 
   void reset(const ControllerResetData & reset_data) override
   {
     MCController::reset(reset_data);
     comTask_->reset();
+    lfTask_->reset();
+    lfTask_->target(sva::PTransformd(Eigen::Vector3d(0, 0, 0.2)) * lfTask_->target());
   }
 
   bool run() override
@@ -53,6 +56,7 @@ struct MC_CONTROL_DLLAPI TestContactsController : public MCController
       static auto X_0_rf_init = robot("jvrc1").frame("RightFoot").position();
       auto X_0_rf = robot("jvrc1").frame("RightFoot").position();
       BOOST_CHECK(sva::transformError(X_0_rf, X_0_rf_init).vector().norm() < 1e-8);
+      BOOST_CHECK(lfTask_->error().value().norm() > 0.1999);
     }
     if(nrIter_ == 500)
     {
@@ -70,6 +74,61 @@ struct MC_CONTROL_DLLAPI TestContactsController : public MCController
       static auto X_0_rf_init = robot("jvrc1").frame("RightFoot").position();
       auto X_0_rf = robot("jvrc1").frame("RightFoot").position();
       BOOST_CHECK(sva::transformError(X_0_rf, X_0_rf_init).vector().norm() < 1e-8);
+      BOOST_CHECK(lfTask_->error().value().norm() > 0.1999);
+    }
+    if(nrIter_ == 1000)
+    {
+      solver().removeContact({"ground", "jvrc1", "AllGround", "LeftFoot"});
+      solver().removeContact({"ground", "jvrc1", "AllGround", "RightFoot"});
+      Eigen::Vector6d dof = Eigen::Vector6d::Ones();
+      dof(5) = 0.0;
+      solver().addContact({"jvrc1", "ground", "LeftFoot", "AllGround", mc_rbdyn::Contact::defaultFriction, dof});
+      solver().addContact({"jvrc1", "ground", "RightFoot", "AllGround"});
+    }
+    if(nrIter_ >= 1000 && nrIter_ < 1500)
+    {
+      static double prev_error = lfTask_->error().value().norm();
+      if(nrIter_ > 1001)
+      {
+        double error = lfTask_->error().value().norm();
+        BOOST_CHECK(error < prev_error);
+        prev_error = error;
+      }
+      static auto X_0_lf_init = robot("jvrc1").frame("LeftFoot").position();
+      auto X_0_lf = robot("jvrc1").frame("LeftFoot").position();
+      auto X_lfi_lf = X_0_lf * X_0_lf_init.inv();
+      X_lfi_lf.translation().z() = 0.0;
+      BOOST_CHECK(sva::transformVelocity(X_lfi_lf).vector().norm() < 1e-4);
+      static auto X_0_rf_init = robot("jvrc1").frame("RightFoot").position();
+      auto X_0_rf = robot("jvrc1").frame("RightFoot").position();
+      BOOST_CHECK(sva::transformError(X_0_rf, X_0_rf_init).vector().norm() < 1e-4);
+    }
+    if(nrIter_ == 1500)
+    {
+      Eigen::Vector6d dof = Eigen::Vector6d::Ones();
+      dof(2) = 0.0;
+      solver().addContact({"jvrc1", "ground", "LeftFoot", "AllGround", mc_rbdyn::Contact::defaultFriction, dof});
+      lfTask_->reset();
+      lfTask_->target(sva::PTransformd(sva::RotZ(M_PI / 4)) * lfTask_->target());
+    }
+    if(nrIter_ >= 1500 && nrIter_ < 2000)
+    {
+      static double prev_error = lfTask_->error().value().norm();
+      double error = lfTask_->error().value().norm();
+      if(nrIter_ > 1501) // At iter 1500, prev_error is not updated yet
+      {
+        BOOST_CHECK(error < prev_error);
+      }
+      prev_error = error;
+      static auto X_0_lf_init = robot("jvrc1").frame("LeftFoot").position();
+      auto X_0_lf = robot("jvrc1").frame("LeftFoot").position();
+      auto X_lfi_lf = X_0_lf * X_0_lf_init.inv();
+      auto lfi_lf_error = sva::transformVelocity(X_lfi_lf).vector();
+      lfi_lf_error(2) = 0.0;
+      BOOST_CHECK(lfi_lf_error.norm() < 1e-4);
+      static auto X_0_rf_init = robot("jvrc1").frame("RightFoot").position();
+      auto X_0_rf = robot("jvrc1").frame("RightFoot").position();
+      BOOST_CHECK(sva::transformError(X_0_rf, X_0_rf_init).vector().norm() < 1e-4);
     }
     return ret;
   }
