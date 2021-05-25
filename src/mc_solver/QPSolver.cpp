@@ -261,31 +261,35 @@ void QPSolver::addContactToDynamics(const std::string & robot,
   }
 }
 
-void QPSolver::addContact(const mc_rbdyn::Contact & contact)
+void QPSolver::addVirtualContact(const mc_rbdyn::Contact & contact)
 {
+  addVirtualContactImpl(contact);
+}
+
+auto QPSolver::addVirtualContactImpl(const mc_rbdyn::Contact & contact) -> std::tuple<size_t, bool>
+{
+  bool hasWork = false;
   auto idx = getContactIdx(contact);
-  double prevFriction = -1;
   if(idx < contacts_.size())
   {
     const auto & oldContact = contacts_[idx];
     if(oldContact.dof == contact.dof && oldContact.friction == contact.friction)
     {
-      return;
+      return std::make_tuple(idx, hasWork);
     }
-    prevFriction = oldContact.friction;
+    hasWork = contact.friction != oldContact.friction;
     contacts_[idx] = contact;
   }
   else
   {
+    hasWork = true;
     contacts_.push_back(contact);
   }
   auto & data = idx < contactsData_.size() ? contactsData_[idx] : contactsData_.emplace_back();
   auto & r1 = robots_->robot(contact.r1);
   auto & r2 = robots_->robot(contact.r2);
-  auto & s1 = r1.surface(contact.r1Surface);
-  auto & s2 = r2.surface(contact.r2Surface);
-  auto & f1 = s1.frame();
-  auto & f2 = s2.frame();
+  auto & f1 = r1.frame(contact.r1Surface);
+  auto & f2 = r2.frame(contact.r2Surface);
   if(!data.contactConstraint_) // New contact
   {
     auto contact_fn = std::make_shared<mc_tvm::ContactFunction>(f1, f2, contact.dof);
@@ -297,17 +301,31 @@ void QPSolver::addContact(const mc_rbdyn::Contact & contact)
     auto contact_fn = std::static_pointer_cast<mc_tvm::ContactFunction>(data.contactConstraint_->task.function());
     contact_fn->dof(contact.dof);
   }
+  return std::make_tuple(idx, hasWork);
+}
+
+void QPSolver::addContact(const mc_rbdyn::Contact & contact)
+{
+  size_t idx = contacts_.size();
+  bool hasWork = false;
+  std::tie(idx, hasWork) = addVirtualContactImpl(contact);
+  if(!hasWork)
+  {
+    return;
+  }
+  auto & data = contactsData_[idx];
+  auto & r1 = robots_->robot(contact.r1);
+  auto & r2 = robots_->robot(contact.r2);
+  auto & s1 = r1.surface(contact.r1Surface);
+  auto & s2 = r2.surface(contact.r2Surface);
+  auto & f1 = s1.frame();
+  auto & f2 = s2.frame();
   // FIXME Let the user decide how much the friction cone should be discretized
   auto C = discretizedFrictionCone(contact.friction);
   auto addContactForce = [&](const std::string & robot, mc_rbdyn::Frame & frame,
                              const std::vector<sva::PTransformd> & points, tvm::VariableVector & forces,
-                             std::vector<tvm::TaskWithRequirementsPtr> & constraints, double dir) {
-    if(forces.totalSize() && contact.friction == prevFriction)
-    {
-      return;
-    }
-    addContactToDynamics(robot, frame, points, forces, constraints, C, dir);
-  };
+                             std::vector<tvm::TaskWithRequirementsPtr> & constraints,
+                             double dir) { addContactToDynamics(robot, frame, points, forces, constraints, C, dir); };
   // FIXME These points computation are a waste of time if they are not needed
   // FIXME Debug mc_rbdyn::intersection
   // auto s1Points = mc_rbdyn::intersection(s1, s2);

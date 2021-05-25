@@ -130,6 +130,17 @@ public:
    */
   void addContact(const mc_rbdyn::Contact & contact);
 
+  /** Add or update a virtual contact
+   *
+   * If the contact already exists this updates the dof vector if necessary
+   *
+   * Contrary to \ref addContact this does not add contact forces and only requires that the frames exist (not surfaces)
+   *
+   * \param contact Contact definition
+   *
+   */
+  void addVirtualContact(const mc_rbdyn::Contact & contact);
+
   /** Remove a contact
    *
    * Does nothing if the contact is not currently active
@@ -296,6 +307,7 @@ private:
 
   bool addDynamicsConstraint(const DynamicsConstraintPtr & constraint);
   void removeDynamicsConstraint(const DynamicsConstraintPtr & constraint);
+  std::tuple<size_t, bool> addVirtualContactImpl(const mc_rbdyn::Contact & contact);
   void addContactToDynamics(const std::string & robot,
                             mc_rbdyn::Frame & frame,
                             const std::vector<sva::PTransformd> & points,
