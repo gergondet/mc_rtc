@@ -41,6 +41,22 @@ inline static Eigen::MatrixXd discretizedFrictionCone(double muI)
   return C;
 }
 
+inline static void addRemoveContactToGUI(mc_solver::QPSolver & solver, const std::vector<mc_rbdyn::Contact> & contacts)
+{
+  auto & gui = solver.gui();
+  gui.removeCategory({"Contacts", "Remove"});
+  if(contacts.empty())
+  {
+    return;
+  }
+  for(size_t i = 0; i < contacts.size(); ++i)
+  {
+    const auto & c = contacts[i];
+    auto button = fmt::format("Remove {}::{}/{}::{} contact", c.r1, c.r1Surface, c.r2, c.r2Surface);
+    gui.addElement({"Contacts", "Remove"}, mc_rtc::gui::Button(button, [&c, &solver]() { solver.removeContact(c); }));
+  }
+}
+
 } // namespace
 
 QPSolver::QPSolver(mc_rbdyn::RobotsPtr robots,
@@ -290,6 +306,7 @@ auto QPSolver::addVirtualContactImpl(const mc_rbdyn::Contact & contact) -> std::
   {
     hasWork = true;
     contacts_.push_back(contact);
+    addRemoveContactToGUI(*this, contacts_);
   }
   auto & data = idx < contactsData_.size() ? contactsData_[idx] : contactsData_.emplace_back();
   auto & r1 = robots_->robot(contact.r1);
@@ -388,6 +405,7 @@ void QPSolver::removeContact(const mc_rbdyn::Contact & contact)
   contacts_.erase(contacts_.begin() + static_cast<decltype(contacts_)::difference_type>(idx));
   contactsData_.erase(contactsData_.begin() + static_cast<decltype(contacts_)::difference_type>(idx));
   mc_rtc::log::info("Removed contact {}::{}/{}::{}", contact.r1, contact.r1Surface, contact.r2, contact.r2Surface);
+  addRemoveContactToGUI(*this, contacts_);
 }
 
 bool QPSolver::run(FeedbackType fType)
