@@ -102,4 +102,5 @@ int main(int argc, char * argv[])
       BOOST_REQUIRE(controller.run());
     }
   }
+  controller.controller().stop();
 }
