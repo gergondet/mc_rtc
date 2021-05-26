@@ -263,7 +263,13 @@ void QPSolver::addContactToDynamics(const std::string & robot,
 
 void QPSolver::addVirtualContact(const mc_rbdyn::Contact & contact)
 {
-  addVirtualContactImpl(contact);
+  bool hasWork = false;
+  std::tie(std::ignore, hasWork) = addVirtualContactImpl(contact);
+  if(hasWork)
+  {
+    mc_rtc::log::info("Added virtual contact {}::{}/{}::{} (dof: {})", contact.r1, contact.r1Surface, contact.r2,
+                      contact.r2Surface, contact.dof.transpose());
+  }
 }
 
 auto QPSolver::addVirtualContactImpl(const mc_rbdyn::Contact & contact) -> std::tuple<size_t, bool>
