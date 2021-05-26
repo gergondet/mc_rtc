@@ -53,6 +53,10 @@ Frame::Frame(ctor_token, std::string_view name, Robot & robot, std::string_view 
   addOutputDependency(Output::JDot, Update::JDot);
   addInputDependency(Update::JDot, robot_, Robot::Output::FV);
 
+  addInternalDependency(Update::Velocity, Update::Position);  //for h_
+  addInternalDependency(Update::Jacobian, Update::Position);  //for h_
+  addInternalDependency(Update::NormalAcceleration, Update::Velocity);
+  addInternalDependency(Update::JDot, Update::Velocity);
   // Not strictly true but they use the same internal variable, so in case the
   // graph gets parallelized and we start to use JDot...
   addInternalDependency(Update::JDot, Update::Jacobian);
@@ -86,27 +90,28 @@ void Frame::updateJacobian()
   jacTmp_ = partialJac;
   jacTmp_.bottomRows<3>().noalias() += h_ * partialJac.topRows<3>();
   jac_.fullJacobian(robot_.mb(), jacTmp_, jacobian_);
-
 }
 
 void Frame::updateVelocity()
 {
-  velocity_ = X_b_f_ * robot_.mbc().bodyVelW[bodyId_];
+  velocity_ = robot_.mbc().bodyVelW[bodyId_];
+  velocity_.linear().noalias() += h_ * velocity_.angular();
 }
 
 void Frame::updateNormalAcceleration()
 {
-  normalAcceleration_ = X_b_f_ * jac_.normalAcceleration(robot_.mb(), robot_.mbc(), robot_.normalAccB());
+  normalAcceleration_ = jac_.normalAcceleration(robot_.mb(), robot_.mbc(), robot_.normalAccB());
+  normalAcceleration_.linear().noalias() += h_ * normalAcceleration_.angular() + velocity_.angular().cross(h_*velocity_.angular());
 }
 
 void Frame::updateJDot()
 {
-  assert(jacobian_.rows() == 6 && jacobian_.cols() == robot_.mb().nrDof());
+  assert(jacDot_.rows() == 6 && jacDot_.cols() == robot_.mb().nrDof());
   const auto & partialJac = jac_.jacobianDot(robot_.mb(), robot_.mbc());
   jacTmp_ = partialJac;
   jacTmp_.bottomRows<3>().noalias() += h_ * partialJac.topRows<3>();
+  jacTmp_.bottomRows<3>().noalias() -= hat(h_*velocity_.angular()) * jac_.jacobian(robot_.mb(), robot_.mbc()).topRows<3>();
   jac_.fullJacobian(robot_.mb(), jacTmp_, jacDot_);
-
 }
 
 void Frame::updateAll()
