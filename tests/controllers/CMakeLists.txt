@@ -165,6 +165,7 @@ if(NOT DEFINED PYTHON_DEB_ROOT)
   add_test(NAME TestPostureController2ControllerSwitchThreadedLog COMMAND python "${CMAKE_CURRENT_SOURCE_DIR}/check_log.py" "TestPostureController2" ${NRITER} "${UTILS_BIN_DIR}")
 endif()
 
+set(LOG_ENABLED "false")
 set(LOG_POLICY "non-threaded")
 # mc_task test controllers
 controller_test_run(TestCoMTaskController 4001)
