@@ -223,7 +223,7 @@ void MCGlobalController::init(const std::vector<double> & initq)
     if(q[0].size() == 7)
     {
       const auto & initAttitude = robot().module().default_attitude();
-      q[0] = {std::begin(initAttitude), std::end(initAttitude)};
+      robot().qFloatingBase()->set(Eigen::Map<const Eigen::Matrix<double, 7, 1>>(initAttitude.data()));
       robot().forwardKinematics();
     }
   }
@@ -243,10 +243,10 @@ void MCGlobalController::initEncoders(const std::vector<double> & initq)
   const auto & rjo = ref_joint_order();
   for(size_t i = 0; i < rjo.size(); ++i)
   {
-    const auto & jn = rjo[i];
-    if(robot().hasJoint(jn))
+    auto jIdx = robot().refJointIndexToQIndex(i);
+    if(jIdx != -1)
     {
-      q[robot().jointIndexByName(jn)][0] = initq[i];
+      robot().q()->set(jIdx, initq[i]);
     }
   }
   for(auto & g : controller_->robot().grippers())
@@ -668,9 +668,9 @@ bool MCGlobalController::run()
   if(running)
   {
     const auto & robots = controller_->robots().robots();
-    for(size_t i = 0; i < pre_gripper_mbcs_.size() && i < robots.size(); ++i)
+    for(size_t i = 0; i < pre_gripper_qs_.size() && i < robots.size(); ++i)
     {
-      robots[i]->mbc() = pre_gripper_mbcs_[i];
+      robots[i]->q()->set(pre_gripper_qs_[i]);
       robots[i]->forwardKinematics();
     }
 
@@ -682,9 +682,9 @@ bool MCGlobalController::run()
     bool r = controller_->run();
     auto end_controller_run_t = mc_rtc::clock::now();
 
-    pre_gripper_mbcs_.resize(robots.size());
-    std::transform(robots.begin(), robots.end(), pre_gripper_mbcs_.begin(),
-                   [&](const auto & robot) { return robot->mbc(); });
+    pre_gripper_qs_.resize(robots.size());
+    std::transform(robots.begin(), robots.end(), pre_gripper_qs_.begin(),
+                   [&](const auto & robot) { return robot->q()->value(); });
     for(size_t i = 0; i < controller_->robots().size(); ++i)
     {
       const auto & gi = robots[i]->grippers();

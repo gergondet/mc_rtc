@@ -298,8 +298,8 @@ private:
   /** Feedback data */
   std::vector<std::vector<double>> prev_encoders_{};
   std::vector<std::vector<double>> encoders_alpha_{};
-  std::vector<std::vector<std::vector<double>>> control_q_{};
-  std::vector<std::vector<std::vector<double>>> control_alpha_{};
+  std::vector<Eigen::VectorXd> control_q_{};
+  std::vector<Eigen::VectorXd> control_alpha_{};
 
   std::vector<ConstraintPtr>::iterator getConstraint(ConstraintPtr & c);
   std::vector<mc_tasks::MetaTaskPtr>::iterator getTask(mc_tasks::MetaTaskPtr & t);

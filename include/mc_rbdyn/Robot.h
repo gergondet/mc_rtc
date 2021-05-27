@@ -245,19 +245,36 @@ public:
    */
   unsigned int jointIndexByName(std::string_view name) const;
 
-  /** Returns the joint index in the mbc of the joint with index jointIndex in
-   * refJointOrder
+  /** Given a joint index in the reference joint order, returns the corresponding joint index in the q variable
    *
    * @note Joint indices can be -1 for joints present in refJointOrder but not
-   * in the robot's mbc (such as filtered joints in some robot modules)
+   * in the robot's q (such as filtered joints in some robot modules)
    *
    * @param jointIndex Joint index in refJointOrder
    *
-   * @returns joint index in the mbc
+   * @returns joint index in q
    *
-   * @throws If jointIndex >= refJointOrder.size()
    */
-  int jointIndexInMBC(size_t jointIndex) const;
+  inline Eigen::DenseIndex refJointIndexToQIndex(size_t jointIndex) const
+  {
+    return refJointIndexToQIndex_.at(jointIndex);
+  }
+
+  /** Given a joint index in the reference joint order, returns the corresponding joint index in the q derivatives
+   * variable
+   *
+   * @note Joint indices can be -1 for joints present in refJointOrder but not
+   * in the robot's q (such as filtered joints in some robot modules)
+   *
+   * @param jointIndex Joint index in refJointOrder
+   *
+   * @returns joint index in q
+   *
+   */
+  inline Eigen::DenseIndex refJointIndexToQDotIndex(size_t jointIndex) const
+  {
+    return refJointIndexToQDotIndex_.at(jointIndex);
+  }
 
   /** Returns the body index of joint named \name
    *
@@ -265,25 +282,51 @@ public:
    */
   unsigned int bodyIndexByName(std::string_view name) const;
 
-  /** Access MultiBody representation of the robot */
-  rbd::MultiBody & mb();
   /** Access MultiBody representation of the robot (const) */
-  const rbd::MultiBody & mb() const;
+  inline const rbd::MultiBody & mb() const noexcept
+  {
+    return module_.mb;
+  }
 
-  /** Access MultiBodyConfig of the robot's mb() */
-  rbd::MultiBodyConfig & mbc();
   /** Access MultiBodyConfig of the robot's mb() (const) */
-  const rbd::MultiBodyConfig & mbc() const;
+  inline const rbd::MultiBodyConfig & mbc() const noexcept
+  {
+    return module_.mbc;
+  }
 
-  /** Access MultiBodyGraph that generated the robot's mb() */
-  rbd::MultiBodyGraph & mbg();
   /** Access MultiBodyGraph that generated the robot's mb() (const) */
-  const rbd::MultiBodyGraph & mbg() const;
+  inline const rbd::MultiBodyGraph & mbg() const noexcept
+  {
+    return module_.mbg;
+  }
 
   /** Vector of normal acceleration in body coordinates */
-  const std::vector<sva::MotionVecd> & normalAccB() const;
-  /** Vector of normal acceleration in body coordinates */
-  std::vector<sva::MotionVecd> & normalAccB();
+  inline const std::vector<sva::MotionVecd> & normalAccB() const noexcept
+  {
+    return normalAccB_;
+  }
+
+  /** Control torque vector (const) */
+  inline const std::vector<std::vector<double>> & controlTorque() const noexcept
+  {
+    return module_.mbc.jointTorque;
+  }
+  /** Control torque vector */
+  inline std::vector<std::vector<double>> & controlTorque() noexcept
+  {
+    return module_.mbc.jointTorque;
+  }
+
+  /** Control acceleration vector (const) */
+  inline const std::vector<std::vector<double>> & controlAcceleration() const noexcept
+  {
+    return module_.mbc.alphaD;
+  }
+  /** Control acceleration vector */
+  inline std::vector<std::vector<double>> & controlAcceleration() noexcept
+  {
+    return module_.mbc.alphaD;
+  }
 
   /** Access q variable (const) */
   inline const tvm::VariablePtr & q() const noexcept
@@ -294,6 +337,28 @@ public:
   inline tvm::VariablePtr & q() noexcept
   {
     return q_;
+  }
+
+  /** Access q first derivative (joint velocity) (const) */
+  inline const tvm::VariablePtr & alpha() const noexcept
+  {
+    return dq_;
+  }
+  /** Access q first derivative (joint velocity) */
+  inline tvm::VariablePtr & alpha() noexcept
+  {
+    return dq_;
+  }
+
+  /** Access q second derivative (joint acceleration) (const) */
+  inline const tvm::VariablePtr & alphaD() const noexcept
+  {
+    return ddq_;
+  }
+  /** Access q second derivative (joint acceleration) */
+  inline tvm::VariablePtr & alphaD() noexcept
+  {
+    return ddq_;
   }
 
   /** Access floating-base variable (const) */
@@ -949,9 +1014,10 @@ private:
   mc_rtc::map<std::string, ConvexPtr> convexes_;
   /** List of surfaces available in this robot */
   mc_rtc::map<std::string, SurfacePtr> surfaces_;
-  /** Correspondance between refJointOrder (actuated joints) index and
-   * mbc index. **/
-  std::vector<int> refJointIndexToMBCIndex_;
+  /** Correspondance between refJointOrder index and q index. **/
+  std::vector<Eigen::DenseIndex> refJointIndexToQIndex_;
+  /** Correspondance between refJointOrder index and q dot index. **/
+  std::vector<Eigen::DenseIndex> refJointIndexToQDotIndex_;
   /** Encoder values provided by the low-level controller */
   std::vector<double> encoderValues_;
   /** Encoder velocities provided by the low-level controller or estimated from

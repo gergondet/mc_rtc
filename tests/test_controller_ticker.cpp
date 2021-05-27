@@ -71,12 +71,12 @@ int main(int argc, char * argv[])
     auto & robot = controller.robot();
     for(unsigned i = 0; i < robot.refJointOrder().size(); i++)
     {
-      auto jIdx = robot.jointIndexInMBC(i);
-      if(jIdx != -1)
+      auto qIdx = robot.refJointIndexToQIndex(i);
+      if(qIdx != -1)
       {
-        auto jointIndex = static_cast<unsigned>(jIdx);
-        qEnc[i] = robot.mbc().q[jointIndex][0];
-        alphaEnc[i] = robot.mbc().alpha[jointIndex][0];
+        auto alphaIdx = robot.refJointIndexToQDotIndex(i);
+        qEnc[i] = robot.q()->value()(qIdx);
+        alphaEnc[i] = robot.alpha()->value()(alphaIdx);
       }
     }
     controller.setEncoderValues(qEnc);

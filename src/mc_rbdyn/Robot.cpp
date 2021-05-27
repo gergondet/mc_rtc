@@ -118,8 +118,8 @@ Robot::Robot(make_shared_token,
   if(base)
   {
     std::string baseName = bName ? std::string(bName.value()) : mb().body(0).name();
-    mb() = mbg().makeMultiBody(baseName, mb().joint(0).type() == rbd::Joint::Fixed, *base);
-    mbc() = rbd::MultiBodyConfig(mb());
+    module_.mb = mbg().makeMultiBody(baseName, mb().joint(0).type() == rbd::Joint::Fixed, *base);
+    module_.mbc = rbd::MultiBodyConfig(mb());
   }
 
   using jt_method = int (rbd::Joint::*)() const;
@@ -192,8 +192,8 @@ Robot::Robot(make_shared_token,
   initOtherBound("acceleration", module_.accelerationBounds(), limits_.al, limits_.au);
   initOtherBound("torque derivative", module_.torqueDerivativeBounds(), limits_.tdl, limits_.tdu);
 
-  mbc().gravity = mc_rtc::constants::gravity;
-  mbc().zero(mb());
+  module_.mbc.gravity = mc_rtc::constants::gravity;
+  module_.mbc.zero(mb());
   {
     auto initQ = mbc().q;
     const auto & stance = module_.stance();
@@ -217,8 +217,8 @@ Robot::Robot(make_shared_token,
       const auto & attitude = module_.default_attitude();
       initQ[0] = {std::begin(attitude), std::end(attitude)};
     }
-    mbc().q = initQ;
-    rbd::forwardKinematics(mb(), mbc());
+    module_.mbc.q = initQ;
+    rbd::forwardKinematics(mb(), module_.mbc);
   }
 
   forceSensors_ = module_.forceSensors();
@@ -235,8 +235,8 @@ Robot::Robot(make_shared_token,
   }
 
   bodyTransforms_.resize(mb().bodies().size());
-  const auto & bbts =
-      base ? mbg().bodiesBaseTransform(mb().body(0).name(), *base) : mbg().bodiesBaseTransform(mb().body(0).name());
+  const auto & bbts = base ? module_.mbg.bodiesBaseTransform(mb().body(0).name(), *base)
+                           : module_.mbg.bodiesBaseTransform(mb().body(0).name());
   for(size_t i = 0; i < mb().bodies().size(); ++i)
   {
     const auto & b = mb().body(static_cast<int>(i));
@@ -350,18 +350,21 @@ Robot::Robot(make_shared_token,
   }
 
   const auto & refJointOrder_ = module_.ref_joint_order();
-  refJointIndexToMBCIndex_.resize(refJointOrder_.size());
+  refJointIndexToQIndex_.resize(refJointOrder_.size());
+  refJointIndexToQDotIndex_.resize(refJointOrder_.size());
   for(size_t i = 0; i < refJointOrder_.size(); ++i)
   {
     const auto & jN = refJointOrder_[i];
     if(hasJoint(jN))
     {
       auto jIndex = mb().jointIndexByName(jN);
-      refJointIndexToMBCIndex_[i] = mb().joint(jIndex).dof() != 0 ? jIndex : -1;
+      refJointIndexToQIndex_[i] = mb().joint(jIndex).dof() != 0 ? mb().jointPosInParam(jIndex) : -1;
+      refJointIndexToQDotIndex_[i] = mb().joint(jIndex).dof() != 0 ? mb().jointPosInDof(jIndex) : -1;
     }
     else
     {
-      refJointIndexToMBCIndex_[i] = -1;
+      refJointIndexToQIndex_[i] = -1;
+      refJointIndexToQDotIndex_[i] = -1;
     }
   }
 
@@ -654,51 +657,9 @@ unsigned int Robot::jointIndexByName(std::string_view name) const
   return mb().jointIndexByName().at(std::string(name));
 }
 
-int Robot::jointIndexInMBC(size_t jointIndex) const
-{
-  return refJointIndexToMBCIndex_.at(jointIndex);
-}
-
 unsigned int Robot::bodyIndexByName(std::string_view name) const
 {
   return mb().bodyIndexByName().at(std::string(name));
-}
-
-rbd::MultiBody & Robot::mb()
-{
-  return module_.mb;
-}
-const rbd::MultiBody & Robot::mb() const
-{
-  return module_.mb;
-}
-
-rbd::MultiBodyConfig & Robot::mbc()
-{
-  return module_.mbc;
-}
-const rbd::MultiBodyConfig & Robot::mbc() const
-{
-  return module_.mbc;
-}
-
-rbd::MultiBodyGraph & Robot::mbg()
-{
-  return module_.mbg;
-}
-const rbd::MultiBodyGraph & Robot::mbg() const
-{
-  return module_.mbg;
-}
-
-const std::vector<sva::MotionVecd> & Robot::normalAccB() const
-{
-  return normalAccB_;
-}
-
-std::vector<sva::MotionVecd> & Robot::normalAccB()
-{
-  return normalAccB_;
 }
 
 sva::ForceVecd Robot::frameWrench(std::string_view frameName) const
@@ -1022,7 +983,7 @@ void Robot::loadRSDFFromDir(std::string_view surfaceDir)
 
 void mc_rbdyn::Robot::eulerIntegration(double step)
 {
-  rbd::eulerIntegration(mb(), mbc(), step);
+  rbd::eulerIntegration(mb(), module_.mbc, step);
 }
 
 const sva::PTransformd & Robot::posW() const
@@ -1039,12 +1000,12 @@ void Robot::posW(const sva::PTransformd & pt)
     const auto & t = pt.translation();
     Eigen::Matrix<double, 7, 1> qFB;
     qFB << r.w(), r.x(), r.y(), r.z(), t.x(), t.y(), t.z();
-    q_fb_->value(qFB);
+    q_fb_->set(qFB);
     forwardKinematics();
   }
   else if(mb().joint(0).type() == rbd::Joint::Type::Fixed)
   {
-    mb().transform(0, pt);
+    module_.mb.transform(0, pt);
     forwardKinematics();
   }
   else
@@ -1059,13 +1020,13 @@ void Robot::velW(const sva::MotionVecd & vel)
   if(mb().joint(0).type() == rbd::Joint::Type::Free)
   {
     auto vB = sva::PTransformd(mbc().bodyPosW[0].rotation()) * vel;
-    mbc().alpha[0][0] = vB.angular().x();
-    mbc().alpha[0][1] = vB.angular().y();
-    mbc().alpha[0][2] = vB.angular().z();
-    mbc().alpha[0][3] = vB.linear().x();
-    mbc().alpha[0][4] = vB.linear().y();
-    mbc().alpha[0][5] = vB.linear().z();
-    rbd::forwardVelocity(mb(), mbc());
+    module_.mbc.alpha[0][0] = vB.angular().x();
+    module_.mbc.alpha[0][1] = vB.angular().y();
+    module_.mbc.alpha[0][2] = vB.angular().z();
+    module_.mbc.alpha[0][3] = vB.linear().x();
+    module_.mbc.alpha[0][4] = vB.linear().y();
+    module_.mbc.alpha[0][5] = vB.linear().z();
+    rbd::forwardVelocity(mb(), module_.mbc);
   }
   else
   {
@@ -1083,7 +1044,7 @@ void Robot::accW(const sva::MotionVecd & acc)
   if(mb().joint(0).type() == rbd::Joint::Type::Free)
   {
     auto aB = sva::PTransformd(mbc().bodyPosW[0].rotation()) * acc;
-    auto & alphaD = mbc().alphaD;
+    auto & alphaD = module_.mbc.alphaD;
     alphaD[0][0] = aB.angular().x();
     alphaD[0][1] = aB.angular().y();
     alphaD[0][2] = aB.angular().z();
@@ -1197,19 +1158,19 @@ void Robot::addDevice(DevicePtr device)
 
 void Robot::updateFK()
 {
-  rbd::vectorToParam(q_->value(), mbc().q);
-  rbd::forwardKinematics(mb(), mbc());
+  rbd::vectorToParam(q_->value(), module_.mbc.q);
+  rbd::forwardKinematics(mb(), module_.mbc);
 }
 
 void Robot::updateFV()
 {
-  rbd::vectorToParam(dq_->value(), mbc().alpha);
-  rbd::forwardVelocity(mb(), mbc());
+  rbd::vectorToParam(dq_->value(), module_.mbc.alpha);
+  rbd::forwardVelocity(mb(), module_.mbc);
 }
 
 void Robot::updateFA()
 {
-  rbd::forwardAcceleration(mb(), mbc());
+  rbd::forwardAcceleration(mb(), module_.mbc);
 }
 
 void Robot::updateNormalAcceleration()

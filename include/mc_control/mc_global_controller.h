@@ -853,7 +853,7 @@ private:
   double framework_cost = 0;
 
   /** Keep track of controller outputs before applying gripper control */
-  std::vector<rbd::MultiBodyConfig> pre_gripper_mbcs_;
+  std::vector<Eigen::VectorXd> pre_gripper_qs_;
 };
 
 } // namespace mc_control

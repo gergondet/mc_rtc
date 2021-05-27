@@ -477,8 +477,8 @@ bool QPSolver::runJointsFeedback(bool wVelocity)
   for(size_t i = 0; i < robots().size(); ++i)
   {
     auto & robot = *(robots_->robots()[i]);
-    control_q_[i] = robot.mbc().q;
-    control_alpha_[i] = robot.mbc().alpha;
+    control_q_[i] = robot.q()->value();
+    control_alpha_[i] = robot.alpha()->value();
     const auto & encoders = robot.encoderValues();
     if(encoders.size())
     {
@@ -505,30 +505,21 @@ bool QPSolver::runJointsFeedback(bool wVelocity)
       const auto & rjo = robot.module().ref_joint_order();
       for(size_t j = 0; j < rjo.size(); ++j)
       {
-        const auto & jN = rjo[j];
-        if(!robot.hasJoint(jN))
+        auto jI = robot.refJointIndexToQIndex(j);
+        if(jI == -1)
         {
           continue;
         }
-        auto jI = robot.jointIndexByName(jN);
-        robot.mbc().q[jI][0] = encoders[j];
+        robot.q()->set(jI, encoders[j]);
         if(wVelocity)
         {
-          robot.mbc().alpha[jI][0] = encoders_alpha_[i][j];
+          jI = robot.refJointIndexToQDotIndex(j);
+          robot.alpha()->set(jI, encoders_alpha_[i][j]);
         }
       }
-      rbd::forwardKinematics(robot.mb(), robot.mbc());
       robot.forwardKinematics();
       robot.forwardVelocity();
       robot.forwardAcceleration();
-
-      // Set optimization varibles accordingly
-      Eigen::VectorXd alpha = tvm::dot(robot.q())->value();
-      rbd::paramToVector(robot.mbc().alpha, alpha);
-      tvm::dot(robot.q())->value(alpha);
-      Eigen::VectorXd q = robot.q()->value();
-      rbd::paramToVector(robot.mbc().q, q);
-      robot.q()->value(q);
     }
   }
   if(runCommon())
@@ -536,11 +527,9 @@ bool QPSolver::runJointsFeedback(bool wVelocity)
     for(size_t i = 0; i < robots_->size(); ++i)
     {
       auto & robot = robots_->robots()[i];
-      auto & mb = robot->mb();
-      auto & mbc = robot->mbc();
-      mbc.q = control_q_[i];
-      mbc.alpha = control_alpha_[i];
-      if(mb.nrDof() > 0)
+      robot->q()->set(control_q_[i]);
+      robot->alpha()->set(control_alpha_[i]);
+      if(robot->mb().nrDof() > 0)
       {
         updateRobot(*robot);
       }
@@ -564,23 +553,15 @@ bool QPSolver::runClosedLoop()
     auto & realRobot = *(realRobots_->robots()[i]);
 
     // Save old integrator state
-    control_q_[i] = robot.mbc().q;
-    control_alpha_[i] = robot.mbc().alpha;
+    control_q_[i] = robot.q()->value();
+    control_alpha_[i] = robot.alpha()->value();
 
     // Set robot state from estimator
-    robot.mbc().q = realRobot.mbc().q;
-    robot.mbc().alpha = realRobot.mbc().alpha;
+    robot.q()->set(realRobot.q()->value());
+    robot.alpha()->set(realRobot.alpha()->value());
     robot.forwardKinematics();
     robot.forwardVelocity();
     robot.forwardAcceleration();
-
-    // Set variable values accordingly
-    Eigen::VectorXd alpha = tvm::dot(robot.q())->value();
-    rbd::paramToVector(robot.mbc().alpha, alpha);
-    tvm::dot(robot.q())->value(alpha);
-    Eigen::VectorXd q = robot.q()->value();
-    rbd::paramToVector(robot.mbc().q, q);
-    robot.q()->value(q);
   }
 
   // Solve QP and integrate
@@ -589,11 +570,9 @@ bool QPSolver::runClosedLoop()
     for(size_t i = 0; i < robots_->size(); ++i)
     {
       auto & robot = robots_->robots()[i];
-      auto & mb = robot->mb();
-      auto & mbc = robot->mbc();
-      mbc.q = control_q_[i];
-      mbc.alpha = control_alpha_[i];
-      if(mb.nrDof() > 0)
+      robot->q()->set(control_q_[i]);
+      robot->alpha()->set(control_alpha_[i]);
+      if(robot->mb().nrDof() > 0)
       {
         updateRobot(*robot);
       }
@@ -605,17 +584,16 @@ bool QPSolver::runClosedLoop()
 
 void QPSolver::updateRobot(mc_rbdyn::Robot & robot)
 {
-  auto & mb = robot.mb();
   auto & mbc = robot.mbc();
-  rbd::vectorToParam(robot.tau()->value(), mbc.jointTorque);
-  rbd::vectorToParam(tvm::dot(robot.q(), 2)->value(), mbc.alphaD);
-  rbd::eulerIntegration(mb, mbc, dt_);
+  rbd::vectorToParam(robot.tau()->value(), robot.controlTorque());
+  rbd::vectorToParam(robot.alphaD()->value(), robot.controlAcceleration());
+  robot.eulerIntegration(dt_);
   Eigen::VectorXd alpha = tvm::dot(robot.q())->value();
   rbd::paramToVector(mbc.alpha, alpha);
-  tvm::dot(robot.q())->value(alpha);
+  tvm::dot(robot.q())->set(alpha);
   Eigen::VectorXd q = robot.q()->value();
   rbd::paramToVector(mbc.q, q);
-  robot.q()->value(q);
+  robot.q()->set(q);
   robot.forwardKinematics();
   robot.forwardVelocity();
   robot.forwardAcceleration();

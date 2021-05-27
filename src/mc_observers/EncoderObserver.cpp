@@ -137,33 +137,35 @@ void EncoderObserver::update(mc_control::MCController & ctl)
   size_t nJoints = robot.module().ref_joint_order().size();
   for(size_t i = 0; i < nJoints; ++i)
   {
-    const auto joint_index = robot.jointIndexInMBC(i);
-    if(joint_index != -1 && robot.mb().joint(joint_index).dof() == 1)
+    const auto q_index = robot.refJointIndexToQIndex(i);
+    if(q_index == -1)
     {
-      size_t jidx = static_cast<size_t>(joint_index);
-      // Update position
-      if(posUpdate_ == PosUpdate::Control)
-      {
-        realRobot.mbc().q[jidx][0] = robot.mbc().q[jidx][0];
-      }
-      else if(posUpdate_ == PosUpdate::EncoderValues)
-      {
-        realRobot.mbc().q[jidx][0] = q[i];
-      }
+      continue;
+    }
+    // Update position
+    if(posUpdate_ == PosUpdate::Control)
+    {
+      realRobot.q()->set(q_index, robot.q()->value()(q_index));
+    }
+    else if(posUpdate_ == PosUpdate::EncoderValues)
+    {
+      realRobot.q()->set(q_index, q[i]);
+    }
 
-      // Update velocity
-      if(velUpdate_ == VelUpdate::Control)
-      {
-        realRobot.mbc().alpha[jidx][0] = robot.mbc().alpha[jidx][0];
-      }
-      else if(velUpdate_ == VelUpdate::EncoderFiniteDifferences)
-      {
-        realRobot.mbc().alpha[jidx][0] = encodersVelocity_[i];
-      }
-      else if(velUpdate_ == VelUpdate::EncoderVelocities)
-      {
-        realRobot.mbc().alpha[jidx][0] = robot.encoderVelocities()[i];
-      }
+    // alpha_index is guaranteed to be valid is q_index is
+    const auto alpha_index = robot.refJointIndexToQDotIndex(i);
+    // Update velocity
+    if(velUpdate_ == VelUpdate::Control)
+    {
+      realRobot.alpha()->set(alpha_index, robot.alpha()->value()(alpha_index));
+    }
+    else if(velUpdate_ == VelUpdate::EncoderFiniteDifferences)
+    {
+      realRobot.alpha()->set(alpha_index, encodersVelocity_[i]);
+    }
+    else if(velUpdate_ == VelUpdate::EncoderVelocities)
+    {
+      realRobot.alpha()->set(alpha_index, robot.encoderVelocities()[i]);
     }
   }
   if(computeFK_ && posUpdate_ != PosUpdate::None)
@@ -191,12 +193,14 @@ void EncoderObserver::addToLogger(const mc_control::MCController & ctl,
     {
       std::vector<double> qOut(ctl.robot(robot_).module().ref_joint_order().size(), 0);
       logger.addLogEntry(category + "_controlValues", [this, &ctl, qOut]() mutable -> const std::vector<double> & {
+        const auto & robot = ctl.robot(robot_);
+        const auto & q = robot.q()->value();
         for(size_t i = 0; i < qOut.size(); ++i)
         {
-          auto jIdx = ctl.robot(robot_).jointIndexInMBC(i);
+          auto jIdx = robot.refJointIndexToQIndex(i);
           if(jIdx != -1)
           {
-            qOut[i] = ctl.robot(robot_).mbc().alpha[static_cast<size_t>(jIdx)][0];
+            qOut[i] = q(jIdx);
           }
         }
         return qOut;
@@ -218,18 +222,21 @@ void EncoderObserver::addToLogger(const mc_control::MCController & ctl,
     }
     else if(velUpdate_ == VelUpdate::Control)
     {
-      std::vector<double> alpha(ctl.robot(robot_).module().ref_joint_order().size(), 0);
-      logger.addLogEntry(category + "_controlVelocities", [this, &ctl, alpha]() mutable -> const std::vector<double> & {
-        for(size_t i = 0; i < alpha.size(); ++i)
-        {
-          auto jIdx = ctl.robot(robot_).jointIndexInMBC(i);
-          if(jIdx != -1)
-          {
-            alpha[i] = ctl.robot(robot_).mbc().alpha[static_cast<size_t>(jIdx)][0];
-          }
-        }
-        return alpha;
-      });
+      std::vector<double> alphaOut(ctl.robot(robot_).module().ref_joint_order().size(), 0);
+      logger.addLogEntry(category + "_controlVelocities",
+                         [this, &ctl, alphaOut]() mutable -> const std::vector<double> & {
+                           const auto & robot = ctl.robot(robot_);
+                           const auto & alpha = robot.alpha()->value();
+                           for(size_t i = 0; i < alphaOut.size(); ++i)
+                           {
+                             auto jIdx = robot.refJointIndexToQDotIndex(i);
+                             if(jIdx != -1)
+                             {
+                               alphaOut[i] = alpha(jIdx);
+                             }
+                           }
+                           return alphaOut;
+                         });
     }
   }
 }

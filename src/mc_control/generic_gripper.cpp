@@ -179,16 +179,16 @@ Gripper::Gripper(const mc_rbdyn::Robot & robot,
 
   reversed = reverseLimits;
 
-  joints_mbc_idx.clear();
+  joints_qvar_idx.clear();
   for(const auto & name : names)
   {
     if(robot.hasJoint(name))
     {
-      joints_mbc_idx.push_back(static_cast<int>(robot.jointIndexByName(name)));
+      joints_qvar_idx.push_back(robot.mb().jointPosInParam(static_cast<int>(robot.jointIndexByName(name))));
     }
     else
     {
-      joints_mbc_idx.push_back(-1);
+      joints_qvar_idx.push_back(-1);
     }
   }
 }
@@ -508,17 +508,17 @@ void Gripper::run(double timeStep, mc_rbdyn::Robot & robot)
   for(size_t i = 0; i < active_joints.size(); ++i)
   {
     _q[i] = currentQ[i];
-    if(joints_mbc_idx[i] != -1)
+    if(joints_qvar_idx[i] != -1)
     {
-      robot.mbc().q[static_cast<size_t>(joints_mbc_idx[i])] = {_q[i]};
+      robot.q()->set(joints_qvar_idx[i], _q[i]);
     }
   }
   for(size_t i = active_joints.size(); i < names.size(); ++i)
   {
     _q[i] = mult[i].second * _q[mult[i].first] + offset[i];
-    if(joints_mbc_idx[i] != -1)
+    if(joints_qvar_idx[i] != -1)
     {
-      robot.mbc().q[static_cast<size_t>(joints_mbc_idx[i])] = {_q[i]};
+      robot.q()->set(joints_qvar_idx[i], _q[i]);
     }
   }
   for(size_t i = 0; i < actualQ.size(); ++i)

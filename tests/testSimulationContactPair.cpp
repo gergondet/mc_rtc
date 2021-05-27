@@ -40,11 +40,11 @@ BOOST_AUTO_TEST_CASE(TestSimulationContactPair)
   // level
   BOOST_REQUIRE_SMALL(pair.update(), 1e-6);
   // 1 m above the ground
-  robot.mbc().q[0].back() += 1.0;
+  robot.qFloatingBase()->set(6, 1.0 + robot.qFloatingBase()->value()(6));
   robot.forwardKinematics();
   BOOST_REQUIRE(pair.update() > 0.99);
   // ~1 mm below the ground
-  robot.mbc().q[0].back() -= 1.0 + 1e-3;
+  robot.qFloatingBase()->set(6, robot.qFloatingBase()->value()(6) - 1.0 - 1e-3);
   robot.forwardKinematics();
   BOOST_REQUIRE(pair.update() <= 0);
 }

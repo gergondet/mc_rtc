@@ -309,8 +309,8 @@ protected:
   std::vector<std::string> active_joints;
   /*! Active joints indexes in the reference joint order */
   std::vector<size_t> active_joints_idx;
-  /*! All joint indexes in mbc, -1 if absent */
-  std::vector<int> joints_mbc_idx;
+  /*! All joint indexes in q variable, -1 if absent */
+  std::vector<int> joints_qvar_idx;
 
   /*! Lower limits of active joints in the gripper (closed-gripper values) */
   std::vector<double> closeP;
