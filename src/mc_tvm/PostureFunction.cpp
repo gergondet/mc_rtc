@@ -11,23 +11,11 @@ namespace mc_tvm
 {
 
 PostureFunction::PostureFunction(mc_rbdyn::Robot & robot)
-: tvm::function::abstract::Function(robot.qJoints()->size()), robot_(robot),
+: tvm::function::IdentityFunction(robot.qJoints()), robot_(robot),
   j0_(robot_->mb().joint(0).type() == rbd::Joint::Free ? 1 : 0)
 {
-  // clang-format off
-  registerUpdates(Update::Value, &PostureFunction::updateValue,
-                  Update::Velocity, &PostureFunction::updateVelocity);
-  // clang-format on
-  addOutputDependency<PostureFunction>(Output::Value, Update::Value);
-  addOutputDependency<PostureFunction>(Output::Velocity, Update::Velocity);
+  // For mbc.jointConfig
   addInputDependency<PostureFunction>(Update::Value, robot_, mc_rbdyn::Robot::Output::FK);
-  addInputDependency<PostureFunction>(Update::Velocity, robot_, mc_rbdyn::Robot::Output::FK);
-  addVariable(robot_->qJoints(), true);
-  jacobian_.at(robot_->qJoints().get()).setIdentity();
-  JDot_.at(robot_->qJoints().get()).setZero();
-  normalAcceleration_.setZero();
-  value_.setZero();
-  velocity_.setZero();
   reset();
 }
 
@@ -82,7 +70,7 @@ void PostureFunction::posture(const std::vector<std::vector<double>> & p)
   posture_ = p;
 }
 
-void PostureFunction::updateValue()
+void PostureFunction::updateValue_()
 {
   int pos = 0;
   for(int jI = j0_; jI < robot_->mb().nrJoints(); ++jI)
@@ -101,19 +89,6 @@ void PostureFunction::updateValue()
       auto error = sva::rotationError(ori, robot_->mbc().jointConfig[jIdx].rotation());
       value_.segment(pos, 3) = error;
       pos += 3;
-    }
-  }
-}
-
-void PostureFunction::updateVelocity()
-{
-  int pos = 0;
-  for(int jI = j0_; jI < robot_->mb().nrJoints(); ++jI)
-  {
-    for(auto & qI : robot_->mbc().alpha[static_cast<size_t>(jI)])
-    {
-      velocity_(pos) = qI;
-      pos++;
     }
   }
 }

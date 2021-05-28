@@ -8,13 +8,13 @@
 
 #include <mc_rbdyn/fwd.h>
 
-#include <tvm/function/abstract/Function.h>
+#include <tvm/function/IdentityFunction.h>
 
 namespace mc_tvm
 {
 
 /** This class implements a posture function for a given robot */
-class MC_TVM_DLLAPI PostureFunction : public tvm::function::abstract::Function
+class MC_TVM_DLLAPI PostureFunction : public tvm::function::IdentityFunction
 {
 public:
   SET_UPDATES(PostureFunction, Value, Velocity)
@@ -48,9 +48,7 @@ public:
   }
 
 protected:
-  void updateValue();
-
-  void updateVelocity();
+  void updateValue_() override;
 
   mc_rbdyn::RobotPtr robot_;
 
