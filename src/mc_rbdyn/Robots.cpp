@@ -19,8 +19,8 @@ namespace bfs = boost::filesystem;
 namespace mc_rbdyn
 {
 
-MC_RTC_diagnostic_push;
-MC_RTC_diagnostic_ignored(GCC, "-Wsign-conversion", ClangOnly, "-Wshorten-64-to-32");
+MC_RTC_diagnostic_push
+MC_RTC_diagnostic_ignored(GCC, "-Wsign-conversion", ClangOnly, "-Wshorten-64-to-32")
 
 Robots::Robots() : robots_() {}
 
@@ -257,6 +257,6 @@ mc_rbdyn::Robot & Robots::fromConfig(const mc_rtc::Configuration & config,
   mc_rtc::log::error_and_throw<std::runtime_error>("{} \"{}\" is required", p, robotNameKey);
 }
 
-MC_RTC_diagnostic_pop;
+MC_RTC_diagnostic_pop
 
 } // namespace mc_rbdyn
