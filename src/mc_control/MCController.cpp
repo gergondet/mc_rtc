@@ -145,7 +145,6 @@ mc_rbdyn::Robot & MCController::loadRobot(const mc_rbdyn::RobotModule & rm,
                                           std::string_view name,
                                           const sva::PTransformd & posW)
 {
-  assert(rm);
   auto & r = internal::loadRobot(*robots_, *gui_, rm, name);
   r.posW(posW);
   realRobots_->robotCopy(r, r.name());
