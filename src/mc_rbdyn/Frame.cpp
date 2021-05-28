@@ -80,12 +80,13 @@ void Frame::updatePosition()
 {
   const auto & X_0_b = robot_.mbc().bodyPosW[bodyId_];
   position_ = X_b_f_ * X_0_b;
-  h_ = -hat(X_0_b.rotation().transpose() * X_b_f_.translation());
 }
 
 void Frame::updateJacobian()
 {
   assert(jacobian_.rows() == 6 && jacobian_.cols() == robot_.mb().nrDof());
+  const auto & X_0_b = robot_.mbc().bodyPosW[bodyId_];
+  h_ = -hat(X_0_b.rotation().transpose() * X_b_f_.translation());
   const auto & partialJac = jac_.jacobian(robot_.mb(), robot_.mbc());
   jacTmp_ = partialJac;
   jacTmp_.bottomRows<3>().noalias() += h_ * partialJac.topRows<3>();
