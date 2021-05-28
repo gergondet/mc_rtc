@@ -142,3 +142,9 @@ target_link_libraries(dummyServer PUBLIC mc_control)
 mc_rtc_test(test_filters mc_filter SpaceVecAlg::SpaceVecAlg)
 
 mc_rtc_test(test_interpolation mc_control)
+
+###########################
+# -- Function tests -- #
+###########################
+
+add_subdirectory(functions)
