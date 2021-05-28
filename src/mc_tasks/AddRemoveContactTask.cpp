@@ -51,8 +51,8 @@ void AddRemoveContactTask::speed(double s)
 
 void AddRemoveContactTask::addToGUI(mc_rtc::GUI & gui)
 {
-  gui.addElement({"Tasks", name_},
-                 mc_rtc::gui::NumberInput("Speed", [this]() { return speed_; }, [this](double s) { speed(s); }));
+  gui.addElement({"Tasks", name_}, mc_rtc::gui::NumberInput(
+                                       "Speed", [this]() { return speed_; }, [this](double s) { speed(s); }));
 }
 
 } // namespace mc_tasks

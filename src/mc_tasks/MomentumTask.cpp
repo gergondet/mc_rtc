@@ -48,9 +48,10 @@ void MomentumTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
 {
   TrajectoryBase::addToGUI(gui);
   gui.addElement({"Tasks", name_},
-                 mc_rtc::gui::ArrayInput("target", {"cx", "cy", "cz", "fx", "fy", "fz"},
-                                         [this]() -> const sva::ForceVecd & { return this->momentum(); },
-                                         [this](const sva::ForceVecd & m) { this->momentum(m); }),
+                 mc_rtc::gui::ArrayInput(
+                     "target", {"cx", "cy", "cz", "fx", "fy", "fz"},
+                     [this]() -> const sva::ForceVecd & { return this->momentum(); },
+                     [this](const sva::ForceVecd & m) { this->momentum(m); }),
                  mc_rtc::gui::ArrayLabel("momentum", {"cx", "cy", "cz", "fx", "fy", "fz"},
                                          [this]() -> const sva::ForceVecd & { return robot_->momentum(); }));
 }

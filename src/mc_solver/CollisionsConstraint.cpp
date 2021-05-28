@@ -106,8 +106,9 @@ void CollisionsConstraint::addMonitorButton(QPSolver & solver, CollisionData & d
   auto id = data.id;
   solver.gui().addElement(
       {"Collisions", cat, "Monitors"},
-      mc_rtc::gui::Checkbox(name, [id, this]() { return getData(id).monitored != Monitoring::OFF; },
-                            [id, &solver, this]() { toggleCollisionMonitor(solver, getData(id), Monitoring::USER); }));
+      mc_rtc::gui::Checkbox(
+          name, [id, this]() { return getData(id).monitored != Monitoring::OFF; },
+          [id, &solver, this]() { toggleCollisionMonitor(solver, getData(id), Monitoring::USER); }));
 }
 
 void CollisionsConstraint::removeMonitorButton(QPSolver & solver, CollisionData & data)

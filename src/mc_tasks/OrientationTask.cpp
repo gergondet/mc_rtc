@@ -25,13 +25,14 @@ void OrientationTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
   TrajectoryBase::addToGUI(gui);
   gui.addElement(
       {"Tasks", name_},
-      mc_rtc::gui::Rotation("ori_target",
-                            [this]() -> sva::PTransformd {
-                              sva::PTransformd out = errorT_->frame().position();
-                              out.rotation() = errorT_->orientation();
-                              return out;
-                            },
-                            [this](const Eigen::Quaterniond & ori) { this->orientation(ori.toRotationMatrix()); }),
+      mc_rtc::gui::Rotation(
+          "ori_target",
+          [this]() -> sva::PTransformd {
+            sva::PTransformd out = errorT_->frame().position();
+            out.rotation() = errorT_->orientation();
+            return out;
+          },
+          [this](const Eigen::Quaterniond & ori) { this->orientation(ori.toRotationMatrix()); }),
       mc_rtc::gui::Rotation("ori", [this]() -> const sva::PTransformd & { return errorT_->frame().position(); }));
 }
 

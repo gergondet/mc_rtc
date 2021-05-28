@@ -35,8 +35,9 @@ void PositionTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
 {
   TrajectoryBase::addToGUI(gui);
   gui.addElement({"Tasks", name_},
-                 mc_rtc::gui::Point3D("pos_target", [this]() { return this->position(); },
-                                      [this](const Eigen::Vector3d & pos) { this->position(pos); }),
+                 mc_rtc::gui::Point3D(
+                     "pos_target", [this]() { return this->position(); },
+                     [this](const Eigen::Vector3d & pos) { this->position(pos); }),
                  mc_rtc::gui::Point3D(
                      "pos", [this]() -> const Eigen::Vector3d & { return errorT_->frame().position().translation(); }));
 }

@@ -41,8 +41,9 @@ void LookAtTask::addToLogger(mc_rtc::Logger & logger)
 void LookAtTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
 {
   VectorOrientationTask::addToGUI(gui);
-  gui.addElement({"Tasks", name_}, mc_rtc::gui::Point3D("Target Point", [this]() { return this->target(); },
-                                                        [this](const Eigen::Vector3d & pos) { this->target(pos); }));
+  gui.addElement({"Tasks", name_}, mc_rtc::gui::Point3D(
+                                       "Target Point", [this]() { return this->target(); },
+                                       [this](const Eigen::Vector3d & pos) { this->target(pos); }));
 }
 
 } // namespace mc_tasks

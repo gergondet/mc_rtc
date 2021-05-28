@@ -37,20 +37,23 @@ void VectorOrientationTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
 {
   TrajectoryBase::addToGUI(gui);
   gui.addElement({"Tasks", name_},
-                 mc_rtc::gui::ArrayInput("Target Direction", {"x", "y", "z"}, [this]() { return targetVector(); },
-                                         [this](const Eigen::Vector3d & target) { targetVector(target); }),
-                 mc_rtc::gui::Arrow("Actual", mc_rtc::gui::ArrowConfig(mc_rtc::gui::Color(0., 0., 1.)),
-                                    [this]() -> const Eigen::Vector3d & { return bodyPos(); },
-                                    [this]() -> Eigen::Vector3d { return bodyPos() + 0.25 * actual(); }),
-                 mc_rtc::gui::Arrow("Target", mc_rtc::gui::ArrowConfig(mc_rtc::gui::Color(1., 0., 0.)),
-                                    [this]() -> const Eigen::Vector3d & { return bodyPos(); },
-                                    [this]() -> Eigen::Vector3d { return bodyPos() + .25 * targetVector(); }),
-                 mc_rtc::gui::Point3D("Arrow end point",
-                                      [this]() -> Eigen::Vector3d { return bodyPos() + .25 * targetVector(); },
-                                      [this](const Eigen::Vector3d & point) {
-                                        Eigen::Vector3d direction = point - bodyPos();
-                                        targetVector(direction);
-                                      }));
+                 mc_rtc::gui::ArrayInput(
+                     "Target Direction", {"x", "y", "z"}, [this]() { return targetVector(); },
+                     [this](const Eigen::Vector3d & target) { targetVector(target); }),
+                 mc_rtc::gui::Arrow(
+                     "Actual", mc_rtc::gui::ArrowConfig(mc_rtc::gui::Color(0., 0., 1.)),
+                     [this]() -> const Eigen::Vector3d & { return bodyPos(); },
+                     [this]() -> Eigen::Vector3d { return bodyPos() + 0.25 * actual(); }),
+                 mc_rtc::gui::Arrow(
+                     "Target", mc_rtc::gui::ArrowConfig(mc_rtc::gui::Color(1., 0., 0.)),
+                     [this]() -> const Eigen::Vector3d & { return bodyPos(); },
+                     [this]() -> Eigen::Vector3d { return bodyPos() + .25 * targetVector(); }),
+                 mc_rtc::gui::Point3D(
+                     "Arrow end point", [this]() -> Eigen::Vector3d { return bodyPos() + .25 * targetVector(); },
+                     [this](const Eigen::Vector3d & point) {
+                       Eigen::Vector3d direction = point - bodyPos();
+                       targetVector(direction);
+                     }));
 }
 } // namespace mc_tasks
 

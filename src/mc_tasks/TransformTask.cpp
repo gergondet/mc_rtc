@@ -151,8 +151,9 @@ void TransformTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
   TrajectoryBase::addToGUI(gui);
   gui.addElement(
       {"Tasks", name_},
-      mc_rtc::gui::Transform("target", [this]() -> const sva::PTransformd & { return this->target(); },
-                             [this](const sva::PTransformd & pos) { this->target(pos); }),
+      mc_rtc::gui::Transform(
+          "target", [this]() -> const sva::PTransformd & { return this->target(); },
+          [this](const sva::PTransformd & pos) { this->target(pos); }),
       mc_rtc::gui::Transform("pose", [this]() -> const sva::PTransformd & { return errorT_->frame().position(); }));
 }
 

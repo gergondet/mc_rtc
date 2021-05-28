@@ -144,16 +144,17 @@ void PostureTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
     };
     if(isContinuous)
     {
-      gui.addElement({"Tasks", name_, "Target"},
-                     mc_rtc::gui::NumberInput(j.name(), [this, jIndex]() { return posture()[jIndex][0]; },
-                                              [jIndex, updatePosture](double v) { updatePosture(jIndex, v); }));
+      gui.addElement({"Tasks", name_, "Target"}, mc_rtc::gui::NumberInput(
+                                                     j.name(), [this, jIndex]() { return posture()[jIndex][0]; },
+                                                     [jIndex, updatePosture](double v) { updatePosture(jIndex, v); }));
     }
     else
     {
       gui.addElement({"Tasks", name_, "Target"},
-                     mc_rtc::gui::NumberSlider(j.name(), [this, jIndex]() { return posture()[jIndex][0]; },
-                                               [jIndex, updatePosture](double v) { updatePosture(jIndex, v); },
-                                               robot_->limits().ql[jIndexInParam], robot_->limits().qu[jIndexInParam]));
+                     mc_rtc::gui::NumberSlider(
+                         j.name(), [this, jIndex]() { return posture()[jIndex][0]; },
+                         [jIndex, updatePosture](double v) { updatePosture(jIndex, v); },
+                         robot_->limits().ql[jIndexInParam], robot_->limits().qu[jIndexInParam]));
     }
   }
 }

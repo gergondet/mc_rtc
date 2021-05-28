@@ -67,8 +67,9 @@ void CoMTask::addToGUI(mc_rtc::gui::StateBuilder & gui)
 {
   TrajectoryBase::addToGUI(gui);
   gui.addElement({"Tasks", name_},
-                 mc_rtc::gui::Point3D("target", [this]() -> const Eigen::Vector3d & { return this->com(); },
-                                      [this](const Eigen::Vector3d & com) { this->com(com); }),
+                 mc_rtc::gui::Point3D(
+                     "target", [this]() -> const Eigen::Vector3d & { return this->com(); },
+                     [this](const Eigen::Vector3d & com) { this->com(com); }),
                  mc_rtc::gui::Point3D("com", [this]() -> const Eigen::Vector3d & { return this->actual(); }));
 }
 
