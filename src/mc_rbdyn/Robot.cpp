@@ -512,10 +512,10 @@ Robot::Robot(make_shared_token,
   ddq_ = tvm::dot(q_, 2);
   Eigen::VectorXd q_init = q_->value();
   rbd::paramToVector(mbc().q, q_init);
-  q_->value(q_init);
-  dq_->value(Eigen::VectorXd::Zero(dq_->size()));
-  ddq_->value(Eigen::VectorXd::Zero(ddq_->size()));
-  tau_->value(Eigen::VectorXd::Zero(tau_->size()));
+  q_->set(q_init);
+  dq_->setZero();
+  ddq_->setZero();
+  tau_->setZero();
 
   /** Signal setup */
   registerUpdates(Update::FK, &Robot::updateFK, Update::FV, &Robot::updateFV, Update::FA, &Robot::updateFA,

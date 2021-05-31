@@ -34,7 +34,7 @@ DynamicFunction::ForceContact::ForceContact(mc_rbdyn::Frame & frame, std::vector
   {
     forces_.add(tvm::Space(3).createVariable("force" + std::to_string(i)));
   }
-  forces_.value(Eigen::VectorXd::Zero(3 * static_cast<Eigen::DenseIndex>(points_.size())));
+  forces_.setZero();
 }
 
 void DynamicFunction::ForceContact::updateJacobians(DynamicFunction & parent)
