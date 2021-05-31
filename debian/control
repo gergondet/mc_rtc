@@ -17,9 +17,10 @@ Build-Depends: debhelper (>= 9),
                libboost-test-dev,
                libboost-thread-dev,
                libboost-timer-dev,
-               libtasks-qld-dev|libtasks-dev,
+               librbdyn-dev,
+               libsch-core-dev,
+               libtvm-dev,
                libeigen-quadprog-dev,
-               libmc-rbdyn-urdf-dev,
                libstate-observation-dev,
                libgeos++-dev,
                mc-rtc-data,
@@ -35,10 +36,10 @@ Build-Depends: debhelper (>= 9),
                python3-nose,
                python3-setuptools,
                cython3,
-               python-tasks,
-               python3-tasks,
-               python-mc-rbdyn-urdf,
-               python3-mc-rbdyn-urdf,
+               python-rbdyn,
+               python-sch-core,
+               python3-rbdyn,
+               python3-sch-core,
                libnanomsg-dev,
                libhpp-spline-dev,
                libyaml-cpp-dev,
@@ -60,9 +61,10 @@ Depends: cmake,
          libboost-system-dev,
          libboost-thread-dev,
          libboost-timer-dev,
-         libtasks-qld-dev|libtasks-dev,
+         librbdyn-dev,
+         libsch-core-dev,
+         libtvm-dev,
          libeigen-quadprog-dev,
-         libmc-rbdyn-urdf-dev,
          libstate-observation-dev,
          libgeos++-dev,
          libnanomsg-dev,
@@ -70,7 +72,7 @@ Depends: cmake,
          libyaml-cpp-dev,
          libspdlog-dev,
          libltdl-dev,
-         libmc-rtc1 (= ${binary:Version}),
+         libmc-rtc2 (= ${binary:Version}),
          ${misc:Depends}
 Suggests: libmc-rtc-doc
 Description: mc-rtc - Development files
@@ -82,7 +84,7 @@ Description: mc-rtc - Development files
  This package contains development files (headers and shared library
  symbolic link).
 
-Package: libmc-rtc1
+Package: libmc-rtc2
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends},
@@ -100,7 +102,7 @@ Description: mc-rtc - Real-time control of robots
 Package: mc-rtc-utils
 Section: science
 Architecture: any
-Depends: libmc-rtc1 (= ${binary:Version}),
+Depends: libmc-rtc2 (= ${binary:Version}),
          python-git | python3-git,
          python-mc-rtc,
          python3-mc-rtc,
@@ -133,7 +135,7 @@ Description: mc-rtc - API documentation
 Package: python-mc-rtc
 Section: python
 Architecture: any
-Depends: ${python:Depends}, ${misc:Depends}, ${shlibs:Depends}, python-all, python-tasks, python-mc-rbdyn-urdf
+Depends: ${python:Depends}, ${misc:Depends}, ${shlibs:Depends}, python-all, python-rbdyn, python-sch-core
 Description: mc_rtc - Python bindings
  mc_rtc is an interface for simulated and real robotic systems suitable for
  real-time control.  It provides programmers with a simple interface to build
@@ -145,7 +147,7 @@ Description: mc_rtc - Python bindings
 Package: python3-mc-rtc
 Section: python
 Architecture: any
-Depends: ${python3:Depends}, ${misc:Depends}, ${shlibs:Depends}, python3-all, python3-tasks, python3-mc-rbdyn-urdf
+Depends: ${python3:Depends}, ${misc:Depends}, ${shlibs:Depends}, python3-all, python3-rbdyn, python3-sch-core
 Description: mc_rtc - Python bindings
  mc_rtc is an interface for simulated and real robotic systems suitable for
  real-time control.  It provides programmers with a simple interface to build

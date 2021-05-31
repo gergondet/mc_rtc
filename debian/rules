@@ -7,6 +7,12 @@
 #export PYTHONPATH=/opt/ros/${ROS_DISTRO}/lib/@ROS_PYTHON@/dist-packages:$PYTHONPATH
 #export CMAKE_PREFIX_PATH=/opt/ros/${ROS_DISTRO}:$CMAKE_PREFIX_PATH
 
+# Disable assert() checking from upstream project, for best performance
+# https://lists.debian.org/debian-med/2018/04/msg00132.html
+export DEB_CFLAGS_MAINT_APPEND=-DNDEBUG
+export DEB_CXXFLAGS_MAINT_APPEND=-DNDEBUG
+
+
 TMP = $(CURDIR)/debian/tmp
 
 %:
