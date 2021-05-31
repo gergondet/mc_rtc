@@ -41,7 +41,6 @@ Frame::Frame(ctor_token, std::string_view name, Robot & robot, std::string_view 
   addInputDependency(Update::Position, robot_, Robot::Output::FK);
 
   addOutputDependency(Output::Jacobian, Update::Jacobian);
-  addInternalDependency(Update::Jacobian, Update::Position);
   addInputDependency(Update::Jacobian, robot_, Robot::Output::FV);
 
   addOutputDependency(Output::Velocity, Update::Velocity);
@@ -53,8 +52,8 @@ Frame::Frame(ctor_token, std::string_view name, Robot & robot, std::string_view 
   addOutputDependency(Output::JDot, Update::JDot);
   addInputDependency(Update::JDot, robot_, Robot::Output::FV);
 
-  addInternalDependency(Update::Velocity, Update::Position);  //for h_
-  addInternalDependency(Update::Jacobian, Update::Position);  //for h_
+  addInternalDependency(Update::Velocity, Update::Position); // for h_
+  addInternalDependency(Update::Jacobian, Update::Position); // for h_
   addInternalDependency(Update::NormalAcceleration, Update::Velocity);
   addInternalDependency(Update::JDot, Update::Velocity);
   // Not strictly true but they use the same internal variable, so in case the
@@ -80,13 +79,12 @@ void Frame::updatePosition()
 {
   const auto & X_0_b = robot_.mbc().bodyPosW[bodyId_];
   position_ = X_b_f_ * X_0_b;
+  h_ = -hat(X_0_b.rotation().transpose() * X_b_f_.translation());
 }
 
 void Frame::updateJacobian()
 {
   assert(jacobian_.rows() == 6 && jacobian_.cols() == robot_.mb().nrDof());
-  const auto & X_0_b = robot_.mbc().bodyPosW[bodyId_];
-  h_ = -hat(X_0_b.rotation().transpose() * X_b_f_.translation());
   const auto & partialJac = jac_.jacobian(robot_.mb(), robot_.mbc());
   jacTmp_ = partialJac;
   jacTmp_.bottomRows<3>().noalias() += h_ * partialJac.topRows<3>();
