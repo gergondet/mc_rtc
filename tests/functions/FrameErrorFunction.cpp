@@ -9,6 +9,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "utils.h"
+
 std::tuple<rbd::MultiBody, rbd::MultiBodyGraph, rbd::MultiBodyConfig> XYZRobot()
 {
   rbd::Body b0(1, Eigen::Vector3d::Zero(), Eigen::Matrix3d::Identity(), "b0");
@@ -59,6 +61,7 @@ BOOST_AUTO_TEST_CASE(FrameErrorFunctionTest)
   // We are repeatedly creating new function so that the log becomes large. We deactivate it .
   tvm::graph::internal::Logger::logger().disable();
 
+  configureRobotLoader();
   mc_rbdyn::Robots robots;
   auto module = mc_rbdyn::RobotLoader::get_robot_module("env/ground");
   auto & world = robots.load(*module, "world");
