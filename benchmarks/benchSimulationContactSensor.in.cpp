@@ -62,7 +62,7 @@ BENCHMARK_DEFINE_F(SimulationContactPairFixture, Update)(benchmark::State & stat
 
   while(state.KeepRunning())
   {
-    robot.mbc().q[0].back() += 1e-6;
+    robot.qFloatingBase()->set(6, robot.qFloatingBase()->value()(6) + 1e-6);
     robot.forwardKinematics();
     auto start = std::chrono::high_resolution_clock::now();
     pair.update();
