@@ -26,11 +26,12 @@ on:
   push:
     paths-ignore:
       # Changes to those files don't mandate rebuilding a package
-      - ".gitlab-ci.yml"
-      - ".jrl-ci"
       - "doc/**"
       - "README.md"
       - ".github/workflows/build.yml"
+      - ".github/workflows/build-others.yml"
+      - ".github/workflows/clang-format.yml"
+      - ".github/workflows/sync.yml"
     branches:
       - '**'
     tags:
@@ -88,7 +89,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: &package-matrix
-        dist: [xenial, bionic, focal]
+        dist: [bionic, focal]
         arch: [i386, amd64]
         exclude:
           - dist: focal
