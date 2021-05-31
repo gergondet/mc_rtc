@@ -263,6 +263,7 @@ set(UPDATE_OBSERVERS "")
 
 # Test Python bindings
 if(PYTHON_BINDING)
+  set(LOG_ENABLED "true")
   file(READ "ObserverPipelinesPython.json" OBSERVER_PIPELINES)
   set(USE_SANDBOX "false")
   get_python_names(python_names)
