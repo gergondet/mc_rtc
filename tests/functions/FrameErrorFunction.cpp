@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(FrameErrorFunctionTest)
   auto & xyz2 = robots.load({"XYZ2", pr2}, "XYZ2", PTransformd(Matrix3d::Identity(), 2 * Vector3d::UnitX()));
   auto & f2 = xyz2.makeFrame("ee2", "b4", sva::PTransformd(Quaterniond::UnitRandom(), Vector3d::Random()));
 
-  // These tests are using the derivatives of the log on SO(3) whose implementation in sva is known to 
+  // These tests are using the derivatives of the log on SO(3) whose implementation in sva is known to
   // become less precise when the rotation between two frames gets close to pi.
   // For this reason, we ignore the failures when the angle is nearing pi (which we evaluate with the
   // trace of the error rotation becoming close to -1).

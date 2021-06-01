@@ -99,21 +99,21 @@ void FrameErrorFunction::updateJacobian()
   if(use_f1_)
   {
     auto & J1 = jacobian_[f1_->robot().q().get()];
-    assign<false>::run(J1.topRows(nr_), -dLog_ * f1_->jacobian().topRows<3>(), rDof_, tmpMat_);
-    assign<false>::run(J1.bottomRows(nt_), -f1_->jacobian().bottomRows<3>(), tDof_, tmpMat_);
+    assign<false>::run(J1.topRows(nr_), -dLog_ * f1_->jacobian().template topRows<3>(), rDof_, tmpMat_);
+    assign<false>::run(J1.bottomRows(nt_), -f1_->jacobian().template bottomRows<3>(), tDof_, tmpMat_);
   }
   if(use_f2_)
   {
     auto & J2 = jacobian_[f2_->robot().q().get()];
     if(sameVariable_)
     {
-      assign<true>::run(J2.topRows(nr_), dLog_.transpose() * f2_->jacobian().topRows<3>(), rDof_, tmpMat_);
-      assign<true>::run(J2.bottomRows(nt_), f2_->jacobian().bottomRows<3>(), tDof_, tmpMat_);
+      assign<true>::run(J2.topRows(nr_), dLog_.transpose() * f2_->jacobian().template topRows<3>(), rDof_, tmpMat_);
+      assign<true>::run(J2.bottomRows(nt_), f2_->jacobian().template bottomRows<3>(), tDof_, tmpMat_);
     }
     else
     {
-      assign<false>::run(J2.topRows(nr_), dLog_.transpose() * f2_->jacobian().topRows<3>(), rDof_, tmpMat_);
-      assign<false>::run(J2.bottomRows(nt_), f2_->jacobian().bottomRows<3>(), tDof_, tmpMat_);
+      assign<false>::run(J2.topRows(nr_), dLog_.transpose() * f2_->jacobian().template topRows<3>(), rDof_, tmpMat_);
+      assign<false>::run(J2.bottomRows(nt_), f2_->jacobian().template bottomRows<3>(), tDof_, tmpMat_);
     }
   }
 }
@@ -190,7 +190,7 @@ void FrameErrorFunction::assign<add>::run(Eigen::Ref<Eigen::MatrixXd> out,
       assign_<add>(out, b.row(2));
       break;
     case Dof::XY_:
-      assign_<add>(out, b.topRows<2>());
+      assign_<add>(out, b.template topRows<2>());
       break;
     case Dof::X_Z:
       // assign_ should be templated on the out type to accept the following lines.
@@ -208,7 +208,7 @@ void FrameErrorFunction::assign<add>::run(Eigen::Ref<Eigen::MatrixXd> out,
       }
       break;
     case Dof::_YZ:
-      assign_<add>(out, b.bottomRows<2>());
+      assign_<add>(out, b.template bottomRows<2>());
       break;
     case Dof::XYZ:
       assign_<add>(out, b);
