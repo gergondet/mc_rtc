@@ -79,18 +79,20 @@ BOOST_AUTO_TEST_CASE(FrameErrorFunctionTest)
   auto & xyz2 = robots.load({"XYZ2", pr2}, "XYZ2", PTransformd(Matrix3d::Identity(), 2 * Vector3d::UnitX()));
   auto & f2 = xyz2.makeFrame("ee2", "b4", sva::PTransformd(Quaterniond::UnitRandom(), Vector3d::Random()));
 
+  // These tests are using the derivatives of the log on SO(3) whose implementation in sva is known to 
+  // become less precise when the rotation between two frames gets close to pi.
+  // For this reason, we ignore the failures when the angle is nearing pi (which we evaluate with the
+  // trace of the error rotation becoming close to -1).
   for(int i = 0; i < 64; ++i)
   {
-    for(int k = 0; k < 100; ++k)
+    for(int k = 0; k < 10; ++k)
     {
-      std::cout << k << std::endl;
       auto dof = toDof(i);
       {
         // Only left frame depends on a variable
         auto e = std::make_shared<mc_tvm::FrameErrorFunction>(f1, f0, dof);
         bool b = tvm::utils::checkFunction(e, tvm::utils::CheckOptions(1e-7, 1e-4, true));
         bool c = (f0.position().rotation() * f1.position().rotation().transpose()).trace() < -0.95;
-        if(!b) std::cout << (f0.position().rotation() * f1.position().rotation().transpose()).trace() << std::endl;
         BOOST_CHECK((b || c));
       }
       {
@@ -98,7 +100,6 @@ BOOST_AUTO_TEST_CASE(FrameErrorFunctionTest)
         auto e = std::make_shared<mc_tvm::FrameErrorFunction>(f0, f2, dof);
         bool b = tvm::utils::checkFunction(e, tvm::utils::CheckOptions(1e-7, 1e-4, true));
         bool c = (f2.position().rotation() * f0.position().rotation().transpose()).trace() < -0.95;
-        if(!b) std::cout << (f2.position().rotation() * f0.position().rotation().transpose()).trace() << std::endl;
         BOOST_CHECK((b || c));
       }
       {
@@ -106,7 +107,6 @@ BOOST_AUTO_TEST_CASE(FrameErrorFunctionTest)
         auto e = std::make_shared<mc_tvm::FrameErrorFunction>(f1, f2, dof);
         bool b = tvm::utils::checkFunction(e, tvm::utils::CheckOptions(1e-7, 1e-4, true));
         bool c = (f2.position().rotation() * f1.position().rotation().transpose()).trace() < -0.95;
-        if(!b) std::cout << (f2.position().rotation() * f1.position().rotation().transpose()).trace() << std::endl;
         BOOST_CHECK((b || c));
       }
     }
