@@ -4,11 +4,37 @@
 
 #include <mc_rbdyn/Robot.h>
 
+namespace
+{
+int countOnes(const Eigen::Vector6d & dof)
+{
+  assert((dof.cwiseEqual(1.) || dof.cwiseEqual(0.)).all());
+  return static_cast<int>(dof.sum());
+}
+
+template<bool add>
+void assign_(Eigen::Ref<Eigen::MatrixXd> out, const Eigen::Ref<const Eigen::MatrixXd> & in);
+
+template<>
+void assign_<false>(Eigen::Ref<Eigen::MatrixXd> out, const Eigen::Ref<const Eigen::MatrixXd> & in)
+{
+  assert(out.rows() == in.rows() && out.cols() == in.cols());
+  out = in;
+}
+
+template<>
+void assign_<true>(Eigen::Ref<Eigen::MatrixXd> out, const Eigen::Ref<const Eigen::MatrixXd> & in)
+{
+  assert(out.rows() == in.rows() && out.cols() == in.cols());
+  out += in;
+}
+} // namespace
+
 namespace mc_tvm
 {
 
 FrameErrorFunction::FrameErrorFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, const Eigen::Vector6d & dof)
-: tvm::function::abstract::Function(6), dof_(dof)
+: tvm::function::abstract::Function(countOnes(dof)), dof_(dof)
 {
   // clang-format off
     registerUpdates(Update::Value, &FrameErrorFunction::updateValue,
@@ -51,13 +77,21 @@ FrameErrorFunction::FrameErrorFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr
          && "Current implementation does not handle robots sharing sub-parts of their variables. updateJacobian should "
             "be changed if you want to handle that.");
   sameVariable_ = use_f1_ && use_f2_ && (*f1->robot().q() == *f2->robot().q());
+  tmpMat_.resize(3, std::max(use_f1_ ? f1->robot().q()->size() : 0, use_f2_ ? f2->robot().q()->size() : 0));
+
+  auto toDof = [](const auto & v) {
+    return std::make_pair(static_cast<Dof>(v[0] * Dof::X + v[1] * Dof::Y + v[2] * Dof::Z), v.sum());
+  };
+  std::tie(rDof_, nr_) = toDof(dof.head<3>());
+  std::tie(tDof_, nt_) = toDof(dof.tail<3>());
 }
 
 void FrameErrorFunction::updateValue()
 {
-  value_.head<3>() = sva::rotationError(f1_->position().rotation(), f2_->position().rotation());
-  value_.tail<3>() = f2_->position().translation() - f1_->position().translation();
-  dLog1_ = sva::SO3RightJacInv(Eigen::Vector3d(value_.head<3>()));
+  if(rDof_) rotErr_ = sva::rotationError(f1_->position().rotation(), f2_->position().rotation());
+  assign<false>::run(value_.head(nr_), rotErr_, rDof_, tmpMat_);
+  assign<false>::run(value_.tail(nt_), f2_->position().translation() - f1_->position().translation(), tDof_, tmpMat_);
+  dLog_ = sva::SO3RightJacInv(rotErr_);
 }
 
 void FrameErrorFunction::updateJacobian()
@@ -65,21 +99,21 @@ void FrameErrorFunction::updateJacobian()
   if(use_f1_)
   {
     auto & J1 = jacobian_[f1_->robot().q().get()];
-    J1.topRows<3>().noalias() = -dLog1_ * f1_->jacobian().topRows<3>();
-    J1.bottomRows<3>() = -f1_->jacobian().bottomRows<3>();
+    assign<false>::run(J1.topRows(nr_), -dLog_ * f1_->jacobian().template topRows<3>(), rDof_, tmpMat_);
+    assign<false>::run(J1.bottomRows(nt_), -f1_->jacobian().template bottomRows<3>(), tDof_, tmpMat_);
   }
   if(use_f2_)
   {
     auto & J2 = jacobian_[f2_->robot().q().get()];
     if(sameVariable_)
     {
-      J2.topRows<3>().noalias() += dLog1_.transpose() * f2_->jacobian().topRows<3>();
-      J2.bottomRows<3>() += f2_->jacobian().bottomRows<3>();
+      assign<true>::run(J2.topRows(nr_), dLog_.transpose() * f2_->jacobian().template topRows<3>(), rDof_, tmpMat_);
+      assign<true>::run(J2.bottomRows(nt_), f2_->jacobian().template bottomRows<3>(), tDof_, tmpMat_);
     }
     else
     {
-      J2.topRows<3>().noalias() = dLog1_.transpose() * f2_->jacobian().topRows<3>();
-      J2.bottomRows<3>() = f2_->jacobian().bottomRows<3>();
+      assign<false>::run(J2.topRows(nr_), dLog_.transpose() * f2_->jacobian().template topRows<3>(), rDof_, tmpMat_);
+      assign<false>::run(J2.bottomRows(nt_), f2_->jacobian().template bottomRows<3>(), tDof_, tmpMat_);
     }
   }
 }
@@ -88,28 +122,31 @@ void FrameErrorFunction::updateVelocity()
 {
   if(use_f1_)
   {
-    velocity_.head<3>() = -dLog1_ * f1_->velocity().angular();
-    velocity_.tail<3>() = -f1_->velocity().linear();
+    if(rDof_) rotVel_ = -dLog_ * f1_->velocity().angular();
+    assign<false>::run(velocity_.tail(nt_), -f1_->velocity().linear(), tDof_, tmpMat_);
   }
   else
   {
-    velocity_.setZero();
+    rotVel_.setZero();
+    velocity_.tail(nt_).setZero();
   }
   if(use_f2_)
   {
-    velocity_.head<3>() += dLog1_.transpose() * f2_->velocity().angular();
-    velocity_.tail<3>() += f2_->velocity().linear();
+    if(rDof_) rotVel_ += dLog_.transpose() * f2_->velocity().angular();
+    assign<true>::run(velocity_.tail(nt_), f2_->velocity().linear(), tDof_, tmpMat_);
   }
+  assign<false>::run(velocity_.head(nr_), rotVel_, rDof_, tmpMat_);
 }
 
 void FrameErrorFunction::updateNormalAcceleration()
 {
-  const auto & d2Log =
-      sva::SO3RightJacInvDot(Eigen::Vector3d(value_.head<3>()), Eigen::Vector3d((velocity_.head<3>())));
+  if(rDof_) d2Log_ = sva::SO3RightJacInvDot(rotErr_, rotVel_);
   if(use_f1_)
   {
-    normalAcceleration_.head<3>() = -d2Log * f1_->velocity().angular() - dLog1_ * f1_->normalAcceleration().angular();
-    normalAcceleration_.tail<3>() = -f1_->normalAcceleration().linear();
+    assign<false>::run(normalAcceleration_.head(nr_),
+                       -d2Log_ * f1_->velocity().angular() - dLog_ * f1_->normalAcceleration().angular(), rDof_,
+                       tmpMat_);
+    assign<false>::run(normalAcceleration_.tail(nt_), -f1_->normalAcceleration().linear(), tDof_, tmpMat_);
   }
   else
   {
@@ -117,9 +154,67 @@ void FrameErrorFunction::updateNormalAcceleration()
   }
   if(use_f2_)
   {
-    normalAcceleration_.head<3>() +=
-        d2Log.transpose() * f2_->velocity().angular() + dLog1_.transpose() * f2_->normalAcceleration().angular();
-    normalAcceleration_.tail<3>() += f2_->normalAcceleration().linear();
+    assign<true>::run(normalAcceleration_.head(nr_),
+                      d2Log_.transpose() * f2_->velocity().angular()
+                          + dLog_.transpose() * f2_->normalAcceleration().angular(),
+                      rDof_, tmpMat_);
+    assign<true>::run(normalAcceleration_.tail(nt_), f2_->normalAcceleration().linear(), tDof_, tmpMat_);
+  }
+}
+
+template<bool add>
+template<typename Derived>
+void FrameErrorFunction::assign<add>::run(Eigen::Ref<Eigen::MatrixXd> out,
+                                          const Eigen::MatrixBase<Derived> & in,
+                                          mc_tvm::FrameErrorFunction::Dof dof,
+                                          Eigen::MatrixXd & buffer)
+{
+  assert(in.rows() == 3);
+  assert(out.rows() == ((dof & Dof::X) / Dof::X + (dof & Dof::Y) / Dof::Y + (dof & Dof::Z) / Dof::Z));
+
+  // `in` can be an Eigen expression. We need to force computing its value before assigning (part of) it.
+  auto b = buffer.leftCols(in.cols());
+  if(dof) b.noalias() = in;
+
+  switch(dof)
+  {
+    case Dof::___:
+      break;
+    case Dof::X__:
+      assign_<add>(out, b.row(0));
+      break;
+    case Dof::_Y_:
+      assign_<add>(out, b.row(1));
+      break;
+    case Dof::__Z:
+      assign_<add>(out, b.row(2));
+      break;
+    case Dof::XY_:
+      assign_<add>(out, b.template topRows<2>());
+      break;
+    case Dof::X_Z:
+      // assign_ should be templated on the out type to accept the following lines.
+      // To avoid this complication (which would require an additional helper structure) for a single case, we use if
+      // constexpr instead.
+      if constexpr(add)
+      {
+        out.row(0) += b.row(0);
+        out.row(1) += b.row(2);
+      }
+      else
+      {
+        out.row(0) = b.row(0);
+        out.row(1) = b.row(2);
+      }
+      break;
+    case Dof::_YZ:
+      assign_<add>(out, b.template bottomRows<2>());
+      break;
+    case Dof::XYZ:
+      assign_<add>(out, b);
+      break;
+    default:
+      assert(false);
   }
 }
 

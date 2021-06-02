@@ -47,8 +47,22 @@ std::tuple<MultiBody, MultiBodyGraph, MultiBodyConfig> XYZRobot()
   return std::make_tuple(mb, mbg, mbc);
 }
 
+Eigen::Vector6d toDof(int v)
+{
+  Eigen::Vector6d ret;
+  for(int i = 0; i < 6; ++i)
+  {
+    ret[i] = v % 2;
+    v /= 2;
+  }
+  return ret;
+}
+
 BOOST_AUTO_TEST_CASE(FrameErrorFunctionTest)
 {
+  // We are repeatedly creating new function so that the log becomes large. We deactivate it .
+  tvm::graph::internal::Logger::logger().disable();
+
   mc_rbdyn::Robots robots;
   auto module = mc_rbdyn::RobotLoader::get_robot_module("env/ground");
   auto & world = robots.load(*module, "world");
@@ -65,16 +79,36 @@ BOOST_AUTO_TEST_CASE(FrameErrorFunctionTest)
   auto & xyz2 = robots.load({"XYZ2", pr2}, "XYZ2", PTransformd(Matrix3d::Identity(), 2 * Vector3d::UnitX()));
   auto & f2 = xyz2.makeFrame("ee2", "b4", sva::PTransformd(Quaterniond::UnitRandom(), Vector3d::Random()));
 
+  // These tests are using the derivatives of the log on SO(3) whose implementation in sva is known to
+  // become less precise when the rotation between two frames gets close to pi.
+  // For this reason, we ignore the failures when the angle is nearing pi (which we evaluate with the
+  // trace of the error rotation becoming close to -1).
+  for(int i = 0; i < 64; ++i)
   {
-    auto e = std::make_shared<mc_tvm::FrameErrorFunction>(f1, f0);
-    BOOST_CHECK(tvm::utils::checkFunction(e, tvm::utils::CheckOptions(1e-7, 5e-6, true)));
-  }
-  {
-    auto e = std::make_shared<mc_tvm::FrameErrorFunction>(f0, f2);
-    BOOST_CHECK(tvm::utils::checkFunction(e, tvm::utils::CheckOptions(1e-7, 5e-6, true)));
-  }
-  {
-    auto e = std::make_shared<mc_tvm::FrameErrorFunction>(f1, f2);
-    BOOST_CHECK(tvm::utils::checkFunction(e, tvm::utils::CheckOptions(1e-7, 5e-6, true)));
+    for(int k = 0; k < 10; ++k)
+    {
+      auto dof = toDof(i);
+      {
+        // Only left frame depends on a variable
+        auto e = std::make_shared<mc_tvm::FrameErrorFunction>(f1, f0, dof);
+        bool b = tvm::utils::checkFunction(e, tvm::utils::CheckOptions(1e-7, 1e-4, true));
+        bool c = (f0.position().rotation() * f1.position().rotation().transpose()).trace() < -0.95;
+        BOOST_CHECK((b || c));
+      }
+      {
+        // Only right frame depends on a variable
+        auto e = std::make_shared<mc_tvm::FrameErrorFunction>(f0, f2, dof);
+        bool b = tvm::utils::checkFunction(e, tvm::utils::CheckOptions(1e-7, 1e-4, true));
+        bool c = (f2.position().rotation() * f0.position().rotation().transpose()).trace() < -0.95;
+        BOOST_CHECK((b || c));
+      }
+      {
+        // Both frames depend on a variable
+        auto e = std::make_shared<mc_tvm::FrameErrorFunction>(f1, f2, dof);
+        bool b = tvm::utils::checkFunction(e, tvm::utils::CheckOptions(1e-7, 1e-4, true));
+        bool c = (f2.position().rotation() * f1.position().rotation().transpose()).trace() < -0.95;
+        BOOST_CHECK((b || c));
+      }
+    }
   }
 }

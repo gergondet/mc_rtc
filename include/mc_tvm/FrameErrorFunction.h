@@ -66,9 +66,40 @@ public:
   }
 
 private:
+  enum Dof
+  {
+    X = 1,
+    Y = X * 2,
+    Z = Y * 2,
+    ___ = 0,
+    X__ = X,
+    _Y_ = Y,
+    __Z = Z,
+    XY_ = X + Y,
+    X_Z = X + Z,
+    _YZ = Y + Z,
+    XYZ = X + Y + Z,
+  };
+
+  /** Helper structure to perform out = in (\p add = \c false) or out += in (\p add = \c true) for only the dofs given
+   * by \p dof.*/
+  template<bool add>
+  struct assign
+  {
+    template<typename Derived>
+    static void run(Eigen::Ref<Eigen::MatrixXd> out,
+                    const Eigen::MatrixBase<Derived> & in,
+                    mc_tvm::FrameErrorFunction::Dof dof,
+                    Eigen::MatrixXd & buffer);
+  };
+
   mc_rbdyn::FramePtr f1_;
   mc_rbdyn::FramePtr f2_;
-  Eigen::Vector6d dof_;
+  Eigen::Vector6d dof_; // specification of the dof used in the output
+  Dof tDof_; // dofs used in the translation part of the error
+  Dof rDof_; // dofs used in the rotation part of the error
+  int nt_; // number of dofs used in the translation part of the error
+  int nr_; // number of dofs used in the rotation part of the error
 
   bool use_f1_ = false;
   rbd::Jacobian f1Jacobian_;
@@ -76,8 +107,11 @@ private:
   rbd::Jacobian f2Jacobian_;
   bool sameVariable_ = false;
 
-  Eigen::Matrix3d dLog1_;
-  Eigen::Matrix3d dLog2_;
+  Eigen::Vector3d rotErr_; // intermediate buffer for keeping the 3d rotation error
+  Eigen::Vector3d rotVel_; // intermediate buffer for keeping the 3d rotation error velocity
+  Eigen::Matrix3d dLog_;
+  Eigen::Matrix3d d2Log_;
+  Eigen::MatrixXd tmpMat_; // buffer to be used by assign::run
 
   void updateValue();
   void updateJacobian();
