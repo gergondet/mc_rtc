@@ -166,6 +166,72 @@ std::tuple<rbd::MultiBody, rbd::MultiBodyGraph, rbd::MultiBodyConfig> XYZRobot()
   return std::make_tuple(mb, mbg, mbc);
 }
 
+void TestOneFrame(mc_rbdyn::Robot & robot, mc_rbdyn::Frame & f, int samples)
+{
+  tvm::graph::CallGraph callgraph;
+  auto inputs = std::make_shared<tvm::graph::internal::Inputs>();
+  inputs->addInput(f, mc_rbdyn::Frame::Output::Position);
+  inputs->addInput(f, mc_rbdyn::Frame::Output::Jacobian);
+  inputs->addInput(f, mc_rbdyn::Frame::Output::Velocity);
+  inputs->addInput(f, mc_rbdyn::Frame::Output::NormalAcceleration);
+  inputs->addInput(f, mc_rbdyn::Frame::Output::JDot);
+  callgraph.add(inputs);
+  callgraph.update();
+
+  for(int i = 0; i < samples; ++i)
+  {
+    double h = 1e-8;
+    Eigen::Vector3d q = Eigen::Vector3d::Random();
+    robot.q()->set(q);
+    callgraph.execute();
+    sva::PTransformd X0 = f.position();
+    Eigen::MatrixXd J0 = f.jacobian();
+
+    // test Jacobian matrix by finite differences
+    Eigen::MatrixXd Jd(6, 3);
+    for(int qi = 0; qi < 3; ++qi)
+    {
+      q[qi] += h;
+      robot.q()->set(q);
+      callgraph.execute();
+      sva::PTransformd Xi = f.position();
+      Jd.col(qi).head<3>() = sva::rotationError(X0.rotation(), Xi.rotation()) / h;
+      Jd.col(qi).tail<3>() = (Xi.translation() - X0.translation()) / h;
+
+      q[qi] -= h;
+    }
+    BOOST_CHECK_SMALL((J0 - Jd).norm(), 1e-6);
+
+    // Check velocity (is it equal to J dq ?)
+    Eigen::Vector3d dq = Eigen::Vector3d::Random();
+    robot.q()->set(q);
+    dot(robot.q())->set(dq);
+    callgraph.execute();
+    BOOST_CHECK_SMALL((f.velocity().vector() - f.jacobian() * dq).norm(), 1e-6);
+
+    // Checking normal acceleration (is it equal to dv/dt - J ddq, with dv/dt approximated by finite forward differences
+    // ?)
+    Eigen::Vector3d ddq = Eigen::Vector3d::Random().normalized();
+
+    // we consider a constant-acceleration trajectory in variable space
+    Eigen::Vector3d dq1 = dq + ddq * h;
+    Eigen::Vector3d q1 = q + dq * h + 0.5 * ddq.cwiseProduct(ddq) * h * h;
+
+    Eigen::Vector6d v0 = f.velocity().vector();
+    robot.q()->set(q1);
+    dot(robot.q())->set(dq1);
+    callgraph.execute();
+    Eigen::Vector6d v1 = f.velocity().vector();
+    Eigen::Vector6d a = (v1 - v0) / h - J0 * ddq;
+
+    const auto & na = f.normalAcceleration().vector();
+    BOOST_CHECK_SMALL((na - a).norm(), 1e-6);
+
+    // test JDot
+    BOOST_CHECK_SMALL((na - f.JDot() * dq).norm(), 1e-6);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(FrameTest)
 {
   rbd::parsers::ParserResult pr;
@@ -179,66 +245,7 @@ BOOST_AUTO_TEST_CASE(FrameTest)
   auto & f0 = xyz.makeFrame("ee0", "b4", Xs);
   auto & f1 = xyz.makeFrame("ee1", f0, Xs);
 
-  tvm::graph::CallGraph callgraph;
-  auto inputs = std::make_shared<tvm::graph::internal::Inputs>();
-  inputs->addInput(f1, mc_rbdyn::Frame::Output::Position);
-  inputs->addInput(f1, mc_rbdyn::Frame::Output::Jacobian);
-  inputs->addInput(f1, mc_rbdyn::Frame::Output::Velocity);
-  inputs->addInput(f1, mc_rbdyn::Frame::Output::NormalAcceleration);
-  inputs->addInput(f1, mc_rbdyn::Frame::Output::JDot);
-  callgraph.add(inputs);
-  callgraph.update();
-
-  for(int i = 0; i < 100; ++i)
-  {
-    double h = 1e-8;
-    Eigen::Vector3d q = Eigen::Vector3d::Random();
-    xyz.q()->set(q);
-    callgraph.execute();
-    sva::PTransformd X0 = f1.position();
-    Eigen::MatrixXd J0 = f1.jacobian();
-
-    // test Jacobian matrix by finite differences
-    Eigen::MatrixXd Jd(6, 3);
-    for(int i = 0; i < 3; ++i)
-    {
-      q[i] += h;
-      xyz.q()->set(q);
-      callgraph.execute();
-      sva::PTransformd Xi = f1.position();
-      Jd.col(i).head<3>() = sva::rotationError(X0.rotation(), Xi.rotation()) / h;
-      Jd.col(i).tail<3>() = (Xi.translation() - X0.translation()) / h;
-
-      q[i] -= h;
-    }
-    BOOST_CHECK_SMALL((J0 - Jd).norm(), 1e-6);
-
-    // Check velocity (is it equal to J dq ?)
-    Eigen::Vector3d dq = Eigen::Vector3d::Random();
-    xyz.q()->set(q);
-    dot(xyz.q())->set(dq);
-    callgraph.execute();
-    BOOST_CHECK_SMALL((f1.velocity().vector() - f1.jacobian() * dq).norm(), 1e-6);
-
-    // Checking normal acceleration (is it equal to dv/dt - J ddq, with dv/dt approximated by finite forward differences
-    // ?)
-    Eigen::Vector3d ddq = Eigen::Vector3d::Random().normalized();
-
-    // we consider a constant-acceleration trajectory in variable space
-    Eigen::Vector3d dq1 = dq + ddq * h;
-    Eigen::Vector3d q1 = q + dq * h + 0.5 * ddq.cwiseProduct(ddq) * h * h;
-
-    Eigen::Vector6d v0 = f1.velocity().vector();
-    xyz.q()->set(q1);
-    dot(xyz.q())->set(dq1);
-    callgraph.execute();
-    Eigen::Vector6d v1 = f1.velocity().vector();
-    Eigen::Vector6d a = (v1 - v0) / h - J0 * ddq;
-
-    const auto & na = f1.normalAcceleration().vector();
-    BOOST_CHECK_SMALL((na - a).norm(), 1e-6);
-
-    // test JDot
-    BOOST_CHECK_SMALL((na - f1.JDot() * dq).norm(), 1e-6);
-  }
+  TestOneFrame(xyz, xyz.frame("b4"), 10000);
+  TestOneFrame(xyz, f0, 10000);
+  TestOneFrame(xyz, f1, 10000);
 }
