@@ -1,22 +1,13 @@
 /*
- * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2021 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #pragma once
 
-#include <mc_rbdyn/api.h>
+#include <mc_rbdyn/FreeFrame.h>
 
 #include <mc_rbdyn/ForceSensor.h>
 #include <mc_rbdyn/Robot.h>
-
-#include <mc_rtc/shared.h>
-
-#include <SpaceVecAlg/SpaceVecAlg>
-
-#include <RBDyn/Jacobian.h>
-
-#include <tvm/graph/abstract/Node.h>
-#include <tvm/internal/MatrixWithProperties.h>
 
 namespace mc_rbdyn
 {
@@ -34,10 +25,10 @@ namespace mc_rbdyn
  * - JDot: derivative of the jacobian of the frame in world coordinate
  *
  */
-struct MC_RBDYN_DLLAPI Frame : public tvm::graph::abstract::Node<Frame>, mc_rtc::shared<Frame>
+struct MC_RBDYN_DLLAPI Frame : public FreeFrame, mc_rtc::shared<Frame, false>
 {
-  SET_OUTPUTS(Frame, Position, Jacobian, Velocity, NormalAcceleration, JDot)
-  SET_UPDATES(Frame, Position, Jacobian, Velocity, NormalAcceleration, JDot)
+  SET_OUTPUTS(Frame, Jacobian, NormalAcceleration, JDot)
+  SET_UPDATES(Frame, Jacobian, NormalAcceleration, JDot)
 
   friend struct Robot;
 
@@ -49,17 +40,15 @@ protected:
 public:
   /** Constructor
    *
-   * Creates a frame belonging to a robot
+   * Creates a frame belonging to a robot and directly associated to a body
    *
    * \param name Name of the frame
    *
    * \param robot Robot to which the frame is attached
    *
    * \param body Parent body of the frame
-   *
-   * \param X_b_f Static transformation from the body to the frame
    */
-  Frame(ctor_token, std::string_view name, Robot & robot, std::string_view body, sva::PTransformd X_b_f);
+  Frame(ctor_token, std::string_view name, Robot & robot, std::string_view body);
 
   /** Constructor
    *
@@ -71,7 +60,7 @@ public:
    *
    * \param X_f1_f2 Static transformation from the original frame to the new one
    */
-  Frame(ctor_token, std::string_view name, const Frame & frame, sva::PTransformd X_f1_f2);
+  Frame(ctor_token, std::string_view name, Frame & frame, sva::PTransformd X_f1_f2);
 
   Frame(const Frame &) = delete;
   Frame & operator=(const Frame &) = delete;
@@ -93,12 +82,6 @@ public:
     return name_;
   }
 
-  /** Frame static transformation from its parent body to the frame */
-  inline const sva::PTransformd & X_b_f() const noexcept
-  {
-    return X_b_f_;
-  }
-
   /** The robot to which this frame belongs */
   inline const Robot & robot() const noexcept
   {
@@ -109,6 +92,12 @@ public:
   inline Robot & robot() noexcept
   {
     return robot_;
+  }
+
+  /** Transformation from the frame to its parent body */
+  inline sva::PTransformd X_b_f() const noexcept
+  {
+    return X_r_f_;
   }
 
   /** The frame's position in world coordinates */
@@ -173,22 +162,17 @@ public:
   }
 
 private:
-  std::string name_;
   Robot & robot_;
   unsigned int bodyId_;
   rbd::Jacobian jac_;
-  sva::PTransformd X_b_f_;
 
-  Eigen::Matrix3d h_;
   Eigen::MatrixXd jacTmp_;
 
-  sva::PTransformd position_;
   void updatePosition();
 
   tvm::internal::MatrixWithProperties jacobian_;
   void updateJacobian();
 
-  sva::MotionVecd velocity_;
   void updateVelocity();
 
   sva::MotionVecd normalAcceleration_;
@@ -196,8 +180,6 @@ private:
 
   tvm::internal::MatrixWithProperties jacDot_;
   void updateJDot();
-
-  void updateAll();
 };
 
 } // namespace mc_rbdyn

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2020 CNRS-UM LIRMM, CNRS-AIST JRL
+ * Copyright 2015-2021 CNRS-UM LIRMM, CNRS-AIST JRL
  */
 
 #include <mc_rbdyn/Frame.h>
@@ -24,9 +24,10 @@ inline unsigned int frameGetBodyId(std::string_view frame, const Robot & robot, 
 }
 } // namespace details
 
-Frame::Frame(ctor_token, std::string_view name, Robot & robot, std::string_view body, sva::PTransformd X_b_f)
-: name_(name), robot_(robot), bodyId_(details::frameGetBodyId(name, robot, body)), jac_(robot.mb(), std::string(body)),
-  X_b_f_(std::move(X_b_f)), jacTmp_(6, jac_.dof()), jacobian_(6, robot.mb().nrDof()), jacDot_(6, robot.mb().nrDof())
+Frame::Frame(ctor_token, std::string_view name, Robot & robot, std::string_view body)
+: FreeFrame(nullptr, name, sva::PTransformd::Identity()), robot_(robot),
+  bodyId_(details::frameGetBodyId(name, robot, body)), jac_(robot.mb(), std::string(body)), jacTmp_(6, jac_.dof()),
+  jacobian_(6, robot.mb().nrDof()), jacDot_(6, robot.mb().nrDof())
 {
   // clang-format off
   registerUpdates(
@@ -40,33 +41,64 @@ Frame::Frame(ctor_token, std::string_view name, Robot & robot, std::string_view 
   addOutputDependency(Output::Position, Update::Position);
   addInputDependency(Update::Position, robot_, Robot::Output::FK);
 
-  addOutputDependency(Output::Jacobian, Update::Jacobian);
-  addInputDependency(Update::Jacobian, robot_, Robot::Output::FV);
+  addOutputDependency<Frame>(Output::Jacobian, Update::Jacobian);
+  addInputDependency<Frame>(Update::Jacobian, robot_, Robot::Output::FV);
 
   addOutputDependency(Output::Velocity, Update::Velocity);
   addInputDependency(Update::Velocity, robot_, Robot::Output::FV);
 
-  addOutputDependency(Output::NormalAcceleration, Update::NormalAcceleration);
-  addInputDependency(Update::NormalAcceleration, robot_, Robot::Output::NormalAcceleration);
+  addOutputDependency<Frame>(Output::NormalAcceleration, Update::NormalAcceleration);
+  addInputDependency<Frame>(Update::NormalAcceleration, robot_, Robot::Output::NormalAcceleration);
 
-  addOutputDependency(Output::JDot, Update::JDot);
-  addInputDependency(Update::JDot, robot_, Robot::Output::FV);
+  addOutputDependency<Frame>(Output::JDot, Update::JDot);
+  addInputDependency<Frame>(Update::JDot, robot_, Robot::Output::FV);
 
   addInternalDependency(Update::Velocity, Update::Position); // for h_
-  addInternalDependency(Update::Jacobian, Update::Position); // for h_
-  addInternalDependency(Update::NormalAcceleration, Update::Velocity);
-  addInternalDependency(Update::JDot, Update::Velocity);
+  addInternalDependency<Frame>(Update::Jacobian, Update::Position); // for h_
+  addInternalDependency<Frame>(Update::NormalAcceleration, Update::Velocity);
+  addInternalDependency<Frame>(Update::JDot, Update::Velocity);
   // Not strictly true but they use the same internal variable, so in case the
   // graph gets parallelized and we start to use JDot...
-  addInternalDependency(Update::JDot, Update::Jacobian);
+  addInternalDependency<Frame>(Update::JDot, Update::Jacobian);
 
-  /** Initialize all data */
-  updateAll();
+  updatePosition();
+  updateJacobian();
+  updateVelocity();
+  updateNormalAcceleration();
+  updateJDot();
 }
 
-Frame::Frame(ctor_token tkn, std::string_view name, const Frame & frame, sva::PTransformd X_f1_f2)
-: Frame(tkn, name, frame.robot_, frame.body(), X_f1_f2 * frame.X_b_f_)
+Frame::Frame(ctor_token, std::string_view name, Frame & frame, sva::PTransformd X_f1_f2)
+: FreeFrame(frame, name, X_f1_f2), robot_(frame.robot()),
+  bodyId_(details::frameGetBodyId(name, robot_, frame.body())), jac_(robot_.mb(), frame.body()),
+  jacTmp_(6, jac_.dof()), jacobian_(6, robot_.mb().nrDof()), jacDot_(6, robot_.mb().nrDof())
 {
+  // clang-format off
+  registerUpdates(
+                  Update::Jacobian, &Frame::updateJacobian,
+                  Update::NormalAcceleration, &Frame::updateNormalAcceleration,
+                  Update::JDot, &Frame::updateJDot);
+  // clang-format off
+
+  addOutputDependency<Frame>(Output::Jacobian, Update::Jacobian);
+  addInputDependency<Frame>(Update::Jacobian, robot_, Robot::Output::FV);
+
+  addOutputDependency<Frame>(Output::NormalAcceleration, Update::NormalAcceleration);
+  addInputDependency<Frame>(Update::NormalAcceleration, robot_, Robot::Output::NormalAcceleration);
+
+  addOutputDependency<Frame>(Output::JDot, Update::JDot);
+  addInputDependency<Frame>(Update::JDot, robot_, Robot::Output::FV);
+
+  addInternalDependency<Frame>(Update::Jacobian, Update::Position); // for h_
+  addInternalDependency<Frame>(Update::NormalAcceleration, Update::Velocity);
+  addInternalDependency<Frame>(Update::JDot, Update::Velocity);
+  // Not strictly true but they use the same internal variable, so in case the
+  // graph gets parallelized and we start to use JDot...
+  addInternalDependency<Frame>(Update::JDot, Update::Jacobian);
+
+  updateJacobian();
+  updateNormalAcceleration();
+  updateJDot();
 }
 
 const std::string & Frame::body() const noexcept
@@ -74,12 +106,11 @@ const std::string & Frame::body() const noexcept
   return robot_.mb().body(static_cast<int>(bodyId_)).name();
 }
 
-
 void Frame::updatePosition()
 {
+  // Only called for body frames
   const auto & X_0_b = robot_.mbc().bodyPosW[bodyId_];
-  position_ = X_b_f_ * X_0_b;
-  h_ = -hat(X_0_b.rotation().transpose() * X_b_f_.translation());
+  position_ = X_0_b;
 }
 
 void Frame::updateJacobian()
@@ -93,8 +124,8 @@ void Frame::updateJacobian()
 
 void Frame::updateVelocity()
 {
+  // Only called for body frames
   velocity_ = robot_.mbc().bodyVelW[bodyId_];
-  velocity_.linear().noalias() += h_ * velocity_.angular();
 }
 
 void Frame::updateNormalAcceleration()
@@ -113,13 +144,5 @@ void Frame::updateJDot()
   jac_.fullJacobian(robot_.mb(), jacTmp_, jacDot_);
 }
 
-void Frame::updateAll()
-{
-  updatePosition();
-  updateJacobian();
-  updateVelocity();
-  updateNormalAcceleration();
-  updateJDot();
-}
-
 } // namespace mc_rbdyn
+

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <memory>
+#include <type_traits>
 
 namespace mc_rtc
 {
@@ -16,19 +17,29 @@ namespace mc_rtc
  * objects stored as pointer which are often manipulated without requiring
  * ownership or access a "nested" object without incurring extra pointer copies
  * (e.g. accessing a frame of a robot).
+ *
+ * \tparam Conditionally enable inheritance from std::enable_shared_from_this, useful in rnheritance scenario
  */
+template<typename T, bool EnableSharedFromThis = true>
+struct shared;
+
 template<typename T>
-struct shared : public std::enable_shared_from_this<T>
+struct shared<T, false>
 {
   operator std::shared_ptr<T>()
   {
-    return static_cast<T *>(this)->shared_from_this();
+    return std::static_pointer_cast<T>(static_cast<T *>(this)->shared_from_this());
   }
 
   operator std::shared_ptr<const T>() const
   {
-    return static_cast<const T *>(this)->shared_from_this();
+    return std::static_pointer_cast<const T>(static_cast<const T *>(this)->shared_from_this());
   }
+};
+
+template<typename T>
+struct shared<T, true> : public std::enable_shared_from_this<T>, shared<T, false>
+{
 };
 
 } // namespace mc_rtc

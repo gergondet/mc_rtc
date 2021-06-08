@@ -58,7 +58,7 @@ struct MC_RBDYN_DLLAPI Surface : public mc_rtc::shared<Surface>
   /** Copy a surface from one robot to another */
   virtual std::shared_ptr<Surface> copy(Robot & to) const = 0;
 
-  inline const sva::PTransformd & X_b_s() const noexcept
+  inline sva::PTransformd X_b_s() const noexcept
   {
     return frame_->X_b_f();
   }

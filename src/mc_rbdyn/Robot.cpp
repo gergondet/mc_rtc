@@ -111,10 +111,6 @@ Robot::Robot(make_shared_token,
              const std::optional<std::string_view> & bName)
 : name_(name), module_(std::move(moduleIn)), normalAccB_(module_.mbc.bodyAccB.size()), fd_(module_.mb)
 {
-  kinematicsInputs_ = std::make_shared<tvm::graph::internal::Inputs>();
-  kinematicsInputs_->addInput(*this, Output::FK);
-  kinematicsGraph_.add(kinematicsInputs_);
-
   if(base)
   {
     std::string baseName = bName ? std::string(bName.value()) : mb().body(0).name();
@@ -241,7 +237,7 @@ Robot::Robot(make_shared_token,
   {
     const auto & b = mb().body(static_cast<int>(i));
     bodyTransforms_[i] = bbts.at(b.name());
-    makeFrame(b.name(), b.name(), sva::PTransformd::Identity());
+    makeFrame(b.name());
   }
 
   if(loadFiles)
@@ -263,10 +259,6 @@ Robot::Robot(make_shared_token,
         mc_rtc::log::warning("Cannot load convex {} for {} as the associated file ({}) does not exist", cName,
                              this->name(), cURI);
         continue;
-      }
-      if(!hasFrame(parent))
-      {
-        this->makeFrame(parent, parent, sva::PTransformd::Identity());
       }
       auto transform_it = cTransforms.find(cName);
       const auto & cTransform = transform_it == cTransforms.end() ? sva::PTransformd::Identity() : transform_it->second;
@@ -412,10 +404,8 @@ Robot::Robot(make_shared_token,
   mass_ = std::accumulate(mb().bodies().begin(), mb().bodies().end(), 0.0,
                           [](double m, const auto & body) { return m + body.inertia().mass(); });
   com_ = std::make_shared<CoM>(CoM::ctor_token{}, *this);
-  kinematicsInputs_->addInput(*com_, CoM::Output::CoM);
 
   momentum_ = std::make_shared<Momentum>(Momentum::ctor_token{}, *com_);
-  kinematicsInputs_->addInput(*momentum_, Momentum::Output::Momentum);
 
   // Create TVM variables
   {
@@ -554,18 +544,22 @@ Frame & Robot::frame(std::string_view frame)
   return this->frame(frame, "Robot::frame");
 }
 
-Frame & Robot::makeFrame(std::string_view name, std::string_view body, sva::PTransformd X_b_f)
+Frame & Robot::makeFrame(std::string_view body)
 {
-  if(hasFrame(name))
+  if(hasFrame(body))
   {
-    mc_rtc::log::error_and_throw<std::runtime_error>("A frame named {} already exists in {}", name, this->name());
+    mc_rtc::log::error_and_throw<std::runtime_error>("Attempt to duplicate body frame {} in {}", body, name());
   }
-  auto out = frames_.emplace(name, std::make_shared<Frame>(Frame::ctor_token{}, name, *this, body, std::move(X_b_f)));
-  kinematicsInputs_->addInput(*out.first->second, Frame::Output::Position);
+  auto out = frames_.emplace(body, std::make_shared<Frame>(Frame::ctor_token{}, body, *this, body));
   return updateFrameForceSensors(*out.first->second);
 }
 
-Frame & Robot::makeFrame(std::string_view name, const Frame & parent, sva::PTransformd X_p_f)
+Frame & Robot::makeFrame(std::string_view name, std::string_view body, sva::PTransformd X_b_f)
+{
+  return makeFrame(name, frame(body), X_b_f);
+}
+
+Frame & Robot::makeFrame(std::string_view name, Frame & parent, sva::PTransformd X_p_f)
 {
   if(hasFrame(name))
   {
@@ -578,7 +572,6 @@ Frame & Robot::makeFrame(std::string_view name, const Frame & parent, sva::PTran
         this->name(), parent.robot().name());
   }
   auto out = frames_.emplace(name, std::make_shared<Frame>(Frame::ctor_token{}, name, parent, std::move(X_p_f)));
-  kinematicsInputs_->addInput(*out.first->second, Frame::Output::Position);
   return updateFrameForceSensors(*out.first->second);
 }
 
@@ -1079,13 +1072,26 @@ RobotPtr Robot::copy(std::string_view name, const std::optional<Base> & base) co
         std::allocate_shared<Robot>(Eigen::aligned_allocator<Robot>{}, make_shared_token{}, module_, name, false);
   }
   auto & robot = *robot_ptr;
+  std::function<void(const mc_rbdyn::Frame &)> copyFrame = [&](const mc_rbdyn::Frame & other) {
+    if(!other.parent())
+    {
+      assert(robot.hasFrame(other.name()));
+      return;
+    }
+    std::string_view parentFrame = other.parent()->name();
+    if(!robot.hasFrame(parentFrame))
+    {
+      copyFrame(this->frame(parentFrame));
+    }
+    if(!robot.hasFrame(other.name()))
+    {
+      robot.makeFrame(other.name(), robot.frame(parentFrame), other.X_p_f());
+    }
+  };
   for(const auto & f_it : frames_)
   {
     const auto & f = *f_it.second;
-    if(!robot.hasFrame(f.name()))
-    {
-      robot.makeFrame(f.name(), f.body(), f.X_b_f());
-    }
+    copyFrame(f);
   }
   for(const auto & s : surfaces_)
   {
@@ -1258,7 +1264,17 @@ void Robot::forwardKinematics()
   momentum_->updateMomentum();
   for(auto & f : frames_)
   {
-    f.second->updatePosition();
+    if(!f.second->parent_)
+    {
+      f.second->updatePosition();
+    }
+  }
+  for(auto & f : frames_)
+  {
+    if(f.second->parent_)
+    {
+      f.second->FreeFrame::updatePosition();
+    }
   }
 }
 
@@ -1269,7 +1285,17 @@ void Robot::forwardVelocity()
   com_->updateAcceleration();
   for(auto & f : frames_)
   {
-    f.second->updateVelocity();
+    if(!f.second->parent_)
+    {
+      f.second->updateVelocity();
+    }
+  }
+  for(auto & f : frames_)
+  {
+    if(f.second->parent_)
+    {
+      f.second->FreeFrame::updateVelocity();
+    }
   }
 }
 

@@ -48,6 +48,10 @@ struct Frame;
 using FramePtr = std::shared_ptr<Frame>;
 using ConstFramePtr = std::shared_ptr<const Frame>;
 
+struct FreeFrame;
+using FreeFramePtr = std::shared_ptr<FreeFrame>;
+using ConstFreeFramePtr = std::shared_ptr<const FreeFrame>;
+
 struct CoM;
 using CoMPtr = std::shared_ptr<CoM>;
 using ConstCoMPtr = std::shared_ptr<const CoM>;
