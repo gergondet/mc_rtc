@@ -68,17 +68,15 @@ BOOST_AUTO_TEST_CASE(FrameErrorFunctionTest)
   auto & f0 =
       world.makeFrame("fixed", "ground", sva::PTransformd(Eigen::Quaterniond::UnitRandom(), Eigen::Vector3d::Random()));
 
-  rbd::parsers::ParserResult pr1;
-  std::tie(pr1.mb, pr1.mbg, pr1.mbc) = XYZRobot();
-  rbd::parsers::ParserResult pr2;
-  std::tie(pr2.mb, pr2.mbg, pr2.mbc) = XYZRobot();
+  rbd::parsers::ParserResult pr;
+  std::tie(pr.mb, pr.mbg, pr.mbc) = XYZRobot();
+  mc_rbdyn::RobotModule rm{"XYZ", pr};
 
-  auto & xyz1 = robots.load({"XYZ1", pr1}, "XYZ1");
+  auto & xyz1 = robots.load(rm, "XYZ1");
   auto & f1 =
       xyz1.makeFrame("ee1", "b4", sva::PTransformd(Eigen::Quaterniond::UnitRandom(), Eigen::Vector3d::Random()));
 
-  auto & xyz2 =
-      robots.load({"XYZ2", pr2}, "XYZ2", sva::PTransformd(Eigen::Matrix3d::Identity(), 2 * Eigen::Vector3d::UnitX()));
+  auto & xyz2 = robots.load(rm, "XYZ2", sva::PTransformd(Eigen::Matrix3d::Identity(), 2 * Eigen::Vector3d::UnitX()));
   auto & f2 =
       xyz2.makeFrame("ee2", "b4", sva::PTransformd(Eigen::Quaterniond::UnitRandom(), Eigen::Vector3d::Random()));
 

@@ -165,7 +165,7 @@ struct MC_CONTROL_DLLAPI TestContactsController : public MCController
     if(nrIter_ == 2500)
     {
       auto & jvrc2 = loadRobot(robot().module(), "jvrc2");
-      jvrc2.q()->value(qInit_);
+      jvrc2.q()->set(qInit_);
       jvrc2.posW({sva::RotZ(M_PI), Eigen::Vector3d(1.0, 0.0, robot().posW().translation().z())});
       solver().addConstraint(
           std::make_shared<mc_solver::KinematicsConstraint>(jvrc2, std::array<double, 3>{0.1, 0.05, 0.5}));
@@ -174,7 +174,7 @@ struct MC_CONTROL_DLLAPI TestContactsController : public MCController
       jvrc2_pt->stiffness(1.0);
       solver().addTask(jvrc2_pt);
       solver().addTask(std::make_shared<mc_tasks::CoMTask>(jvrc2));
-      robot().q()->value(qInit_);
+      robot().q()->set(qInit_);
       robot().forwardKinematics();
       solver().removeContact({"jvrc1", "ground", "LeftFoot", "AllGround"});
       solver().removeContact({"jvrc1", "ground", "RightFoot", "AllGround"});
