@@ -176,7 +176,8 @@ BOOST_AUTO_TEST_CASE(FrameTest)
 
   auto & xyz = robots.robot("XYZ1");
   sva::PTransformd Xs(Eigen::Quaterniond::UnitRandom(), Eigen::Vector3d::Random());
-  auto & f1 = xyz.makeFrame("ee1", "b4", Xs);
+  auto & f0 = xyz.makeFrame("ee0", "b4", Xs);
+  auto & f1 = xyz.makeFrame("ee1", f0, Xs);
 
   tvm::graph::CallGraph callgraph;
   auto inputs = std::make_shared<tvm::graph::internal::Inputs>();
