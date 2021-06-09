@@ -5,25 +5,21 @@
 #include <mc_tasks/LookAtTFTask.h>
 #include <mc_tasks/MetaTaskLoader.h>
 
+#include <mc_rtc/deprecated.h>
+
 namespace mc_tasks
 {
-LookAtTFTask::LookAtTFTask(const std::string & bodyName,
-                           const Eigen::Vector3d & bodyVector,
+LookAtTFTask::LookAtTFTask(mc_rbdyn::Frame & frame,
+                           const Eigen::Vector3d & frameVector,
                            const std::string & sourceFrame,
                            const std::string & targetFrame,
-                           const mc_rbdyn::Robots & robots,
-                           unsigned int robotIndex,
                            double stiffness,
                            double weight)
-: LookAtTask(bodyName, bodyVector, robots, robotIndex, stiffness, weight), tfListener(tfBuffer),
-  sourceFrame(sourceFrame), targetFrame(targetFrame)
+: LookAtTask(frame, frameVector, stiffness, weight), tfListener(tfBuffer), sourceFrame(sourceFrame),
+  targetFrame(targetFrame)
 {
-  const mc_rbdyn::Robot & robot = robots.robot(rIndex);
-  bIndex = robot.bodyIndexByName(bodyName);
-
-  finalize(robots.mbs(), static_cast<int>(rIndex), bodyName, bodyVector, bodyVector);
   type_ = "lookAtTF";
-  name_ = "look_at_TF_" + robot.name() + "_" + bodyName + "_" + targetFrame;
+  name_ = fmt::format("{}_{}_{}_{}", type_, frame.robot().name(), frame.name(), targetFrame);
 }
 
 void LookAtTFTask::update(mc_solver::QPSolver &)
@@ -56,27 +52,21 @@ namespace
 {
 static auto registered = mc_tasks::MetaTaskLoader::register_load_function(
     "lookAtTF",
-    [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) {
-      auto t = std::make_shared<mc_tasks::LookAtTFTask>(config("body"), config("bodyVector"), config("sourceFrame"),
-                                                        config("targetFrame"), solver.robots(),
-                                                        robotIndexFromConfig(config, solver.robots(), "lookAtTF"));
-      if(config.has("weight"))
+    [](mc_solver::QPSolver & solver, const mc_rtc::Configuration & config_) {
+      auto config = config_;
+      auto & robot = solver.robots().fromConfig(config, "LookAtTFTask");
+      if(config.has("body"))
       {
-        t->weight(config("weight"));
+        mc_rtc::log::deprecated("LookAtTFTask", "body", "frame");
+        config.add("frame", config("body"));
       }
-      if(config.has("stiffness"))
+      if(config.has("bodyVector"))
       {
-        auto s = config("stiffness");
-        if(s.size())
-        {
-          Eigen::VectorXd st = s;
-          t->stiffness(st);
-        }
-        else
-        {
-          t->stiffness(static_cast<double>(s));
-        }
+        mc_rtc::log::deprecated("LookAtTFTask", "bodyVector", "frameVector");
+        config.add("frameVector", config("bodyVector"));
       }
+      auto t = std::make_shared<mc_tasks::LookAtTFTask>(robot.frame(config("frame")), config("frameVector"),
+                                                        config("sourceFrame"), config("targetFrame"));
       t->load(solver, config);
       return t;
     });

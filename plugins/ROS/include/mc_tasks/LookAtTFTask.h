@@ -19,24 +19,24 @@ struct MC_TASKS_ROS_DLLAPI LookAtTFTask : public LookAtTask
 {
   /*! \brief Constructor
    *
-   * \param bodyName Name of the body to control
-   * \param bodyVector Gaze vector for the body.
-        For instance [1., 0, 0] will try to align the x axis of the body with
-   the target direction
+   * \param frame Frame controlled by this task
+   *
+   * \param frameVector Gaze vector for the frame. For instance [1., 0, 0] will
+   * try to align the x axis of the frame with the target direction.
+   *
    * \param sourceFrame name of the target's source tf
+   *
    * \param targetFrame name of the target's tf
-   * \param robots Robots controlled by this task
-   * \param robotIndex Index of the robot controlled by this task
+   *
    * \param stiffness Task stiffness
+   *
    * \param weight Task weight
    *
    */
-  LookAtTFTask(const std::string & bodyName,
-               const Eigen::Vector3d & bodyVector,
+  LookAtTFTask(mc_rbdyn::Frame & frame,
+               const Eigen::Vector3d & frameVector,
                const std::string & sourceFrame,
                const std::string & targetFrame,
-               const mc_rbdyn::Robots & robots,
-               unsigned int robotIndex,
                double stiffness = 0.5,
                double weight = 200);
 
