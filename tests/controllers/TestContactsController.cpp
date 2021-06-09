@@ -216,7 +216,9 @@ struct MC_CONTROL_DLLAPI TestContactsController : public MCController
 
   void stop() override
   {
+#ifndef MC_RTC_FAST_TESTS
     BOOST_REQUIRE(nrIter_ > 3500);
+#endif
   }
 
 private:
