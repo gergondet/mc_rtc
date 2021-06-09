@@ -15,3 +15,4 @@ usr/lib/libmc_control.so.2*
 usr/lib/libmc_control_client.so.2*
 usr/lib/libmc_control_fsm.so.2*
 usr/lib/libmc_planning.so.2*
+usr/lib/libmc_tvm.so.2.*
