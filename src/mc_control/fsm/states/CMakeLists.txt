@@ -61,6 +61,9 @@ if(${PYTHON_BINDING})
     set_target_properties(${PYTHON_NAME}State PROPERTIES PREFIX "")
     set_target_properties(${PYTHON_NAME}State PROPERTIES FOLDER controllers/fsm/states)
     target_link_libraries(${PYTHON_NAME}State PUBLIC ${CYTHON_LIB} mc_control_fsm)
+    if(NOT MSVC)
+      target_compile_options(${PYTHON_NAME}State PRIVATE -Wno-register)
+  endif()
     install(TARGETS ${PYTHON_NAME}State
       ARCHIVE DESTINATION "${MC_FSM_STATES_LIBRARY_INSTALL_PREFIX}$<$<CONFIG:debug>:/debug>"
       LIBRARY DESTINATION "${MC_FSM_STATES_LIBRARY_INSTALL_PREFIX}$<$<CONFIG:debug>:/debug>"
