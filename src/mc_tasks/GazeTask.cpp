@@ -11,7 +11,7 @@
 namespace mc_tasks
 {
 
-GazeTask::GazeTask(mc_rbdyn::Frame & frame, double stiffness, double weight)
+GazeTask::GazeTask(mc_rbdyn::RobotFrame & frame, double stiffness, double weight)
 : TrajectoryBase(frame.robot(), stiffness, weight)
 {
   type_ = "gaze";

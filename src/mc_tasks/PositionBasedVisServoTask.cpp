@@ -13,7 +13,7 @@
 namespace mc_tasks
 {
 
-PositionBasedVisServoTask::PositionBasedVisServoTask(mc_rbdyn::Frame & frame, double stiffness, double weight)
+PositionBasedVisServoTask::PositionBasedVisServoTask(mc_rbdyn::RobotFrame & frame, double stiffness, double weight)
 : TrajectoryBase(frame.robot(), stiffness, weight)
 {
   type_ = "pbvs";

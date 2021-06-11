@@ -24,7 +24,7 @@ public:
    * Set the objective to the current frame orientation
    *
    */
-  OrientationFunction(mc_rbdyn::Frame & frame);
+  OrientationFunction(mc_rbdyn::RobotFrame & frame);
 
   /** Set the target orientation to the current frame orientation */
   void reset();
@@ -66,7 +66,7 @@ public:
   }
 
   /** Access the frame */
-  inline const mc_rbdyn::Frame & frame() const noexcept
+  inline const mc_rbdyn::RobotFrame & frame() const noexcept
   {
     return *frame_;
   }
@@ -77,7 +77,7 @@ protected:
   void updateJacobian();
   void updateNormalAcceleration();
 
-  mc_rbdyn::FramePtr frame_;
+  mc_rbdyn::RobotFramePtr frame_;
 
   /** Target */
   Eigen::Matrix3d ori_;

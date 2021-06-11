@@ -12,7 +12,7 @@
 namespace mc_rbdyn
 {
 
-/** A frame belongs to a Robot instance.
+/** A frame that belongs to a Robot instance.
  *
  * Provides the frame position, jacobian, velocity and normal acceleration.
  * These signals are correctly initialized on the object's creation.
@@ -25,10 +25,10 @@ namespace mc_rbdyn
  * - JDot: derivative of the jacobian of the frame in world coordinate
  *
  */
-struct MC_RBDYN_DLLAPI Frame : public FreeFrame, mc_rtc::shared<Frame, false>
+struct MC_RBDYN_DLLAPI RobotFrame : public FreeFrame, mc_rtc::shared<RobotFrame, false>
 {
-  SET_OUTPUTS(Frame, Jacobian, NormalAcceleration, JDot)
-  SET_UPDATES(Frame, Jacobian, NormalAcceleration, JDot)
+  SET_OUTPUTS(RobotFrame, Jacobian, NormalAcceleration, JDot)
+  SET_UPDATES(RobotFrame, Jacobian, NormalAcceleration, JDot)
 
   friend struct Robot;
 
@@ -48,7 +48,7 @@ public:
    *
    * \param body Parent body of the frame
    */
-  Frame(ctor_token, std::string_view name, Robot & robot, std::string_view body);
+  RobotFrame(ctor_token, std::string_view name, Robot & robot, std::string_view body);
 
   /** Constructor
    *
@@ -60,10 +60,10 @@ public:
    *
    * \param X_f1_f2 Static transformation from the original frame to the new one
    */
-  Frame(ctor_token, std::string_view name, Frame & frame, sva::PTransformd X_f1_f2);
+  RobotFrame(ctor_token, std::string_view name, RobotFrame & frame, sva::PTransformd X_f1_f2);
 
-  Frame(const Frame &) = delete;
-  Frame & operator=(const Frame &) = delete;
+  RobotFrame(const RobotFrame &) = delete;
+  RobotFrame & operator=(const RobotFrame &) = delete;
 
   /** Get a copy of the internal RBDyn Jacobian object
    *
@@ -128,7 +128,7 @@ public:
 
   const std::string & body() const noexcept;
 
-  inline bool operator==(const Frame & rhs) const noexcept
+  inline bool operator==(const RobotFrame & rhs) const noexcept
   {
     return rhs.name_ == name_ && &rhs.robot_ == &robot_;
   }

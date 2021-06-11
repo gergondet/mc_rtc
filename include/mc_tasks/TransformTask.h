@@ -26,7 +26,7 @@ public:
    * \param weight Task weight
    *
    */
-  TransformTask(mc_rbdyn::Frame & frame, double stiffness = 2.0, double weight = 500.0);
+  TransformTask(mc_rbdyn::RobotFrame & frame, double stiffness = 2.0, double weight = 500.0);
 
   /*! \brief Get the frame's target */
   inline const sva::PTransformd & target() const noexcept
@@ -50,7 +50,7 @@ public:
    *
    * \param offset Offset relative to the target frame
    */
-  void target(const mc_rbdyn::Frame & frame, const sva::PTransformd & offset);
+  void target(const mc_rbdyn::RobotFrame & frame, const sva::PTransformd & offset);
 
   void addToLogger(mc_rtc::Logger & logger) override;
 
@@ -135,7 +135,7 @@ public:
   void load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) override;
 
   /** Access the frame controlled by this task */
-  inline const mc_rbdyn::Frame & frame() const noexcept
+  inline const mc_rbdyn::RobotFrame & frame() const noexcept
   {
     return errorT_->frame();
   }

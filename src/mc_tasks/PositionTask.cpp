@@ -12,7 +12,7 @@
 namespace mc_tasks
 {
 
-PositionTask::PositionTask(mc_rbdyn::Frame & frame, double stiffness, double weight)
+PositionTask::PositionTask(mc_rbdyn::RobotFrame & frame, double stiffness, double weight)
 : TrajectoryBase(frame.robot(), stiffness, weight)
 {
 

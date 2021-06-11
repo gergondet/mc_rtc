@@ -4,13 +4,12 @@
 
 #include <mc_tvm/TransformFunction.h>
 
-#include <mc_rbdyn/Frame.h>
 #include <mc_rbdyn/Robot.h>
 
 namespace mc_tvm
 {
 
-TransformFunction::TransformFunction(mc_rbdyn::Frame & frame)
+TransformFunction::TransformFunction(mc_rbdyn::RobotFrame & frame)
 : tvm::function::abstract::Function(6), frame_(frame), frameJac_(frame.rbdJacobian()), shortJacMat_(6, frameJac_.dof()),
   jacMat_(6, frame.robot().mb().nrDof())
 {
@@ -27,11 +26,11 @@ TransformFunction::TransformFunction(mc_rbdyn::Frame & frame)
   addOutputDependency<TransformFunction>(Output::NormalAcceleration, Update::NormalAcceleration);
   const auto & robot = frame_->robot();
   addVariable(robot.q(), false);
-  addInputDependency<TransformFunction>(Update::Value, frame_, mc_rbdyn::Frame::Output::Position);
-  addInputDependency<TransformFunction>(Update::Velocity, frame_, mc_rbdyn::Frame::Output::Velocity);
-  addInputDependency<TransformFunction>(Update::Jacobian, frame_, mc_rbdyn::Frame::Output::Jacobian);
+  addInputDependency<TransformFunction>(Update::Value, frame_, mc_rbdyn::RobotFrame::Output::Position);
+  addInputDependency<TransformFunction>(Update::Velocity, frame_, mc_rbdyn::RobotFrame::Output::Velocity);
+  addInputDependency<TransformFunction>(Update::Jacobian, frame_, mc_rbdyn::RobotFrame::Output::Jacobian);
   addInputDependency<TransformFunction>(Update::NormalAcceleration, frame_,
-                                        mc_rbdyn::Frame::Output::NormalAcceleration);
+                                        mc_rbdyn::RobotFrame::Output::NormalAcceleration);
   addInternalDependency<TransformFunction>(Update::Velocity, Update::Value);
   addInternalDependency<TransformFunction>(Update::Jacobian, Update::Value);
   addInternalDependency<TransformFunction>(Update::NormalAcceleration, Update::Velocity);

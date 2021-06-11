@@ -44,7 +44,7 @@ public:
    * \param oriWp Waypoints in orientation specified as pairs of (time, orientation).
    *
    */
-  BSplineTrajectoryTask(mc_rbdyn::Frame & frame,
+  BSplineTrajectoryTask(mc_rbdyn::RobotFrame & frame,
                         double duration,
                         double stiffness,
                         double weight,

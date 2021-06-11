@@ -9,7 +9,7 @@
 namespace mc_tasks
 {
 
-VelocityTask::VelocityTask(mc_rbdyn::Frame & frame, double stiffness, double weight)
+VelocityTask::VelocityTask(mc_rbdyn::RobotFrame & frame, double stiffness, double weight)
 : TrajectoryBase(frame.robot(), stiffness, weight)
 {
   finalize(frame, Eigen::Vector6d::Ones());

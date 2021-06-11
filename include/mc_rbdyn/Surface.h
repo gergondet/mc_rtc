@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <mc_rbdyn/Frame.h>
 #include <mc_rbdyn/Robot.h>
 
 #include <spdlog/fmt/fmt.h>
@@ -15,7 +14,7 @@ namespace mc_rbdyn
 /** A surface is attached to a frame and provides a list of points in the surface frame */
 struct MC_RBDYN_DLLAPI Surface : public mc_rtc::shared<Surface>
 {
-  Surface(std::string_view name, FramePtr frame);
+  Surface(std::string_view name, RobotFramePtr frame);
 
   virtual ~Surface() noexcept = default;
 
@@ -29,13 +28,13 @@ struct MC_RBDYN_DLLAPI Surface : public mc_rtc::shared<Surface>
   }
 
   /** Frame to which this surface is attached */
-  inline const Frame & frame() const noexcept
+  inline const RobotFrame & frame() const noexcept
   {
     return *frame_;
   }
 
   /** Frame to which this surface is attached */
-  inline Frame & frame() noexcept
+  inline RobotFrame & frame() noexcept
   {
     return *frame_;
   }
@@ -65,7 +64,7 @@ struct MC_RBDYN_DLLAPI Surface : public mc_rtc::shared<Surface>
 
 private:
   std::string name_;
-  FramePtr frame_;
+  RobotFramePtr frame_;
 
 protected:
   std::vector<sva::PTransformd> points_;

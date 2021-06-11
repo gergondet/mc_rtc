@@ -11,7 +11,7 @@ namespace mc_rbdyn
 
 struct MC_RBDYN_DLLAPI CylindricalSurface : public Surface
 {
-  CylindricalSurface(std::string_view name, FramePtr frame, double radius, double width);
+  CylindricalSurface(std::string_view name, RobotFramePtr frame, double radius, double width);
 
   ~CylindricalSurface() noexcept override = default;
 

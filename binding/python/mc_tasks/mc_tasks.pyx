@@ -88,7 +88,7 @@ cdef class CoMTask(_CoMTrajectoryTask):
       deref(self.impl).com(com.impl)
 
 cdef class PositionTask(_PositionTrajectoryTask):
-  def __cinit__(self, mc_rbdyn.Frame frame, double stiffness = 2.0, double weight = 500.0):
+  def __cinit__(self, mc_rbdyn.RobotFrame frame, double stiffness = 2.0, double weight = 500.0):
     self.impl = make_shared[c_mc_tasks.PositionTask](deref(frame.impl), stiffness, weight)
     self.ttg_base = c_mc_tasks.cast[c_mc_tasks.TrajectoryTaskGeneric[c_mc_tvm.PositionFunction]](self.impl)
     self.mt_base = c_mc_tasks.cast[c_mc_tasks.MetaTask](self.impl)
@@ -101,7 +101,7 @@ cdef class PositionTask(_PositionTrajectoryTask):
       deref(self.impl).position(pos.impl)
 
 cdef class OrientationTask(_OrientationTrajectoryTask):
-  def __cinit__(self, mc_rbdyn.Frame frame, double stiffness = 2.0, double weight = 500.0):
+  def __cinit__(self, mc_rbdyn.RobotFrame frame, double stiffness = 2.0, double weight = 500.0):
     self.impl = make_shared[c_mc_tasks.OrientationTask](deref(frame.impl), stiffness, weight)
     self.ttg_base = c_mc_tasks.cast[c_mc_tasks.TrajectoryTaskGeneric[c_mc_tvm.OrientationFunction]](self.impl)
     self.mt_base = c_mc_tasks.cast[c_mc_tasks.MetaTask](self.impl)
@@ -113,7 +113,7 @@ cdef class OrientationTask(_OrientationTrajectoryTask):
       deref(self.impl).orientation(ori.impl)
 
 cdef class VectorOrientationTask(_VectorOrientationTrajectoryTask):
-  def __cinit__(self, mc_rbdyn.Frame frame, eigen.Vector3d frameVector, double stiffness = 2.0, double weight = 500.0):
+  def __cinit__(self, mc_rbdyn.RobotFrame frame, eigen.Vector3d frameVector, double stiffness = 2.0, double weight = 500.0):
     self.impl = make_shared[c_mc_tasks.VectorOrientationTask](deref(frame.impl), frameVector.impl, stiffness, weight)
     self.ttg_base = c_mc_tasks.cast[c_mc_tasks.TrajectoryTaskGeneric[c_mc_tvm.VectorOrientationFunction]](self.impl)
     self.mt_base = c_mc_tasks.cast[c_mc_tasks.MetaTask](self.impl)
@@ -131,7 +131,7 @@ cdef class VectorOrientationTask(_VectorOrientationTrajectoryTask):
       deref(self.impl).targetVector(ori.impl)
 
 cdef class TransformTask(_TransformTrajectoryTask):
-  def __cinit__(self, mc_rbdyn.Frame frame, double stiffness = 2.0, double weight = 500.0):
+  def __cinit__(self, mc_rbdyn.RobotFrame frame, double stiffness = 2.0, double weight = 500.0):
     self.impl = make_shared[c_mc_tasks.TransformTask](deref(frame.impl), stiffness, weight)
     self.ttg_base = c_mc_tasks.cast[c_mc_tasks.TrajectoryTaskGeneric[c_mc_tvm.TransformFunction]](self.impl)
     self.mt_base = c_mc_tasks.cast[c_mc_tasks.MetaTask](self.impl)
@@ -145,7 +145,7 @@ cdef class TransformTask(_TransformTrajectoryTask):
         self.target(sva.PTransformd(pos))
 
 cdef class BSplineTrajectoryTask(_TransformTrajectoryTask):
-  def __cinit__(self, mc_rbdyn.Frame frame, double duration, double stiffness, double weight, sva.PTransformd target, posWaypoints = [], oriWaypoints = []):
+  def __cinit__(self, mc_rbdyn.RobotFrame frame, double duration, double stiffness, double weight, sva.PTransformd target, posWaypoints = [], oriWaypoints = []):
     cdef VectorPairDoubleMatrix3d oriWp = VectorPairDoubleMatrix3d(oriWaypoints)
     cdef eigen.Vector3dVector posWp = eigen.Vector3dVector(posWaypoints)
     self.impl = make_shared[c_mc_tasks.BSplineTrajectoryTask](deref(frame.impl), duration, stiffness, weight, deref(target.impl), posWp.v, oriWp.impl)
@@ -170,7 +170,7 @@ cdef class BSplineTrajectoryTask(_TransformTrajectoryTask):
     return deref(self.impl).timeElapsed()
 
 cdef class ExactCubicTrajectoryTask(_TransformTrajectoryTask):
-  def __cinit__(self, mc_rbdyn.Frame frame, double duration, double stiffness, double weight, sva.PTransformd target, posWaypoints = [], eigen.Vector3d initVel = eigen.Vector3d.Zero(), eigen.Vector3d initAcc = eigen.Vector3d.Zero(), eigen.Vector3d finalVel = eigen.Vector3d.Zero(), eigen.Vector3d finalAcc = eigen.Vector3d.Zero(), oriWaypoints = []):
+  def __cinit__(self, mc_rbdyn.RobotFrame frame, double duration, double stiffness, double weight, sva.PTransformd target, posWaypoints = [], eigen.Vector3d initVel = eigen.Vector3d.Zero(), eigen.Vector3d initAcc = eigen.Vector3d.Zero(), eigen.Vector3d finalVel = eigen.Vector3d.Zero(), eigen.Vector3d finalAcc = eigen.Vector3d.Zero(), oriWaypoints = []):
     cdef VectorPairDoubleMatrix3d oriWp = VectorPairDoubleMatrix3d(oriWaypoints)
     cdef VectorPairDoubleVector3d posWp = VectorPairDoubleVector3d(posWaypoints)
     self.impl = make_shared[c_mc_tasks.ExactCubicTrajectoryTask](deref(frame.impl), duration, stiffness, weight, deref(target.impl), posWp.impl, initVel.impl, initAcc.impl, finalVel.impl, finalAcc.impl, oriWp.impl)

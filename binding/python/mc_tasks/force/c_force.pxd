@@ -46,7 +46,7 @@ cdef extern from "<mc_tasks/ImpedanceGains.h>" namespace "mc_tasks::force":
 
 cdef extern from "<mc_tasks/ImpedanceTask.h>" namespace "mc_tasks::force":
   cdef cppclass ImpedanceTask(c_mc_tasks.TransformTask):
-    ImpedanceTask(c_mc_rbdyn.Frame &, double, double)
+    ImpedanceTask(c_mc_rbdyn.RobotFrame &, double, double)
     ImpedanceGains & gains()
     c_sva.PTransformd & targetPose()
     void targetPose(c_sva.PTransformd &)
@@ -65,7 +65,7 @@ cdef extern from "<mc_tasks/ComplianceTask.h>" namespace "mc_tasks::force":
   pair[double, double] defaultTGain
 
   cdef cppclass ComplianceTask(c_mc_tasks.MetaTask):
-    ComplianceTask(c_mc_rbdyn.Frame &, c_eigen.Vector6d &,
+    ComplianceTask(c_mc_rbdyn.RobotFrame &, c_eigen.Vector6d &,
                    double stiffness, double weight,
                    double forceThresh, double torqueThresh,
                    pair[double, double] forceGain, pair[double, double] torqueGain)
@@ -88,7 +88,7 @@ cdef extern from "<mc_tasks/ComplianceTask.h>" namespace "mc_tasks::force":
 
 cdef extern from "<mc_tasks/AdmittanceTask.h>" namespace "mc_tasks::force":
   cdef cppclass AdmittanceTask(c_mc_tasks.TransformTask):
-    AdmittanceTask(c_mc_rbdyn.Frame &, double, double)
+    AdmittanceTask(c_mc_rbdyn.RobotFrame &, double, double)
     void admittance(c_sva.ForceVecd &)
     c_sva.ForceVecd & admittance()
     void targetPose(const c_sva.PTransformd &)
@@ -98,11 +98,11 @@ cdef extern from "<mc_tasks/AdmittanceTask.h>" namespace "mc_tasks::force":
 
 cdef extern from "<mc_tasks/DampingTask.h>" namespace "mc_tasks::force":
   cdef cppclass DampingTask(AdmittanceTask):
-    DampingTask(c_mc_rbdyn.Frame &, double, double)
+    DampingTask(c_mc_rbdyn.RobotFrame &, double, double)
 
 cdef extern from "<mc_tasks/CoPTask.h>" namespace "mc_tasks::force":
   cdef cppclass CoPTask(DampingTask):
-    CoPTask(c_mc_rbdyn.Frame &, double, double)
+    CoPTask(c_mc_rbdyn.RobotFrame &, double, double)
     c_eigen.Vector2d measuredCoP()
     c_eigen.Vector3d measuredCoPW()
     void setZeroTargetWrench()

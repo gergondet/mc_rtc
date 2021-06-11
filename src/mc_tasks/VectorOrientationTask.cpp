@@ -13,7 +13,7 @@
 namespace mc_tasks
 {
 
-VectorOrientationTask::VectorOrientationTask(mc_rbdyn::Frame & frame,
+VectorOrientationTask::VectorOrientationTask(mc_rbdyn::RobotFrame & frame,
                                              const Eigen::Vector3d & frameVector,
                                              double stiffness,
                                              double weight)

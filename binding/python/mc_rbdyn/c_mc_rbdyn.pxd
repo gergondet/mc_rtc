@@ -157,13 +157,16 @@ cdef extern from "<mc_rbdyn/Limits.h>" namespace "mc_rbdyn":
         VectorXd tdl
         VectorXd tdu
 
-cdef extern from "<mc_rbdyn/Frame.h>" namespace "mc_rbdyn":
-    cdef cppclass Frame:
+cdef extern from "<mc_rbdyn/FreeFrame.h>" namespace "mc_rbdyn":
+    cdef cppclass FreeFrame:
         string name()
-        PTransformd X_b_f()
-        Robot & robot()
+        PTransformd X_p_f()
         PTransformd position()
         MotionVecd velocity()
+
+cdef extern from "<mc_rbdyn/RobotFrame.h>" namespace "mc_rbdyn":
+    cdef cppclass RobotFrame(FreeFrame):
+        Robot & robot()
         MotionVecd normalAcceleration()
         string body()
         bool hasForceSensor()
@@ -180,7 +183,7 @@ cdef extern from "<mc_rbdyn/CoM.h>" namespace "mc_rbdyn":
 
 cdef extern from "<mc_rbdyn/Convex.h>" namespace "mc_rbdyn":
     cdef cppclass Convex:
-        Frame & frame()
+        FreeFrame & frame()
         shared_ptr[sch.S_Object] convex()
         PTransformd X_f_c()
 
@@ -206,7 +209,7 @@ cdef extern from "<mc_rbdyn/Robot.h>" namespace "mc_rbdyn":
         BodySensor& frameBodySensor(string)
 
         bool hasFrame(string)
-        Frame & frame(string)
+        RobotFrame & frame(string)
 
         const MultiBody& mb()
         const MultiBodyConfig& mbc()
@@ -245,7 +248,7 @@ cdef extern from "<mc_rbdyn/Surface.h>" namespace "mc_rbdyn":
     cdef cppclass Surface:
         string name()
         string type()
-        Frame & frame()
+        RobotFrame & frame()
         Robot & robot()
 
         const vector[PTransformd]& points()

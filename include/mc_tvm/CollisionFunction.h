@@ -7,6 +7,7 @@
 #include <mc_tvm/api.h>
 
 #include <mc_rbdyn/Convex.h>
+#include <mc_rbdyn/RobotFrame.h>
 #include <mc_rbdyn/fwd.h>
 
 #include <tvm/function/abstract/Function.h>
@@ -89,6 +90,7 @@ protected:
 
   struct ObjectData
   {
+    mc_rbdyn::RobotFramePtr frame_;
     Eigen::Vector3d nearestPoint_;
     rbd::Jacobian jac_;
   };

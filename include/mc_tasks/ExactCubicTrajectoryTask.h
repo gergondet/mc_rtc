@@ -53,7 +53,7 @@ struct MC_TASKS_DLLAPI ExactCubicTrajectoryTask : public SplineTrajectoryTask<Ex
    *
    * \param oriWp Waypoints in orientation, specified as pairs of [time, orientation]
    */
-  ExactCubicTrajectoryTask(mc_rbdyn::Frame & frame,
+  ExactCubicTrajectoryTask(mc_rbdyn::RobotFrame & frame,
                            double duration,
                            double stiffness,
                            double weight,

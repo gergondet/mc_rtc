@@ -29,7 +29,7 @@ public:
    * \param weight Task weight
    *
    */
-  GazeTask(mc_rbdyn::Frame & frame, double stiffness = 2.0, double weight = 500);
+  GazeTask(mc_rbdyn::RobotFrame & frame, double stiffness = 2.0, double weight = 500);
 
   /*! \brief Set the current error
    *
@@ -59,7 +59,7 @@ public:
     errorT_->target(point2d_ref);
   }
 
-  inline const mc_rbdyn::Frame & frame() const noexcept
+  inline const mc_rbdyn::RobotFrame & frame() const noexcept
   {
     return errorT_->frame();
   }

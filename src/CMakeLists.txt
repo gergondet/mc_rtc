@@ -170,7 +170,7 @@ mc_rbdyn/ZMP.cpp
 mc_control/generic_gripper.cpp
 mc_rbdyn/Device.cpp
 mc_rbdyn/BodySensor.cpp
-mc_rbdyn/Frame.cpp
+mc_rbdyn/RobotFrame.cpp
 mc_rbdyn/CoM.cpp
 mc_rbdyn/Convex.cpp
 mc_rbdyn/CollisionPair.cpp
@@ -210,7 +210,7 @@ set(mc_rbdyn_HDR
 ../include/mc_rbdyn/ZMP.h
 ../include/mc_control/generic_gripper.h
 ../include/mc_rbdyn/Device.h
-../include/mc_rbdyn/Frame.h
+../include/mc_rbdyn/RobotFrame.h
 ../include/mc_rbdyn/FreeFrame.h
 ../include/mc_rbdyn/CoM.h
 ../include/mc_rbdyn/Convex.h

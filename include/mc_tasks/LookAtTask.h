@@ -26,7 +26,10 @@ struct MC_TASKS_DLLAPI LookAtTask : public VectorOrientationTask
    * \param weight Task weight
    *
    */
-  LookAtTask(mc_rbdyn::Frame & frame, const Eigen::Vector3d & frameVector, double stiffness = 2.0, double weight = 500);
+  LookAtTask(mc_rbdyn::RobotFrame & frame,
+             const Eigen::Vector3d & frameVector,
+             double stiffness = 2.0,
+             double weight = 500);
 
   /** Reset the task */
   void reset() override;

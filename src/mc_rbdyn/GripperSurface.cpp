@@ -9,7 +9,7 @@ namespace mc_rbdyn
 {
 
 GripperSurface::GripperSurface(std::string_view name,
-                               FramePtr frame,
+                               RobotFramePtr frame,
                                const std::vector<sva::PTransformd> & pointsFromOrigin,
                                const sva::PTransformd & X_b_motor,
                                double motorMaxTorque)

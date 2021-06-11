@@ -33,7 +33,9 @@ void assign_<true>(Eigen::Ref<Eigen::MatrixXd> out, const Eigen::Ref<const Eigen
 namespace mc_tvm
 {
 
-FrameErrorFunction::FrameErrorFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, const Eigen::Vector6d & dof)
+FrameErrorFunction::FrameErrorFunction(mc_rbdyn::FreeFramePtr f1,
+                                       mc_rbdyn::FreeFramePtr f2,
+                                       const Eigen::Vector6d & dof)
 : tvm::function::abstract::Function(countOnes(dof)), dof_(dof)
 {
   // clang-format off
@@ -51,33 +53,39 @@ FrameErrorFunction::FrameErrorFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr
   addInternalDependency<FrameErrorFunction>(Update::Velocity, Update::Value);
   addInternalDependency<FrameErrorFunction>(Update::NormalAcceleration, Update::Velocity);
 
-  auto addRobot = [this](mc_rbdyn::FramePtr & fIn, mc_rbdyn::FramePtr & fOut, bool & useF, rbd::Jacobian & jac) {
+  auto addRobot = [this](mc_rbdyn::FreeFramePtr & fIn, mc_rbdyn::FreeFramePtr & fOut, bool & useF,
+                         rbd::Jacobian & jac) -> tvm::Variable * {
     fOut = fIn;
-    if(fIn->rbdJacobian().dof() > 0)
+    auto fRobot = std::dynamic_pointer_cast<mc_rbdyn::RobotFrame>(fIn);
+    if(fRobot->rbdJacobian().dof() > 0)
     {
-      const auto & r = fIn->robot();
+      const auto & r = fRobot->robot();
       useF = true;
-      jac = fIn->rbdJacobian();
-      addInputDependency<FrameErrorFunction>(Update::Value, fOut, mc_rbdyn::Frame::Output::Position);
-      addInputDependency<FrameErrorFunction>(Update::Jacobian, fOut, mc_rbdyn::Frame::Output::Jacobian);
-      addInputDependency<FrameErrorFunction>(Update::Velocity, fOut, mc_rbdyn::Frame::Output::Velocity);
-      addInputDependency<FrameErrorFunction>(Update::NormalAcceleration, fOut,
-                                             mc_rbdyn::Frame::Output::NormalAcceleration);
+      jac = fRobot->rbdJacobian();
+      addInputDependency<FrameErrorFunction>(Update::Value, fRobot, mc_rbdyn::RobotFrame::Output::Position);
+      addInputDependency<FrameErrorFunction>(Update::Jacobian, fRobot, mc_rbdyn::RobotFrame::Output::Jacobian);
+      addInputDependency<FrameErrorFunction>(Update::Velocity, fRobot, mc_rbdyn::RobotFrame::Output::Velocity);
+      addInputDependency<FrameErrorFunction>(Update::NormalAcceleration, fRobot,
+                                             mc_rbdyn::RobotFrame::Output::NormalAcceleration);
       addVariable(r.q(), false);
+      return r.q().get();
     }
     else
     {
       useF = false;
-      addInputDependency<FrameErrorFunction>(Update::Value, fOut, mc_rbdyn::Frame::Output::Position);
+      addInputDependency<FrameErrorFunction>(Update::Value, fOut, mc_rbdyn::FreeFrame::Output::Position);
+      return nullptr;
     }
   };
-  addRobot(f1, f1_, use_f1_, f1Jacobian_);
-  addRobot(f2, f2_, use_f2_, f2Jacobian_);
-  assert(((*f1->robot().q() == *f2->robot().q()) || !f1->robot().q()->intersects(*f2->robot().q()))
-         && "Current implementation does not handle robots sharing sub-parts of their variables. updateJacobian should "
-            "be changed if you want to handle that.");
-  sameVariable_ = use_f1_ && use_f2_ && (*f1->robot().q() == *f2->robot().q());
-  tmpMat_.resize(3, std::max(use_f1_ ? f1->robot().q()->size() : 0, use_f2_ ? f2->robot().q()->size() : 0));
+  auto q1 = addRobot(f1, f1_, use_f1_, f1Jacobian_);
+  auto q2 = addRobot(f2, f2_, use_f2_, f2Jacobian_);
+  assert(!q1 || !q2 || *q1 == *q2
+         || !q1->intersects(*q2)
+                && "Current implementation does not handle robots sharing sub-parts of their variables. updateJacobian "
+                   "should "
+                   "be changed if you want to handle that.");
+  sameVariable_ = use_f1_ && use_f2_ && (*q1 == *q2);
+  tmpMat_.resize(3, std::max(use_f1_ ? q1->size() : 0, use_f2_ ? q2->size() : 0));
 
   auto toDof = [](const auto & v) {
     return std::make_pair(static_cast<Dof>(v[0] * Dof::X + v[1] * Dof::Y + v[2] * Dof::Z), v.sum());
@@ -98,12 +106,14 @@ void FrameErrorFunction::updateJacobian()
 {
   if(use_f1_)
   {
+    auto f1_ = static_cast<mc_rbdyn::RobotFrame *>(this->f1_.get());
     auto & J1 = jacobian_[f1_->robot().q().get()];
     assign<false>::run(J1.topRows(nr_), -dLog_ * f1_->jacobian().template topRows<3>(), rDof_, tmpMat_);
     assign<false>::run(J1.bottomRows(nt_), -f1_->jacobian().template bottomRows<3>(), tDof_, tmpMat_);
   }
   if(use_f2_)
   {
+    auto f2_ = static_cast<mc_rbdyn::RobotFrame *>(this->f2_.get());
     auto & J2 = jacobian_[f2_->robot().q().get()];
     if(sameVariable_)
     {
@@ -143,6 +153,7 @@ void FrameErrorFunction::updateNormalAcceleration()
   if(rDof_) d2Log_ = sva::SO3RightJacInvDot(rotErr_, rotVel_);
   if(use_f1_)
   {
+    auto f1_ = static_cast<mc_rbdyn::RobotFrame *>(this->f1_.get());
     assign<false>::run(normalAcceleration_.head(nr_),
                        -d2Log_ * f1_->velocity().angular() - dLog_ * f1_->normalAcceleration().angular(), rDof_,
                        tmpMat_);
@@ -154,6 +165,7 @@ void FrameErrorFunction::updateNormalAcceleration()
   }
   if(use_f2_)
   {
+    auto f2_ = static_cast<mc_rbdyn::RobotFrame *>(this->f2_.get());
     assign<true>::run(normalAcceleration_.head(nr_),
                       d2Log_.transpose() * f2_->velocity().angular()
                           + dLog_.transpose() * f2_->normalAcceleration().angular(),

@@ -11,15 +11,16 @@
 namespace mc_tasks
 {
 
-LookAtFrameTask::LookAtFrameTask(mc_rbdyn::Frame & frame,
+LookAtFrameTask::LookAtFrameTask(mc_rbdyn::RobotFrame & frame,
                                  const Eigen::Vector3d & frameVector,
-                                 const mc_rbdyn::Frame & targetFrame,
+                                 mc_rbdyn::FreeFrame & targetFrame,
                                  double stiffness,
                                  double weight)
 : LookAtTask(frame, frameVector, stiffness, weight), targetFrame_(targetFrame), offset_(sva::PTransformd::Identity())
 {
   type_ = "lookAtFrame";
   name_ = fmt::format("{}_{}_{}_{}", type_, robot().name(), frame.name(), targetFrame.name());
+  errorT_->addFrameDependency(targetFrame);
 }
 
 void LookAtFrameTask::update(mc_solver::QPSolver &)
@@ -57,8 +58,8 @@ static mc_tasks::LookAtFrameTaskPtr loadLookAtFrameTask(mc_solver::QPSolver & so
     mc_rtc::log::deprecated("LookAtFrameTask", "surface", "targetFrame");
     config.add("targetFrame", config("surface"));
   }
-  const auto & targetRobot = solver.robots().fromConfig(config, "LookAtFrame", false, "", "targetRobot");
-  const auto & targetFrame = targetRobot.frame(config("targetFrame"));
+  auto & targetRobot = solver.robots().fromConfig(config, "LookAtFrame", false, "", "targetRobot");
+  auto & targetFrame = targetRobot.frame(config("targetFrame"));
   auto t =
       std::make_shared<mc_tasks::LookAtFrameTask>(robot.frame(config("frame")), config("frameVector"), targetFrame);
   if(config.has("offset"))

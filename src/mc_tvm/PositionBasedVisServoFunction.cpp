@@ -4,14 +4,14 @@
 
 #include <mc_tvm/PositionBasedVisServoFunction.h>
 
-#include <mc_rbdyn/Frame.h>
+#include <mc_rbdyn/RobotFrame.h>
 
 #include <RBDyn/VisServo.h>
 
 namespace mc_tvm
 {
 
-PositionBasedVisServoFunction::PositionBasedVisServoFunction(mc_rbdyn::Frame & frame)
+PositionBasedVisServoFunction::PositionBasedVisServoFunction(mc_rbdyn::RobotFrame & frame)
 : tvm::function::abstract::Function(6), frame_(frame), frameJac_(frame.rbdJacobian()), shortJacMat_(6, frameJac_.dof()),
   jacMat_(6, frame.robot().mb().nrDof())
 {
@@ -28,11 +28,11 @@ PositionBasedVisServoFunction::PositionBasedVisServoFunction(mc_rbdyn::Frame & f
   addOutputDependency<PositionBasedVisServoFunction>(Output::NormalAcceleration, Update::NormalAcceleration);
   const auto & robot = frame_->robot();
   addVariable(robot.q(), false);
-  addInputDependency<PositionBasedVisServoFunction>(Update::Value, frame_, mc_rbdyn::Frame::Output::Position);
-  addInputDependency<PositionBasedVisServoFunction>(Update::Velocity, frame_, mc_rbdyn::Frame::Output::Velocity);
-  addInputDependency<PositionBasedVisServoFunction>(Update::Jacobian, frame_, mc_rbdyn::Frame::Output::Jacobian);
+  addInputDependency<PositionBasedVisServoFunction>(Update::Value, frame_, mc_rbdyn::RobotFrame::Output::Position);
+  addInputDependency<PositionBasedVisServoFunction>(Update::Velocity, frame_, mc_rbdyn::RobotFrame::Output::Velocity);
+  addInputDependency<PositionBasedVisServoFunction>(Update::Jacobian, frame_, mc_rbdyn::RobotFrame::Output::Jacobian);
   addInputDependency<PositionBasedVisServoFunction>(Update::NormalAcceleration, frame_,
-                                                    mc_rbdyn::Frame::Output::NormalAcceleration);
+                                                    mc_rbdyn::RobotFrame::Output::NormalAcceleration);
   // Jacobian needs L_pbvs_
   addInternalDependency<PositionBasedVisServoFunction>(Update::Jacobian, Update::Velocity);
   // NA needs L_pbvs_ and velocity_

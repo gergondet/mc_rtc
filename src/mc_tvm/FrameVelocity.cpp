@@ -4,13 +4,12 @@
 
 #include <mc_tvm/FrameVelocity.h>
 
-#include <mc_rbdyn/Frame.h>
 #include <mc_rbdyn/Robot.h>
 
 namespace mc_tvm
 {
 
-FrameVelocity::FrameVelocity(mc_rbdyn::Frame & frame, const Eigen::Vector6d & dof)
+FrameVelocity::FrameVelocity(mc_rbdyn::RobotFrame & frame, const Eigen::Vector6d & dof)
 : tvm::function::abstract::Function(6), frame_(frame), dof_(dof),
   jac_(rbd::Jacobian(frame.robot().mb(), frame.body(), frame.X_b_f().translation())),
   jacobian_(Eigen::MatrixXd::Zero(6, frame.robot().mb().nrDof()))

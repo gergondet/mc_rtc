@@ -21,7 +21,7 @@ namespace force
 
 using mc_filter::utils::clampInPlaceAndWarn;
 
-AdmittanceTask::AdmittanceTask(mc_rbdyn::Frame & frame, double stiffness, double weight)
+AdmittanceTask::AdmittanceTask(mc_rbdyn::RobotFrame & frame, double stiffness, double weight)
 : TransformTask(frame, stiffness, weight)
 {
   if(!frame.hasForceSensor())

@@ -26,7 +26,9 @@ DynamicFunction::DynamicFunction(mc_rbdyn::RobotPtr robot)
   velocity_.setZero();
 }
 
-DynamicFunction::ForceContact::ForceContact(mc_rbdyn::Frame & frame, std::vector<sva::PTransformd> points, double dir)
+DynamicFunction::ForceContact::ForceContact(mc_rbdyn::RobotFrame & frame,
+                                            std::vector<sva::PTransformd> points,
+                                            double dir)
 : frame_(frame), points_(std::move(points)), dir_(dir), force_jac_(6, frame.rbdJacobian().dof()),
   full_jac_(6, frame.robot().mb().nrDof())
 {
@@ -63,7 +65,7 @@ sva::ForceVecd DynamicFunction::ForceContact::force() const
   return ret;
 }
 
-const tvm::VariableVector & DynamicFunction::addContact(mc_rbdyn::Frame & frame,
+const tvm::VariableVector & DynamicFunction::addContact(mc_rbdyn::RobotFrame & frame,
                                                         std::vector<sva::PTransformd> points,
                                                         double dir)
 {
@@ -77,11 +79,11 @@ const tvm::VariableVector & DynamicFunction::addContact(mc_rbdyn::Frame & frame,
   {
     addVariable(var, true);
   }
-  addInputDependency<DynamicFunction>(Update::Jacobian, frame, mc_rbdyn::Frame::Output::Jacobian);
+  addInputDependency<DynamicFunction>(Update::Jacobian, frame, mc_rbdyn::RobotFrame::Output::Jacobian);
   return fc.forces_;
 }
 
-void DynamicFunction::removeContact(const mc_rbdyn::Frame & frame)
+void DynamicFunction::removeContact(const mc_rbdyn::RobotFrame & frame)
 {
   auto it = findContact(frame);
   if(it != contacts_.end())
@@ -91,7 +93,7 @@ void DynamicFunction::removeContact(const mc_rbdyn::Frame & frame)
   }
 }
 
-sva::ForceVecd DynamicFunction::contactForce(const mc_rbdyn::Frame & frame) const
+sva::ForceVecd DynamicFunction::contactForce(const mc_rbdyn::RobotFrame & frame) const
 {
   auto it = findContact(frame);
   if(it != contacts_.end())
@@ -119,7 +121,7 @@ void DynamicFunction::updateJacobian()
   }
 }
 
-auto DynamicFunction::findContact(const mc_rbdyn::Frame & frame) const -> std::vector<ForceContact>::const_iterator
+auto DynamicFunction::findContact(const mc_rbdyn::RobotFrame & frame) const -> std::vector<ForceContact>::const_iterator
 {
   return std::find_if(contacts_.begin(), contacts_.end(), [&](const auto & c) { return c.frame_.get() == &frame; });
 }

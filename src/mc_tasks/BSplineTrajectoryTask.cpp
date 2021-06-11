@@ -18,7 +18,7 @@ namespace mc_tasks
 
 using BSpline = mc_trajectory::BSpline;
 
-BSplineTrajectoryTask::BSplineTrajectoryTask(mc_rbdyn::Frame & frame,
+BSplineTrajectoryTask::BSplineTrajectoryTask(mc_rbdyn::RobotFrame & frame,
                                              double duration,
                                              double stiffness,
                                              double weight,

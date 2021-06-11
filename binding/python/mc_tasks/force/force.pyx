@@ -157,7 +157,7 @@ cdef ImpedanceGains ImpedanceGainsFromRef(c_force.ImpedanceGains & ig):
     return ret
 
 cdef class ImpedanceTask(TransformTask):
-    def __cinit__(self, mc_rbdyn.Frame frame, double stiffness = 5.0, double weight = 1000.0):
+    def __cinit__(self, mc_rbdyn.RobotFrame frame, double stiffness = 5.0, double weight = 1000.0):
         self.impedance_impl = c_force.make_shared_aligned[c_force.ImpedanceTask](deref(frame.impl), stiffness, weight)
         self.impl = c_force.cast[c_mc_tasks.TransformTask](self.impedance_impl)
         self.ttg_base = c_mc_tasks.cast[c_mc_tasks.TrajectoryTaskGeneric[c_mc_tvm.TransformFunction]](self.impl)
@@ -202,7 +202,7 @@ cdef class ImpedanceTask(TransformTask):
 cdef class ComplianceTask(MetaTask):
     defaultFGain = c_force.defaultFGain
     defaultTGain = c_force.defaultTGain
-    def __cinit__(self, mc_rbdyn.Frame frame, eigen.Vector6d dof = eigen.Vector6d(*6*[1]), double stiffness = 5.0, double weight = 1000.0, double forceThreshold = 3.0, double torqueThreshold = 1.0, pair[double, double] forceGain = defaultFGain, pair[double, double] torqueGain = defaultTGain):
+    def __cinit__(self, mc_rbdyn.RobotFrame frame, eigen.Vector6d dof = eigen.Vector6d(*6*[1]), double stiffness = 5.0, double weight = 1000.0, double forceThreshold = 3.0, double torqueThreshold = 1.0, pair[double, double] forceGain = defaultFGain, pair[double, double] torqueGain = defaultTGain):
         self.impl = c_force.make_shared_aligned[c_force.ComplianceTask](deref(frame.impl), dof.impl, stiffness, weight, forceThreshold, torqueThreshold, forceGain, torqueGain)
         self.mt_base = c_mc_tasks.cast[c_mc_tasks.MetaTask](self.impl)
 
@@ -259,7 +259,7 @@ cdef class ComplianceTask(MetaTask):
             deref(self.impl).dof(dof.impl)
 
 cdef class AdmittanceTask(TransformTask):
-    def __cinit__(self, mc_rbdyn.Frame frame, double stiffness = 5.0, double weight = 1000.0):
+    def __cinit__(self, mc_rbdyn.RobotFrame frame, double stiffness = 5.0, double weight = 1000.0):
         self.adm_impl = c_force.make_shared_aligned[c_force.AdmittanceTask](deref(frame.impl), stiffness, weight)
         self.impl = c_force.cast[c_mc_tasks.TransformTask](self.adm_impl)
         self.ttg_base = c_mc_tasks.cast[c_mc_tasks.TrajectoryTaskGeneric[c_mc_tvm.TransformFunction]](self.impl)
@@ -290,7 +290,7 @@ cdef class AdmittanceTask(TransformTask):
                 self.admittance(sva.ForceVecd(wrench))
 
 cdef class DampingTask(AdmittanceTask):
-    def __cinit__(self, mc_rbdyn.Frame frame, double stiffness = 5.0, double weight = 1000.0):
+    def __cinit__(self, mc_rbdyn.RobotFrame frame, double stiffness = 5.0, double weight = 1000.0):
         self.damping_impl = c_force.make_shared_aligned[c_force.DampingTask](deref(frame.impl), stiffness, weight)
         self.adm_impl = c_force.cast[c_force.AdmittanceTask](self.damping_impl)
         self.impl = c_force.cast[c_mc_tasks.TransformTask](self.adm_impl)
@@ -298,7 +298,7 @@ cdef class DampingTask(AdmittanceTask):
         self.mt_base = c_mc_tasks.cast[c_mc_tasks.MetaTask](self.impl)
 
 cdef class CoPTask(DampingTask):
-    def __cinit__(self, mc_rbdyn.Frame frame, double stiffness = 5.0, double weight = 1000.0):
+    def __cinit__(self, mc_rbdyn.RobotFrame frame, double stiffness = 5.0, double weight = 1000.0):
         self.cop_impl = c_force.make_shared_aligned[c_force.CoPTask](deref(frame.impl), stiffness, weight)
         self.damping_impl = c_force.cast[c_force.DampingTask](self.cop_impl)
         self.adm_impl = c_force.cast[c_force.AdmittanceTask](self.damping_impl)

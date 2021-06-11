@@ -13,7 +13,7 @@
 namespace mc_tasks
 {
 
-TransformTask::TransformTask(mc_rbdyn::Frame & frame, double stiffness, double weight)
+TransformTask::TransformTask(mc_rbdyn::RobotFrame & frame, double stiffness, double weight)
 : TrajectoryBase(frame.robot(), stiffness, weight)
 {
   finalize(frame);
@@ -133,7 +133,7 @@ void TransformTask::load(mc_solver::QPSolver & solver, const mc_rtc::Configurati
   this->target(X_0_t);
 }
 
-void TransformTask::target(const mc_rbdyn::Frame & f, const sva::PTransformd & offset)
+void TransformTask::target(const mc_rbdyn::RobotFrame & f, const sva::PTransformd & offset)
 {
   target(offset * f.position());
 }
@@ -170,7 +170,7 @@ static mc_tasks::MetaTaskPtr loadTransformTask(mc_solver::QPSolver & solver, con
     mc_rtc::log::deprecated("TaskLoading", "surfaceTransform", "transform");
   }
   auto & robot = solver.robots().fromConfig(config, "TransformTask");
-  auto & frame = [&]() -> mc_rbdyn::Frame & {
+  auto & frame = [&]() -> mc_rbdyn::RobotFrame & {
     if(config.has("surface"))
     {
       mc_rtc::log::deprecated("TransformTask", "surface", "frame");

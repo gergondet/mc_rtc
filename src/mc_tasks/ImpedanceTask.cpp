@@ -18,7 +18,7 @@ namespace mc_tasks
 namespace force
 {
 
-ImpedanceTask::ImpedanceTask(mc_rbdyn::Frame & frame, double stiffness, double weight)
+ImpedanceTask::ImpedanceTask(mc_rbdyn::RobotFrame & frame, double stiffness, double weight)
 : TransformTask(frame, stiffness, weight), lowPass_(0.005, 0.05)
 {
   type_ = "impedance";

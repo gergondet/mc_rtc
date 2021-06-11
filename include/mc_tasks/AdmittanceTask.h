@@ -51,7 +51,7 @@ public:
    * sensor attached to it
    *
    */
-  AdmittanceTask(mc_rbdyn::Frame & frame, double stiffness = 5.0, double weight = 1000.0);
+  AdmittanceTask(mc_rbdyn::RobotFrame & frame, double stiffness = 5.0, double weight = 1000.0);
 
   /*! \brief Reset the task
    *
@@ -113,7 +113,7 @@ public:
    *
    * \param offset Offset relative to the reference frame
    */
-  void targetPose(const mc_rbdyn::Frame & frame, const sva::PTransformd & offset)
+  void targetPose(const mc_rbdyn::RobotFrame & frame, const sva::PTransformd & offset)
   {
     this->target(frame, offset);
   }

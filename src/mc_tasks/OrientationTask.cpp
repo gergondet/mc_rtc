@@ -12,7 +12,7 @@
 namespace mc_tasks
 {
 
-OrientationTask::OrientationTask(mc_rbdyn::Frame & frame, double stiffness, double weight)
+OrientationTask::OrientationTask(mc_rbdyn::RobotFrame & frame, double stiffness, double weight)
 : TrajectoryBase(frame.robot(), stiffness, weight)
 {
   finalize(frame);

@@ -26,7 +26,7 @@ public:
    * \param weight Task weight
    *
    */
-  PositionTask(mc_rbdyn::Frame & frame, double stiffness = 2.0, double weight = 500);
+  PositionTask(mc_rbdyn::RobotFrame & frame, double stiffness = 2.0, double weight = 500);
 
   virtual ~PositionTask() = default;
 
@@ -47,7 +47,7 @@ public:
   }
 
   /** Get the frame controlled by this task */
-  inline const mc_rbdyn::Frame & frame() const noexcept
+  inline const mc_rbdyn::RobotFrame & frame() const noexcept
   {
     return errorT_->frame();
   }

@@ -14,7 +14,7 @@ namespace mc_tasks
 {
 
 template<typename Derived>
-SplineTrajectoryTask<Derived>::SplineTrajectoryTask(mc_rbdyn::Frame & frame,
+SplineTrajectoryTask<Derived>::SplineTrajectoryTask(mc_rbdyn::RobotFrame & frame,
                                                     double duration,
                                                     double stiffness,
                                                     double weight,

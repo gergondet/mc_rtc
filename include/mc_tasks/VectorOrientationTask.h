@@ -27,7 +27,7 @@ struct MC_TASKS_DLLAPI VectorOrientationTask : public TrajectoryTaskGeneric<mc_t
    * \param weight Task weight
    *
    */
-  VectorOrientationTask(mc_rbdyn::Frame & frame,
+  VectorOrientationTask(mc_rbdyn::RobotFrame & frame,
                         const Eigen::Vector3d & frameVector,
                         double stiffness = 2.0,
                         double weight = 500);
@@ -83,7 +83,7 @@ struct MC_TASKS_DLLAPI VectorOrientationTask : public TrajectoryTaskGeneric<mc_t
   }
 
   /*! \brief Return the controlled frame */
-  inline const mc_rbdyn::Frame & frame() const noexcept
+  inline const mc_rbdyn::RobotFrame & frame() const noexcept
   {
     return errorT_->frame();
   }

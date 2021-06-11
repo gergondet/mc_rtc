@@ -26,16 +26,16 @@ public:
    * \param weight Task weight
    *
    */
-  VelocityTask(mc_rbdyn::Frame & frame, double stiffness = 2.0, double weight = 500.0);
+  VelocityTask(mc_rbdyn::RobotFrame & frame, double stiffness = 2.0, double weight = 500.0);
 
   /** Get the frame controlled by this task */
-  inline const mc_rbdyn::Frame & frame() const noexcept
+  inline const mc_rbdyn::RobotFrame & frame() const noexcept
   {
     return errorT_->frame();
   }
 
   /** Get the frame controlled by this task (non-const) */
-  inline mc_rbdyn::Frame & frame() noexcept
+  inline mc_rbdyn::RobotFrame & frame() noexcept
   {
     return errorT_->frame();
   }

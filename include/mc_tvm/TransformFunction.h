@@ -28,7 +28,7 @@ public:
    * Set the objective to the current frame pose
    *
    */
-  TransformFunction(mc_rbdyn::Frame & frame);
+  TransformFunction(mc_rbdyn::RobotFrame & frame);
 
   /** Set the target pose to the current frame pose */
   void reset();
@@ -70,7 +70,7 @@ public:
   }
 
   /** Get the frame */
-  inline const mc_rbdyn::Frame & frame() const noexcept
+  inline const mc_rbdyn::RobotFrame & frame() const noexcept
   {
     return *frame_;
   }
@@ -81,7 +81,7 @@ protected:
   void updateJacobian();
   void updateNormalAcceleration();
 
-  mc_rbdyn::FramePtr frame_;
+  mc_rbdyn::RobotFramePtr frame_;
 
   /** Computation intermediate */
   rbd::Jacobian frameJac_;

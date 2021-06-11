@@ -236,7 +236,7 @@ size_t QPSolver::getContactIdx(const mc_rbdyn::Contact & contact)
 }
 
 void QPSolver::addContactToDynamics(const std::string & robot,
-                                    mc_rbdyn::Frame & frame,
+                                    mc_rbdyn::RobotFrame & frame,
                                     const std::vector<sva::PTransformd> & points,
                                     tvm::VariableVector & forces,
                                     std::vector<tvm::TaskWithRequirementsPtr> & constraints,
@@ -345,7 +345,7 @@ void QPSolver::addContact(const mc_rbdyn::Contact & contact)
   auto & f2 = s2.frame();
   // FIXME Let the user decide how much the friction cone should be discretized
   auto C = discretizedFrictionCone(contact.friction);
-  auto addContactForce = [&](const std::string & robot, mc_rbdyn::Frame & frame,
+  auto addContactForce = [&](const std::string & robot, mc_rbdyn::RobotFrame & frame,
                              const std::vector<sva::PTransformd> & points, tvm::VariableVector & forces,
                              std::vector<tvm::TaskWithRequirementsPtr> & constraints,
                              double dir) { addContactToDynamics(robot, frame, points, forces, constraints, C, dir); };

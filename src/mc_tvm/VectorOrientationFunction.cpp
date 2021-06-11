@@ -4,14 +4,13 @@
 
 #include <mc_tvm/VectorOrientationFunction.h>
 
-#include <mc_rbdyn/Frame.h>
 #include <mc_rbdyn/Robot.h>
 #include <mc_rbdyn/hat.h>
 
 namespace mc_tvm
 {
 
-VectorOrientationFunction::VectorOrientationFunction(mc_rbdyn::Frame & frame, const Eigen::Vector3d & frameVector)
+VectorOrientationFunction::VectorOrientationFunction(mc_rbdyn::RobotFrame & frame, const Eigen::Vector3d & frameVector)
 : tvm::function::abstract::Function(3), frame_(frame), jac_(frame_->rbdJacobian()),
   fullJacobian_(3, frame_->robot().mb().nrDof())
 {
@@ -28,14 +27,19 @@ VectorOrientationFunction::VectorOrientationFunction(mc_rbdyn::Frame & frame, co
   addOutputDependency<VectorOrientationFunction>(Output::Jacobian, Update::Jacobian);
   addOutputDependency<VectorOrientationFunction>(Output::NormalAcceleration, Update::NormalAcceleration);
   addVariable(frame_->robot().q(), false);
-  addInputDependency<VectorOrientationFunction>(Update::Value, frame_, mc_rbdyn::Frame::Output::Position);
-  addInputDependency<VectorOrientationFunction>(Update::Velocity, frame_, mc_rbdyn::Frame::Output::Velocity);
-  addInputDependency<VectorOrientationFunction>(Update::Jacobian, frame_, mc_rbdyn::Frame::Output::Jacobian);
+  addInputDependency<VectorOrientationFunction>(Update::Value, frame_, mc_rbdyn::RobotFrame::Output::Position);
+  addInputDependency<VectorOrientationFunction>(Update::Velocity, frame_, mc_rbdyn::RobotFrame::Output::Velocity);
+  addInputDependency<VectorOrientationFunction>(Update::Jacobian, frame_, mc_rbdyn::RobotFrame::Output::Jacobian);
   addInputDependency<VectorOrientationFunction>(Update::NormalAcceleration, frame_,
-                                                mc_rbdyn::Frame::Output::NormalAcceleration);
+                                                mc_rbdyn::RobotFrame::Output::NormalAcceleration);
   addInternalDependency<VectorOrientationFunction>(Update::Jacobian, Update::Value);
   addInternalDependency<VectorOrientationFunction>(Update::Velocity, Update::Jacobian);
   addInternalDependency<VectorOrientationFunction>(Update::NormalAcceleration, Update::Velocity);
+}
+
+void VectorOrientationFunction::addFrameDependency(mc_rbdyn::FreeFrame & frame)
+{
+  addInputDependency<VectorOrientationFunction>(Update::Value, frame, mc_rbdyn::FreeFrame::Output::Position);
 }
 
 void VectorOrientationFunction::frameVector(const Eigen::Vector3d & frameVector) noexcept

@@ -21,7 +21,7 @@ namespace force
 
 using mc_filter::utils::clampInPlaceAndWarn;
 
-DampingTask::DampingTask(mc_rbdyn::Frame & frame, double stiffness, double weight)
+DampingTask::DampingTask(mc_rbdyn::RobotFrame & frame, double stiffness, double weight)
 : AdmittanceTask(frame, stiffness, weight)
 {
   type_ = "admittance";

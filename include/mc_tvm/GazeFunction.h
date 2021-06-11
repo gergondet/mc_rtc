@@ -36,7 +36,7 @@ struct MC_TVM_DLLAPI GazeFunction : tvm::function::abstract::Function
    *
    * \param frame Camera frame
    */
-  GazeFunction(mc_rbdyn::Frame & frame);
+  GazeFunction(mc_rbdyn::RobotFrame & frame);
 
   /** Reset the objective to the current position */
   inline void reset()
@@ -69,13 +69,13 @@ struct MC_TVM_DLLAPI GazeFunction : tvm::function::abstract::Function
   }
 
   /** Access the controlled frame */
-  inline const mc_rbdyn::Frame & frame() const noexcept
+  inline const mc_rbdyn::RobotFrame & frame() const noexcept
   {
     return *frame_;
   }
 
 protected:
-  mc_rbdyn::FramePtr frame_;
+  mc_rbdyn::RobotFramePtr frame_;
   rbd::Jacobian frameJac_;
 
   /* Inputs to the function */

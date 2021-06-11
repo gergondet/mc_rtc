@@ -166,15 +166,15 @@ std::tuple<rbd::MultiBody, rbd::MultiBodyGraph, rbd::MultiBodyConfig> XYZRobot()
   return std::make_tuple(mb, mbg, mbc);
 }
 
-void TestOneFrame(mc_rbdyn::Robot & robot, mc_rbdyn::Frame & f, int samples)
+void TestOneFrame(mc_rbdyn::Robot & robot, mc_rbdyn::RobotFrame & f, int samples)
 {
   tvm::graph::CallGraph callgraph;
   auto inputs = std::make_shared<tvm::graph::internal::Inputs>();
-  inputs->addInput(f, mc_rbdyn::Frame::Output::Position);
-  inputs->addInput(f, mc_rbdyn::Frame::Output::Jacobian);
-  inputs->addInput(f, mc_rbdyn::Frame::Output::Velocity);
-  inputs->addInput(f, mc_rbdyn::Frame::Output::NormalAcceleration);
-  inputs->addInput(f, mc_rbdyn::Frame::Output::JDot);
+  inputs->addInput(f, mc_rbdyn::RobotFrame::Output::Position);
+  inputs->addInput(f, mc_rbdyn::RobotFrame::Output::Jacobian);
+  inputs->addInput(f, mc_rbdyn::RobotFrame::Output::Velocity);
+  inputs->addInput(f, mc_rbdyn::RobotFrame::Output::NormalAcceleration);
+  inputs->addInput(f, mc_rbdyn::RobotFrame::Output::JDot);
   callgraph.add(inputs);
   callgraph.update();
 

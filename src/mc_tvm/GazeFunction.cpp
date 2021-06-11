@@ -4,14 +4,14 @@
 
 #include <mc_tvm/GazeFunction.h>
 
-#include <mc_rbdyn/Frame.h>
+#include <mc_rbdyn/RobotFrame.h>
 
 #include <RBDyn/VisServo.h>
 
 namespace mc_tvm
 {
 
-GazeFunction::GazeFunction(mc_rbdyn::Frame & frame)
+GazeFunction::GazeFunction(mc_rbdyn::RobotFrame & frame)
 : tvm::function::abstract::Function(2), frame_(frame), frameJac_(frame.rbdJacobian()), shortJacMat_(2, frameJac_.dof()),
   jacMat_(2, frame.robot().mb().nrDof())
 {
@@ -27,10 +27,11 @@ GazeFunction::GazeFunction(mc_rbdyn::Frame & frame)
   addOutputDependency<GazeFunction>(Output::NormalAcceleration, Update::NormalAcceleration);
   const auto & robot = frame_->robot();
   addVariable(robot.q(), false);
-  addInputDependency<GazeFunction>(Update::Value, frame_, mc_rbdyn::Frame::Output::Position);
-  addInputDependency<GazeFunction>(Update::Velocity, frame_, mc_rbdyn::Frame::Output::Velocity);
-  addInputDependency<GazeFunction>(Update::Jacobian, frame_, mc_rbdyn::Frame::Output::Jacobian);
-  addInputDependency<GazeFunction>(Update::NormalAcceleration, frame_, mc_rbdyn::Frame::Output::NormalAcceleration);
+  addInputDependency<GazeFunction>(Update::Value, frame_, mc_rbdyn::RobotFrame::Output::Position);
+  addInputDependency<GazeFunction>(Update::Velocity, frame_, mc_rbdyn::RobotFrame::Output::Velocity);
+  addInputDependency<GazeFunction>(Update::Jacobian, frame_, mc_rbdyn::RobotFrame::Output::Jacobian);
+  addInputDependency<GazeFunction>(Update::NormalAcceleration, frame_,
+                                   mc_rbdyn::RobotFrame::Output::NormalAcceleration);
   // Jacobian needs L_img_
   addInternalDependency<GazeFunction>(Update::Jacobian, Update::Velocity);
   // NA needs L_img_ and velocity_

@@ -309,7 +309,7 @@ private:
   void removeDynamicsConstraint(const DynamicsConstraintPtr & constraint);
   std::tuple<size_t, bool> addVirtualContactImpl(const mc_rbdyn::Contact & contact);
   void addContactToDynamics(const std::string & robot,
-                            mc_rbdyn::Frame & frame,
+                            mc_rbdyn::RobotFrame & frame,
                             const std::vector<sva::PTransformd> & points,
                             tvm::VariableVector & forces,
                             std::vector<tvm::TaskWithRequirementsPtr> & constraints,

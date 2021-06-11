@@ -534,32 +534,32 @@ bool Robot::hasFrame(std::string_view frame) const
   return frames_.contains(frame);
 }
 
-const Frame & Robot::frame(std::string_view frame) const
+const RobotFrame & Robot::frame(std::string_view frame) const
 {
   return this->frame(frame, "Robot::frame");
 }
 
-Frame & Robot::frame(std::string_view frame)
+RobotFrame & Robot::frame(std::string_view frame)
 {
   return this->frame(frame, "Robot::frame");
 }
 
-Frame & Robot::makeFrame(std::string_view body)
+RobotFrame & Robot::makeFrame(std::string_view body)
 {
   if(hasFrame(body))
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("Attempt to duplicate body frame {} in {}", body, name());
   }
-  auto out = frames_.emplace(body, std::make_shared<Frame>(Frame::ctor_token{}, body, *this, body));
+  auto out = frames_.emplace(body, std::make_shared<RobotFrame>(RobotFrame::ctor_token{}, body, *this, body));
   return updateFrameForceSensors(*out.first->second);
 }
 
-Frame & Robot::makeFrame(std::string_view name, std::string_view body, sva::PTransformd X_b_f)
+RobotFrame & Robot::makeFrame(std::string_view name, std::string_view body, sva::PTransformd X_b_f)
 {
   return makeFrame(name, frame(body), X_b_f);
 }
 
-Frame & Robot::makeFrame(std::string_view name, Frame & parent, sva::PTransformd X_p_f)
+RobotFrame & Robot::makeFrame(std::string_view name, RobotFrame & parent, sva::PTransformd X_p_f)
 {
   if(hasFrame(name))
   {
@@ -571,7 +571,8 @@ Frame & Robot::makeFrame(std::string_view name, Frame & parent, sva::PTransformd
         "Parent frame {} provided to build frame {} in {} belong to a different robot {}", parent.name(), name,
         this->name(), parent.robot().name());
   }
-  auto out = frames_.emplace(name, std::make_shared<Frame>(Frame::ctor_token{}, name, parent, std::move(X_p_f)));
+  auto out =
+      frames_.emplace(name, std::make_shared<RobotFrame>(RobotFrame::ctor_token{}, name, parent, std::move(X_p_f)));
   return updateFrameForceSensors(*out.first->second);
 }
 
@@ -1072,7 +1073,7 @@ RobotPtr Robot::copy(std::string_view name, const std::optional<Base> & base) co
         std::allocate_shared<Robot>(Eigen::aligned_allocator<Robot>{}, make_shared_token{}, module_, name, false);
   }
   auto & robot = *robot_ptr;
-  std::function<void(const mc_rbdyn::Frame &)> copyFrame = [&](const mc_rbdyn::Frame & other) {
+  std::function<void(const mc_rbdyn::RobotFrame &)> copyFrame = [&](const mc_rbdyn::RobotFrame & other) {
     if(!other.parent())
     {
       assert(robot.hasFrame(other.name()));
@@ -1222,12 +1223,12 @@ void Robot::updateAll()
   updateC();
 }
 
-Frame & Robot::frame(std::string_view frame, std::string_view context)
+RobotFrame & Robot::frame(std::string_view frame, std::string_view context)
 {
-  return const_cast<Frame &>(const_cast<const Robot *>(this)->frame(frame, context));
+  return const_cast<RobotFrame &>(const_cast<const Robot *>(this)->frame(frame, context));
 }
 
-const Frame & Robot::frame(std::string_view frame, std::string_view context) const
+const RobotFrame & Robot::frame(std::string_view frame, std::string_view context) const
 {
   auto it = frames_.find(frame);
   if(it == frames_.cend())
@@ -1237,7 +1238,7 @@ const Frame & Robot::frame(std::string_view frame, std::string_view context) con
   return *it->second;
 }
 
-Frame & Robot::updateFrameForceSensors(Frame & frame)
+RobotFrame & Robot::updateFrameForceSensors(RobotFrame & frame)
 {
   const auto & body = frame.body();
   const auto & name = frame.name();

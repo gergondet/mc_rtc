@@ -688,27 +688,36 @@ cdef Limits LimitsFromC(c_mc_rbdyn.Limits & p):
     out.impl = &p
     return out
 
-cdef class Frame(object):
+cdef class FreeFrame(object):
     def __cinit__(self):
-        self.impl = NULL
+        self.base = NULL
     def name(self):
-        assert(self.impl)
-        return self.impl.name()
+        assert(self.base)
+        return self.base.name()
+    def X_p_f(self):
+        assert(self.base)
+        return sva.PTransformdFromC(self.base.X_p_f())
+    def position(self):
+        assert(self.base)
+        return sva.PTransformdFromC(self.base.position())
+    def velocity(self):
+        assert(self.base)
+        return sva.MotionVecdFromC(self.base.velocity())
+
+cdef FreeFrame FreeFrameFromC(c_mc_rbdyn.FreeFrame & f):
+    cdef FreeFrame out = FreeFrame()
+    out.base = &f
+    return out
+
+cdef class RobotFrame(FreeFrame):
+    def __cinit__(self):
+        self.impl = self.base = NULL
     def body(self):
         assert(self.impl)
         return self.impl.body()
-    def X_b_f(self):
-        assert(self.impl)
-        return sva.PTransformdFromC(self.impl.X_b_f())
     def robot(self):
         assert(self.impl)
         return RobotFromC(self.impl.robot())
-    def position(self):
-        assert(self.impl)
-        return sva.PTransformdFromC(self.impl.position())
-    def velocity(self):
-        assert(self.impl)
-        return sva.MotionVecdFromC(self.impl.velocity())
     def normalAcceleration(self):
         assert(self.impl)
         return sva.MotionVecdFromC(self.impl.normalAcceleration())
@@ -722,8 +731,9 @@ cdef class Frame(object):
         assert(self.impl)
         return sva.ForceVecdFromC(self.impl.wrench())
 
-cdef Frame FrameFromC(c_mc_rbdyn.Frame & f):
-    cdef Frame out = Frame()
+cdef RobotFrame RobotFrameFromC(c_mc_rbdyn.RobotFrame & f):
+    cdef RobotFrame out = RobotFrame()
+    out.base = &f
     out.impl = &f
     return out
 
@@ -756,7 +766,7 @@ cdef class Convex(object):
         self.impl = NULL
     def frame(self):
         assert(self.impl)
-        return FrameFromC(self.impl.frame())
+        return FreeFrameFromC(self.impl.frame())
     def X_f_c(self):
         assert(self.impl)
         return sva.PTransformdFromC(self.impl.X_f_c())
@@ -859,7 +869,7 @@ cdef class Robot(object):
         self.__is_valid()
         if isinstance(name, unicode):
             name = name.encode(u'ascii')
-        return FrameFromC(self.impl.frame(name))
+        return RobotFrameFromC(self.impl.frame(name))
 
     def cop(self, surfaceName, min_pressure):
             self.__is_valid()
@@ -996,7 +1006,7 @@ cdef class Surface(object):
 
     def frame(self):
         assert(self.impl)
-        return FrameFromC(self.impl.frame())
+        return RobotFrameFromC(self.impl.frame())
 
     def robot(self):
         assert(self.impl)

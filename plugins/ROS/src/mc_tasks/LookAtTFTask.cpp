@@ -9,7 +9,7 @@
 
 namespace mc_tasks
 {
-LookAtTFTask::LookAtTFTask(mc_rbdyn::Frame & frame,
+LookAtTFTask::LookAtTFTask(mc_rbdyn::RobotFrame & frame,
                            const Eigen::Vector3d & frameVector,
                            const std::string & sourceFrame,
                            const std::string & targetFrame,

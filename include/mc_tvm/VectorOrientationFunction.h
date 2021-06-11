@@ -27,7 +27,10 @@ public:
    * Set the objective to the current value of the body vector in woorld coordinates
    *
    */
-  VectorOrientationFunction(mc_rbdyn::Frame & frame, const Eigen::Vector3d & bodyVector);
+  VectorOrientationFunction(mc_rbdyn::RobotFrame & frame, const Eigen::Vector3d & bodyVector);
+
+  /** Add a dependency to the position of another frame */
+  void addFrameDependency(mc_rbdyn::FreeFrame & frame);
 
   /** Reset the target vector to the current frame vector */
   void reset();
@@ -84,7 +87,7 @@ public:
   }
 
   /** Access the frame */
-  inline const mc_rbdyn::Frame & frame() const noexcept
+  inline const mc_rbdyn::RobotFrame & frame() const noexcept
   {
     return *frame_;
   }
@@ -95,7 +98,7 @@ protected:
   void updateJacobian();
   void updateNormalAcceleration();
 
-  mc_rbdyn::FramePtr frame_;
+  mc_rbdyn::RobotFramePtr frame_;
 
   /** Task configuration */
   Eigen::Vector3d frameVectorIn_;

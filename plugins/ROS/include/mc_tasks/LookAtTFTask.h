@@ -33,7 +33,7 @@ struct MC_TASKS_ROS_DLLAPI LookAtTFTask : public LookAtTask
    * \param weight Task weight
    *
    */
-  LookAtTFTask(mc_rbdyn::Frame & frame,
+  LookAtTFTask(mc_rbdyn::RobotFrame & frame,
                const Eigen::Vector3d & frameVector,
                const std::string & sourceFrame,
                const std::string & targetFrame,

@@ -31,7 +31,7 @@ public:
    * \param weight Weight of the task
    *
    */
-  AddRemoveContactTask(mc_rbdyn::Frame & frame, double speed = 0.01, double stiffness = 2, double weight = 1000);
+  AddRemoveContactTask(mc_rbdyn::RobotFrame & frame, double speed = 0.01, double stiffness = 2, double weight = 1000);
 
   /*! \brief Set the desired dislacement speed */
   void speed(double s);
@@ -87,7 +87,7 @@ public:
     task_->reset();
   }
 
-  inline const mc_rbdyn::Frame & frame() const noexcept
+  inline const mc_rbdyn::RobotFrame & frame() const noexcept
   {
     return task_->frame();
   }

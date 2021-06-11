@@ -66,7 +66,7 @@ public:
    * sensor attached to it
    *
    */
-  ImpedanceTask(mc_rbdyn::Frame & frame, double stiffness = 5.0, double weight = 1000.0);
+  ImpedanceTask(mc_rbdyn::RobotFrame & frame, double stiffness = 5.0, double weight = 1000.0);
 
   /*! \brief Reset the task
    *

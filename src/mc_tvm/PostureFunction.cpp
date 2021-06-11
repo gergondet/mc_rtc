@@ -4,7 +4,6 @@
 
 #include <mc_tvm/PostureFunction.h>
 
-#include <mc_rbdyn/Frame.h>
 #include <mc_rbdyn/Robot.h>
 
 namespace mc_tvm

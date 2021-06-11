@@ -16,7 +16,7 @@ namespace mc_tasks
 namespace force
 {
 
-ComplianceTask::ComplianceTask(mc_rbdyn::Frame & frame,
+ComplianceTask::ComplianceTask(mc_rbdyn::RobotFrame & frame,
                                const Eigen::Vector6d & dof,
                                double stiffness,
                                double weight,

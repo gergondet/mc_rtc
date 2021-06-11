@@ -63,7 +63,7 @@ void BoundedSpeedConstr::reset(QPSolver & solver)
 }
 
 void BoundedSpeedConstr::addBoundedSpeed(QPSolver & solver,
-                                         mc_rbdyn::Frame & frame,
+                                         mc_rbdyn::RobotFrame & frame,
                                          const Eigen::Vector6d & dof,
                                          const Eigen::Vector6d & speed)
 {
@@ -71,7 +71,7 @@ void BoundedSpeedConstr::addBoundedSpeed(QPSolver & solver,
 }
 
 void BoundedSpeedConstr::addBoundedSpeed(QPSolver & solver,
-                                         mc_rbdyn::Frame & frame,
+                                         mc_rbdyn::RobotFrame & frame,
                                          const Eigen::Vector6d & dof,
                                          const Eigen::Vector6d & lowerSpeed,
                                          const Eigen::Vector6d & upperSpeed)
@@ -101,7 +101,7 @@ void BoundedSpeedConstr::addBoundedSpeed(QPSolver & solver,
   }
 }
 
-bool BoundedSpeedConstr::removeBoundedSpeed(QPSolver & solver, mc_rbdyn::Frame & frame)
+bool BoundedSpeedConstr::removeBoundedSpeed(QPSolver & solver, mc_rbdyn::RobotFrame & frame)
 {
   auto it = getData(frame);
   if(it == data_.end())
@@ -141,7 +141,7 @@ void BoundedSpeedConstr::removeBoundedSpeed(QPSolver & solver, BoundedSpeedData 
   }
 }
 
-auto BoundedSpeedConstr::getData(const mc_rbdyn::Frame & frame) -> std::vector<BoundedSpeedData>::iterator
+auto BoundedSpeedConstr::getData(const mc_rbdyn::RobotFrame & frame) -> std::vector<BoundedSpeedData>::iterator
 {
   return std::find_if(data_.begin(), data_.end(), [&](const auto & d) { return d.fn->frame() == frame; });
 }
@@ -160,7 +160,7 @@ static auto registered = mc_solver::ConstraintLoader::register_load_function(
         for(const auto & c : config("constraints"))
         {
           auto & robot = solver.robots().fromConfig(c, "BoundedSpeedConstr");
-          auto getFrame = [&]() -> mc_rbdyn::Frame & {
+          auto getFrame = [&]() -> mc_rbdyn::RobotFrame & {
             if(c.has("body"))
             {
               mc_rtc::log::deprecated("BoundedSpeedConstraint", "body", "frame");

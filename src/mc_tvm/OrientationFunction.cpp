@@ -4,13 +4,13 @@
 
 #include <mc_tvm/OrientationFunction.h>
 
-#include <mc_rbdyn/Frame.h>
 #include <mc_rbdyn/Robot.h>
 
 namespace mc_tvm
 {
 
-OrientationFunction::OrientationFunction(mc_rbdyn::Frame & frame) : tvm::function::abstract::Function(3), frame_(frame)
+OrientationFunction::OrientationFunction(mc_rbdyn::RobotFrame & frame)
+: tvm::function::abstract::Function(3), frame_(frame)
 {
   reset();
   // clang-format off
@@ -25,11 +25,11 @@ OrientationFunction::OrientationFunction(mc_rbdyn::Frame & frame) : tvm::functio
   addOutputDependency<OrientationFunction>(Output::NormalAcceleration, Update::NormalAcceleration);
   const auto & robot = frame_->robot();
   addVariable(robot.q(), false);
-  addInputDependency<OrientationFunction>(Update::Value, frame_, mc_rbdyn::Frame::Output::Position);
-  addInputDependency<OrientationFunction>(Update::Velocity, frame_, mc_rbdyn::Frame::Output::Velocity);
-  addInputDependency<OrientationFunction>(Update::Jacobian, frame_, mc_rbdyn::Frame::Output::Jacobian);
+  addInputDependency<OrientationFunction>(Update::Value, frame_, mc_rbdyn::RobotFrame::Output::Position);
+  addInputDependency<OrientationFunction>(Update::Velocity, frame_, mc_rbdyn::RobotFrame::Output::Velocity);
+  addInputDependency<OrientationFunction>(Update::Jacobian, frame_, mc_rbdyn::RobotFrame::Output::Jacobian);
   addInputDependency<OrientationFunction>(Update::NormalAcceleration, frame_,
-                                          mc_rbdyn::Frame::Output::NormalAcceleration);
+                                          mc_rbdyn::RobotFrame::Output::NormalAcceleration);
 }
 
 void OrientationFunction::reset()

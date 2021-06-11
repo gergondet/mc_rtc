@@ -25,7 +25,7 @@ public:
    * \param weight Task weight
    *
    */
-  PositionBasedVisServoTask(mc_rbdyn::Frame & frame, double stiffness = 2.0, double weight = 500);
+  PositionBasedVisServoTask(mc_rbdyn::RobotFrame & frame, double stiffness = 2.0, double weight = 500);
 
   /*! \brief Set the current error
    *
@@ -44,7 +44,7 @@ public:
   }
 
   /*! \brief Access the controlled frame */
-  inline const mc_rbdyn::Frame & frame() const noexcept
+  inline const mc_rbdyn::RobotFrame & frame() const noexcept
   {
     return errorT_->frame();
   }

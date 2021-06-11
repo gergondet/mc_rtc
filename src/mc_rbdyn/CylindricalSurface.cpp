@@ -8,7 +8,7 @@
 namespace mc_rbdyn
 {
 
-CylindricalSurface::CylindricalSurface(std::string_view name, FramePtr frame, double radius, double width)
+CylindricalSurface::CylindricalSurface(std::string_view name, RobotFramePtr frame, double radius, double width)
 : Surface(name, frame), radius_(radius), width_(width)
 {
   points_.clear();

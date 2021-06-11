@@ -26,18 +26,18 @@ struct MC_TVM_DLLAPI FrameVelocity : public tvm::function::abstract::Function
    *
    * Creates a FrameVelocity function, values are correctly initialized
    */
-  FrameVelocity(mc_rbdyn::Frame & frame, const Eigen::Vector6d & dof);
+  FrameVelocity(mc_rbdyn::RobotFrame & frame, const Eigen::Vector6d & dof);
 
   /** Empty reset function in case we want to wrap this as a task later */
   inline void reset() {}
 
   /** Access the related frame */
-  inline const mc_rbdyn::Frame & frame() const noexcept
+  inline const mc_rbdyn::RobotFrame & frame() const noexcept
   {
     return *frame_;
   }
   /** Access the related frame */
-  inline mc_rbdyn::Frame & frame() noexcept
+  inline mc_rbdyn::RobotFrame & frame() noexcept
   {
     return *frame_;
   }
@@ -76,7 +76,7 @@ struct MC_TVM_DLLAPI FrameVelocity : public tvm::function::abstract::Function
   }
 
 private:
-  mc_rbdyn::FramePtr frame_;
+  mc_rbdyn::RobotFramePtr frame_;
   Eigen::Vector6d dof_;
   Eigen::Vector6d refVel_ = Eigen::Vector6d::Zero();
   Eigen::Vector6d refAccel_ = Eigen::Vector6d::Zero();

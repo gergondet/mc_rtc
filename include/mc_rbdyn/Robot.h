@@ -43,7 +43,7 @@ namespace mc_rbdyn
  *
  * It provides signals that are relevant for computing quantities related to the robot.
  *
- * It also acts as \ref Convex, \ref Frame and \ref Surface factories.
+ * It also acts as \ref Convex, \ref RobotFrame and \ref Surface factories.
  *
  * Variables:
  * - q (split between free-flyer and joints)
@@ -130,7 +130,7 @@ public:
    *
    * \throws If the frame does not exist
    */
-  const Frame & frame(std::string_view frame) const;
+  const RobotFrame & frame(std::string_view frame) const;
 
   /** Access a frame (non-const)
    *
@@ -138,7 +138,7 @@ public:
    *
    * \throws If the frame does not exist
    */
-  Frame & frame(std::string_view frame);
+  RobotFrame & frame(std::string_view frame);
 
   /** Create a new frame attached to this robot
    *
@@ -152,7 +152,7 @@ public:
    *
    * \throws If a frame with this name already exists
    */
-  Frame & makeFrame(std::string_view name, std::string_view body, sva::PTransformd X_b_f);
+  RobotFrame & makeFrame(std::string_view name, std::string_view body, sva::PTransformd X_b_f);
 
   /** Create a new frame attached to this robot
    *
@@ -166,7 +166,7 @@ public:
    *
    * \throws If a frame with this name already exists or the parent frame does not belong to this robot
    */
-  Frame & makeFrame(std::string_view name, Frame & parent, sva::PTransformd X_p_f);
+  RobotFrame & makeFrame(std::string_view name, RobotFrame & parent, sva::PTransformd X_p_f);
 
   /** @name Body sensors
    *
@@ -1009,7 +1009,7 @@ private:
   /** List of body transformations */
   std::vector<sva::PTransformd> bodyTransforms_;
   /** List of frames available in this robot */
-  mc_rtc::map<std::string, FramePtr> frames_;
+  mc_rtc::map<std::string, RobotFramePtr> frames_;
   /** List of convex available in this robot */
   mc_rtc::map<std::string, ConvexPtr> convexes_;
   /** List of surfaces available in this robot */
@@ -1072,16 +1072,16 @@ private:
   void updateAll();
 
   /** Used internally to create a body frame */
-  Frame & makeFrame(std::string_view body);
+  RobotFrame & makeFrame(std::string_view body);
 
   /** Used internally to access a frame safely and provide context information */
-  Frame & frame(std::string_view, std::string_view context);
+  RobotFrame & frame(std::string_view, std::string_view context);
 
   /** Used internally to access a frame safely and provide context information */
-  const Frame & frame(std::string_view, std::string_view context) const;
+  const RobotFrame & frame(std::string_view, std::string_view context) const;
 
   /** Used internally to update frame to force sensor mapping */
-  Frame & updateFrameForceSensors(Frame & frame);
+  RobotFrame & updateFrameForceSensors(RobotFrame & frame);
 };
 
 } // namespace mc_rbdyn

@@ -56,7 +56,7 @@ public:
    * sensor attached to it
    *
    */
-  ComplianceTask(mc_rbdyn::Frame & frame,
+  ComplianceTask(mc_rbdyn::RobotFrame & frame,
                  const Eigen::Vector6d & dof = Eigen::Vector6d::Ones(),
                  double stiffness = 5.0,
                  double weight = 1000.0,

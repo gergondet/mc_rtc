@@ -9,7 +9,7 @@ namespace mc_rbdyn
 {
 
 PlanarSurface::PlanarSurface(std::string_view name,
-                             FramePtr frame,
+                             RobotFramePtr frame,
                              const std::vector<std::pair<double, double>> & planarPoints)
 : Surface(name, frame), planarPoints_(planarPoints)
 {

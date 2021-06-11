@@ -57,7 +57,7 @@ struct SplineTrajectoryTask : public TrajectoryTaskGeneric<mc_tvm::TransformFunc
    *
    * \param oriWp Optional orientation waypoints (pairs of [time, orientation])
    */
-  SplineTrajectoryTask(mc_rbdyn::Frame & frame,
+  SplineTrajectoryTask(mc_rbdyn::RobotFrame & frame,
                        double duration,
                        double stiffness,
                        double weight,
@@ -68,7 +68,7 @@ struct SplineTrajectoryTask : public TrajectoryTaskGeneric<mc_tvm::TransformFunc
   void load(mc_solver::QPSolver & solver, const mc_rtc::Configuration & config) override;
 
   /** Get the frame controlled by this task */
-  inline const mc_rbdyn::Frame & frame() const noexcept
+  inline const mc_rbdyn::RobotFrame & frame() const noexcept
   {
     return errorT_->frame();
   }

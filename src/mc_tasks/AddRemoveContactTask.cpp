@@ -11,7 +11,7 @@
 namespace mc_tasks
 {
 
-AddRemoveContactTask::AddRemoveContactTask(mc_rbdyn::Frame & frame, double speed, double stiffness, double weight)
+AddRemoveContactTask::AddRemoveContactTask(mc_rbdyn::RobotFrame & frame, double speed, double stiffness, double weight)
 : constraint_(std::make_shared<mc_solver::BoundedSpeedConstr>()),
   task_(std::make_shared<mc_tasks::VelocityTask>(frame, stiffness, weight)), speed_(speed)
 {

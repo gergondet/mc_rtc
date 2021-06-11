@@ -15,7 +15,7 @@
 namespace mc_tasks
 {
 
-ExactCubicTrajectoryTask::ExactCubicTrajectoryTask(mc_rbdyn::Frame & frame,
+ExactCubicTrajectoryTask::ExactCubicTrajectoryTask(mc_rbdyn::RobotFrame & frame,
                                                    double duration,
                                                    double stiffness,
                                                    double weight,

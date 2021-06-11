@@ -9,7 +9,7 @@
 namespace mc_tvm
 {
 
-ContactFunction::ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, const Eigen::Vector6d & dof)
+ContactFunction::ContactFunction(mc_rbdyn::FreeFramePtr f1, mc_rbdyn::FreeFramePtr f2, const Eigen::Vector6d & dof)
 : tvm::function::abstract::Function(6), dof_(dof)
 {
   registerUpdates(Update::Value, &ContactFunction::updateValue, Update::Derivatives,
@@ -22,33 +22,38 @@ ContactFunction::ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, c
 
   addInternalDependency<ContactFunction>(Update::Derivatives, Update::Value);
 
-  auto addRobot = [this](mc_rbdyn::FramePtr & fIn, mc_rbdyn::FramePtr & fOut, bool & useF, rbd::Jacobian & jac) {
+  auto addRobot = [this](mc_rbdyn::FreeFramePtr & fIn, mc_rbdyn::FreeFramePtr & fOut, bool & useF,
+                         rbd::Jacobian & jac) {
     fOut = fIn;
-    if(fIn->rbdJacobian().dof() > 0)
+    auto fRobot = std::dynamic_pointer_cast<mc_rbdyn::RobotFrame>(fIn);
+    if(fRobot->rbdJacobian().dof() > 0)
     {
-      const auto & r = fIn->robot();
+      const auto & r = fRobot->robot();
       useF = true;
-      jac = fIn->rbdJacobian();
-      addInputDependency<ContactFunction>(Update::Value, fOut, mc_rbdyn::Frame::Output::Position);
-      addInputDependency<ContactFunction>(Update::Derivatives, fOut, mc_rbdyn::Frame::Output::Velocity);
-      addInputDependency<ContactFunction>(Update::Derivatives, fOut, mc_rbdyn::Frame::Output::NormalAcceleration);
-      addInputDependency<ContactFunction>(Update::Derivatives, fOut, mc_rbdyn::Frame::Output::Jacobian);
+      jac = fRobot->rbdJacobian();
+      addInputDependency<ContactFunction>(Update::Value, fRobot, mc_rbdyn::RobotFrame::Output::Position);
+      addInputDependency<ContactFunction>(Update::Derivatives, fRobot, mc_rbdyn::RobotFrame::Output::Velocity);
+      addInputDependency<ContactFunction>(Update::Derivatives, fRobot,
+                                          mc_rbdyn::RobotFrame::Output::NormalAcceleration);
+      addInputDependency<ContactFunction>(Update::Derivatives, fRobot, mc_rbdyn::RobotFrame::Output::Jacobian);
       addVariable(r.q(), false);
+      return r.mb().nrDof();
     }
     else
     {
       useF = false;
-      addInputDependency<ContactFunction>(Update::Value, fOut, mc_rbdyn::Frame::Output::Position);
+      addInputDependency<ContactFunction>(Update::Value, fOut, mc_rbdyn::FreeFrame::Output::Position);
+      return 0;
     }
   };
   X_0_cf_ = f1->position();
   X_cf_f1_ = sva::PTransformd::Identity();
   X_cf_f2_ = f2->position() * X_0_cf_.inv();
-  addRobot(f1, f1_, use_f1_, f1Jacobian_);
-  addRobot(f2, f2_, use_f2_, f2Jacobian_);
+  int maxDof = addRobot(f1, f1_, use_f1_, f1Jacobian_);
+  maxDof = std::max(maxDof, addRobot(f2, f2_, use_f2_, f2Jacobian_));
 
-  jacTmp_.resize(6, std::max(f1_->rbdJacobian().dof(), f2_->rbdJacobian().dof()));
-  jac_.resize(6, std::max(f1_->robot().mb().nrDof(), f2_->robot().mb().nrDof()));
+  jacTmp_.resize(6, std::max(f1Jacobian_.dof(), f2Jacobian_.dof()));
+  jac_.resize(6, maxDof);
 }
 
 void ContactFunction::updateValue()
@@ -56,19 +61,19 @@ void ContactFunction::updateValue()
   {
     // Update X_f1_cf_ and X_f2_cf_ according to the motion allowed by dof
     Eigen::Vector6d revDof = dof_.unaryExpr([](double a) { return a != 0.0 ? 0.0 : 1.0; });
-    auto updateX_cf_f = [&](const mc_rbdyn::FramePtr & f, sva::PTransformd & X_cf_f_init) {
-      const auto & X_cf_f = f->position() * X_0_cf_.inv();
+    auto updateX_cf_f = [&](const mc_rbdyn::RobotFrame & f, sva::PTransformd & X_cf_f_init) {
+      const auto & X_cf_f = f.position() * X_0_cf_.inv();
       Eigen::Vector6d error = revDof.asDiagonal() * sva::transformError(X_cf_f, X_cf_f_init).vector();
       auto offset = sva::PTransformd(sva::RotX(error(0)) * sva::RotY(error(1)) * sva::RotZ(error(2)), error.tail<3>());
       X_cf_f_init = offset * X_cf_f;
     };
     if(use_f1_)
     {
-      updateX_cf_f(f1_, X_cf_f1_);
+      updateX_cf_f(*static_cast<mc_rbdyn::RobotFrame *>(f1_.get()), X_cf_f1_);
     }
     if(use_f2_)
     {
-      updateX_cf_f(f2_, X_cf_f2_);
+      updateX_cf_f(*static_cast<mc_rbdyn::RobotFrame *>(f2_.get()), X_cf_f2_);
     }
   }
   const auto & X_0_f1cf = X_cf_f1_.inv() * f1_->position();
@@ -87,7 +92,7 @@ void ContactFunction::updateDerivatives()
   {
     jacobian_[var.get()].setZero();
   }
-  auto updateDerivatives = [this](const mc_rbdyn::Frame & frame, rbd::Jacobian & jac, double sign,
+  auto updateDerivatives = [this](const mc_rbdyn::RobotFrame & frame, rbd::Jacobian & jac, double sign,
                                   const sva::PTransformd & X_f_cf) {
     const auto & robot = frame.robot();
     const auto & mb = robot.mb();
@@ -108,11 +113,11 @@ void ContactFunction::updateDerivatives()
   };
   if(use_f1_)
   {
-    updateDerivatives(*f1_, f1Jacobian_, 1.0, X_cf_f1_.inv());
+    updateDerivatives(*static_cast<mc_rbdyn::RobotFrame *>(f1_.get()), f1Jacobian_, 1.0, X_cf_f1_.inv());
   }
   if(use_f2_)
   {
-    updateDerivatives(*f2_, f2Jacobian_, -1.0, X_cf_f2_.inv());
+    updateDerivatives(*static_cast<mc_rbdyn::RobotFrame *>(f2_.get()), f2Jacobian_, -1.0, X_cf_f2_.inv());
   }
 }
 

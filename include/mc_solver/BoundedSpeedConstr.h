@@ -48,7 +48,7 @@ public:
    * Adding the same constraint multiple times will simply update the dof/speed parameters
    */
   void addBoundedSpeed(QPSolver & solver,
-                       mc_rbdyn::Frame & frame,
+                       mc_rbdyn::RobotFrame & frame,
                        const Eigen::Vector6d & dof,
                        const Eigen::Vector6d & speed);
 
@@ -72,7 +72,7 @@ public:
    * Adding the same constraint multiple times will simply update the dof/speed parameters
    */
   void addBoundedSpeed(QPSolver & solver,
-                       mc_rbdyn::Frame & frame,
+                       mc_rbdyn::RobotFrame & frame,
                        const Eigen::Vector6d & dof,
                        const Eigen::Vector6d & lowerSpeed,
                        const Eigen::Vector6d & upperSpeed);
@@ -85,7 +85,7 @@ public:
    *
    * \returns True if a constraint was removed, false otherwise
    */
-  bool removeBoundedSpeed(QPSolver & solver, mc_rbdyn::Frame & frame);
+  bool removeBoundedSpeed(QPSolver & solver, mc_rbdyn::RobotFrame & frame);
 
   /** Remove all bounded speed constraints */
   void reset(QPSolver & solver);
@@ -116,7 +116,7 @@ private:
   };
   std::vector<BoundedSpeedData> data_;
 
-  std::vector<BoundedSpeedData>::iterator getData(const mc_rbdyn::Frame & frame);
+  std::vector<BoundedSpeedData>::iterator getData(const mc_rbdyn::RobotFrame & frame);
 
   void addBoundedSpeed(QPSolver & solver, BoundedSpeedData & data);
 

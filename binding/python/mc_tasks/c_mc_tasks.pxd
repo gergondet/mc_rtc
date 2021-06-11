@@ -67,19 +67,19 @@ cdef extern from "<mc_tasks/CoMTask.h>" namespace "mc_tasks":
 
 cdef extern from "<mc_tasks/PositionTask.h>" namespace "mc_tasks":
   cdef cppclass PositionTask(TrajectoryTaskGeneric[c_mc_tvm.PositionFunction]):
-    PositionTask(c_mc_rbdyn.Frame &, double, double)
+    PositionTask(c_mc_rbdyn.RobotFrame &, double, double)
     c_eigen.Vector3d position()
     void position(const c_eigen.Vector3d &)
 
 cdef extern from "<mc_tasks/OrientationTask.h>" namespace "mc_tasks":
   cdef cppclass OrientationTask(TrajectoryTaskGeneric[c_mc_tvm.OrientationFunction]):
-    OrientationTask(c_mc_rbdyn.Frame &, double, double)
+    OrientationTask(c_mc_rbdyn.RobotFrame &, double, double)
     c_eigen.Matrix3d orientation()
     void orientation(const c_eigen.Matrix3d &)
 
 cdef extern from "<mc_tasks/VectorOrientationTask.h>" namespace "mc_tasks":
   cdef cppclass VectorOrientationTask(TrajectoryTaskGeneric[c_mc_tvm.VectorOrientationFunction]):
-    VectorOrientationTask(c_mc_rbdyn.Frame &, c_eigen.Vector3d &, double, double)
+    VectorOrientationTask(c_mc_rbdyn.RobotFrame &, c_eigen.Vector3d &, double, double)
     void frameVector(const c_eigen.Vector3d&)
     c_eigen.Vector3d frameVector()
     void targetVector(const c_eigen.Vector3d&)
@@ -87,7 +87,7 @@ cdef extern from "<mc_tasks/VectorOrientationTask.h>" namespace "mc_tasks":
 
 cdef extern from "<mc_tasks/TransformTask.h>" namespace "mc_tasks":
   cdef cppclass TransformTask(TrajectoryTaskGeneric[c_mc_tvm.TransformFunction]):
-    TransformTask(c_mc_rbdyn.Frame &, double, double)
+    TransformTask(c_mc_rbdyn.RobotFrame &, double, double)
     c_sva.PTransformd target()
     void target(const c_sva.PTransformd &)
 
@@ -98,7 +98,7 @@ cdef extern from "<mc_tasks/SplineTrajectoryTask.h>" namespace "mc_tasks":
 
 cdef extern from "<mc_tasks/BSplineTrajectoryTask.h>" namespace "mc_tasks":
   cdef cppclass BSplineTrajectoryTask(SplineTrajectoryTask[BSplineTrajectoryTask]):
-    BSplineTrajectoryTask(c_mc_rbdyn.Frame &, double, double, double,
+    BSplineTrajectoryTask(c_mc_rbdyn.RobotFrame &, double, double, double,
             const c_sva.PTransformd &,
             const vector[c_eigen.Vector3d] &,
             const vector[pair[double,c_eigen.Matrix3d]] &)
@@ -108,7 +108,7 @@ cdef extern from "<mc_tasks/BSplineTrajectoryTask.h>" namespace "mc_tasks":
 
 cdef extern from "<mc_tasks/ExactCubicTrajectoryTask.h>" namespace "mc_tasks":
   cdef cppclass ExactCubicTrajectoryTask(SplineTrajectoryTask[ExactCubicTrajectoryTask]):
-    ExactCubicTrajectoryTask(c_mc_rbdyn.Frame&,
+    ExactCubicTrajectoryTask(c_mc_rbdyn.RobotFrame&,
             double, double, double,
             const c_sva.PTransformd &,
             const vector[pair[double,c_eigen.Vector3d]] &,

@@ -7,6 +7,6 @@
 namespace mc_rbdyn
 {
 
-Surface::Surface(std::string_view name, FramePtr frame) : name_(name), frame_(frame) {}
+Surface::Surface(std::string_view name, RobotFramePtr frame) : name_(name), frame_(frame) {}
 
 } // namespace mc_rbdyn

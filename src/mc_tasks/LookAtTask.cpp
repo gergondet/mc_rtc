@@ -12,7 +12,10 @@
 namespace mc_tasks
 {
 
-LookAtTask::LookAtTask(mc_rbdyn::Frame & frame, const Eigen::Vector3d & frameVector, double stiffness, double weight)
+LookAtTask::LookAtTask(mc_rbdyn::RobotFrame & frame,
+                       const Eigen::Vector3d & frameVector,
+                       double stiffness,
+                       double weight)
 : VectorOrientationTask(frame, frameVector, stiffness, weight)
 {
   type_ = "lookAt";
