@@ -30,10 +30,10 @@ namespace mc_rbdyn
  *
  */
 
-struct MC_RBDYN_DLLAPI FreeFrame : public tvm::graph::abstract::Node<FreeFrame>, mc_rtc::shared<FreeFrame>
+struct MC_RBDYN_DLLAPI Frame : public tvm::graph::abstract::Node<Frame>, mc_rtc::shared<Frame>
 {
-  SET_OUTPUTS(FreeFrame, Position, Velocity)
-  SET_UPDATES(FreeFrame, Position, Velocity)
+  SET_OUTPUTS(Frame, Position, Velocity)
+  SET_UPDATES(Frame, Position, Velocity)
 
 public:
   /** Constructor
@@ -46,9 +46,9 @@ public:
    *
    * \param vel_0_f Velocity of the frame
    */
-  FreeFrame(std::string_view name,
-            const sva::PTransformd & X_0_f = sva::PTransformd::Identity(),
-            const sva::MotionVecd & vel_0_f = sva::MotionVecd::Zero());
+  Frame(std::string_view name,
+        const sva::PTransformd & X_0_f = sva::PTransformd::Identity(),
+        const sva::MotionVecd & vel_0_f = sva::MotionVecd::Zero());
 
   /** Constructor
    *
@@ -60,10 +60,10 @@ public:
    *
    * \param X_f1_f2 Static transformation from the original frame to the new one
    */
-  FreeFrame(std::string_view name, FreeFrame & frame, const sva::PTransformd & X_f1_f2);
+  Frame(std::string_view name, Frame & frame, const sva::PTransformd & X_f1_f2);
 
-  FreeFrame(const FreeFrame &) = delete;
-  FreeFrame & operator=(const FreeFrame &) = delete;
+  Frame(const Frame &) = delete;
+  Frame & operator=(const Frame &) = delete;
 
   /** The frame's name */
   inline const std::string & name() const noexcept
@@ -106,7 +106,7 @@ public:
   }
 
   /** The frame's parent frame, can be nullptr */
-  inline const FreeFramePtr & parent() const noexcept
+  inline const FramePtr & parent() const noexcept
   {
     return parent_;
   }
@@ -132,14 +132,14 @@ public:
   }
 
 protected:
-  FreeFrame(FreeFramePtr parent,
-            std::string_view name,
-            const sva::PTransformd & X_p_f,
-            const sva::PTransformd & pos = sva::PTransformd::Identity(),
-            const sva::MotionVecd & vel = sva::MotionVecd::Zero());
+  Frame(FramePtr parent,
+        std::string_view name,
+        const sva::PTransformd & X_p_f,
+        const sva::PTransformd & pos = sva::PTransformd::Identity(),
+        const sva::MotionVecd & vel = sva::MotionVecd::Zero());
 
-  FreeFramePtr parent_;
-  FreeFramePtr root_;
+  FramePtr parent_;
+  FramePtr root_;
 
   sva::PTransformd X_p_f_;
   sva::PTransformd X_r_f_ = sva::PTransformd::Identity();

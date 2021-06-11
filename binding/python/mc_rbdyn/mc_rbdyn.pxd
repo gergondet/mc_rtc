@@ -79,13 +79,13 @@ cdef class Limits(object):
 cdef Limits LimitsFromC(c_mc_rbdyn.Limits &)
 
 # We only return borrowed objects for now
-cdef class FreeFrame(object):
-    cdef c_mc_rbdyn.FreeFrame * base
+cdef class Frame(object):
+    cdef c_mc_rbdyn.Frame * base
 
-cdef FreeFrame FreeFrameFromC(c_mc_rbdyn.FreeFrame &)
+cdef Frame FrameFromC(c_mc_rbdyn.Frame &)
 
 # A Frame is always owned by its associated robot
-cdef class RobotFrame(FreeFrame):
+cdef class RobotFrame(Frame):
     cdef c_mc_rbdyn.RobotFrame * impl
 
 cdef RobotFrame RobotFrameFromC(c_mc_rbdyn.RobotFrame &)

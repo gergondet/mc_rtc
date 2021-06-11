@@ -9,7 +9,7 @@
 namespace mc_tvm
 {
 
-ContactFunction::ContactFunction(mc_rbdyn::FreeFramePtr f1, mc_rbdyn::FreeFramePtr f2, const Eigen::Vector6d & dof)
+ContactFunction::ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, const Eigen::Vector6d & dof)
 : tvm::function::abstract::Function(6), dof_(dof)
 {
   registerUpdates(Update::Value, &ContactFunction::updateValue, Update::Derivatives,
@@ -22,8 +22,7 @@ ContactFunction::ContactFunction(mc_rbdyn::FreeFramePtr f1, mc_rbdyn::FreeFrameP
 
   addInternalDependency<ContactFunction>(Update::Derivatives, Update::Value);
 
-  auto addRobot = [this](mc_rbdyn::FreeFramePtr & fIn, mc_rbdyn::FreeFramePtr & fOut, bool & useF,
-                         rbd::Jacobian & jac) {
+  auto addRobot = [this](mc_rbdyn::FramePtr & fIn, mc_rbdyn::FramePtr & fOut, bool & useF, rbd::Jacobian & jac) {
     fOut = fIn;
     auto fRobot = std::dynamic_pointer_cast<mc_rbdyn::RobotFrame>(fIn);
     if(fRobot->rbdJacobian().dof() > 0)
@@ -42,7 +41,7 @@ ContactFunction::ContactFunction(mc_rbdyn::FreeFramePtr f1, mc_rbdyn::FreeFrameP
     else
     {
       useF = false;
-      addInputDependency<ContactFunction>(Update::Value, fOut, mc_rbdyn::FreeFrame::Output::Position);
+      addInputDependency<ContactFunction>(Update::Value, fOut, mc_rbdyn::Frame::Output::Position);
       return 0;
     }
   };

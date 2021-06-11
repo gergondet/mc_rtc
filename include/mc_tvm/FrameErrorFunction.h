@@ -49,8 +49,8 @@ public:
    * \param dof Contact dof
    *
    */
-  FrameErrorFunction(mc_rbdyn::FreeFramePtr f1,
-                     mc_rbdyn::FreeFramePtr f2,
+  FrameErrorFunction(mc_rbdyn::FramePtr f1,
+                     mc_rbdyn::FramePtr f2,
                      const Eigen::Vector6d & dof = Eigen::Vector6d::Ones());
 
   /** Access the contact dof vector */
@@ -93,8 +93,8 @@ private:
                     Eigen::MatrixXd & buffer);
   };
 
-  mc_rbdyn::FreeFramePtr f1_;
-  mc_rbdyn::FreeFramePtr f2_;
+  mc_rbdyn::FramePtr f1_;
+  mc_rbdyn::FramePtr f2_;
   Eigen::Vector6d dof_; // specification of the dof used in the output
   Dof tDof_; // dofs used in the translation part of the error
   Dof rDof_; // dofs used in the rotation part of the error

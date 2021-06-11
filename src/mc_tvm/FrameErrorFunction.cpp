@@ -33,9 +33,7 @@ void assign_<true>(Eigen::Ref<Eigen::MatrixXd> out, const Eigen::Ref<const Eigen
 namespace mc_tvm
 {
 
-FrameErrorFunction::FrameErrorFunction(mc_rbdyn::FreeFramePtr f1,
-                                       mc_rbdyn::FreeFramePtr f2,
-                                       const Eigen::Vector6d & dof)
+FrameErrorFunction::FrameErrorFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, const Eigen::Vector6d & dof)
 : tvm::function::abstract::Function(countOnes(dof)), dof_(dof)
 {
   // clang-format off
@@ -53,7 +51,7 @@ FrameErrorFunction::FrameErrorFunction(mc_rbdyn::FreeFramePtr f1,
   addInternalDependency<FrameErrorFunction>(Update::Velocity, Update::Value);
   addInternalDependency<FrameErrorFunction>(Update::NormalAcceleration, Update::Velocity);
 
-  auto addRobot = [this](mc_rbdyn::FreeFramePtr & fIn, mc_rbdyn::FreeFramePtr & fOut, bool & useF,
+  auto addRobot = [this](mc_rbdyn::FramePtr & fIn, mc_rbdyn::FramePtr & fOut, bool & useF,
                          rbd::Jacobian & jac) -> tvm::Variable * {
     fOut = fIn;
     auto fRobot = std::dynamic_pointer_cast<mc_rbdyn::RobotFrame>(fIn);
@@ -73,7 +71,7 @@ FrameErrorFunction::FrameErrorFunction(mc_rbdyn::FreeFramePtr f1,
     else
     {
       useF = false;
-      addInputDependency<FrameErrorFunction>(Update::Value, fOut, mc_rbdyn::FreeFrame::Output::Position);
+      addInputDependency<FrameErrorFunction>(Update::Value, fOut, mc_rbdyn::Frame::Output::Position);
       return nullptr;
     }
   };

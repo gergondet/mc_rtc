@@ -51,9 +51,7 @@ public:
    * \param dof Contact dof
    *
    */
-  ContactFunction(mc_rbdyn::FreeFramePtr f1,
-                  mc_rbdyn::FreeFramePtr f2,
-                  const Eigen::Vector6d & dof = Eigen::Vector6d::Ones());
+  ContactFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr f2, const Eigen::Vector6d & dof = Eigen::Vector6d::Ones());
 
   /** Access the contact dof vector */
   inline const Eigen::Vector6d & dof() const noexcept
@@ -68,8 +66,8 @@ public:
   }
 
 private:
-  mc_rbdyn::FreeFramePtr f1_;
-  mc_rbdyn::FreeFramePtr f2_;
+  mc_rbdyn::FramePtr f1_;
+  mc_rbdyn::FramePtr f2_;
   Eigen::Vector6d dof_;
 
   bool use_f1_ = false;

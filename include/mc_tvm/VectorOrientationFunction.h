@@ -30,7 +30,7 @@ public:
   VectorOrientationFunction(mc_rbdyn::RobotFrame & frame, const Eigen::Vector3d & bodyVector);
 
   /** Add a dependency to the position of another frame */
-  void addFrameDependency(mc_rbdyn::FreeFrame & frame);
+  void addFrameDependency(mc_rbdyn::Frame & frame);
 
   /** Reset the target vector to the current frame vector */
   void reset();

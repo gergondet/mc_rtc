@@ -48,9 +48,9 @@ struct RobotFrame;
 using RobotFramePtr = std::shared_ptr<RobotFrame>;
 using ConstRobotFramePtr = std::shared_ptr<const RobotFrame>;
 
-struct FreeFrame;
-using FreeFramePtr = std::shared_ptr<FreeFrame>;
-using ConstFreeFramePtr = std::shared_ptr<const FreeFrame>;
+struct Frame;
+using FramePtr = std::shared_ptr<Frame>;
+using ConstFramePtr = std::shared_ptr<const Frame>;
 
 struct CoM;
 using CoMPtr = std::shared_ptr<CoM>;

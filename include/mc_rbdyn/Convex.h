@@ -15,7 +15,7 @@
 namespace mc_rbdyn
 {
 
-/** A convex is an SCH object associated to a FreeFrame
+/** A convex is an SCH object associated to a Frame
  *
  * It defines a single output:
  * - Position: update the convex position according to the frame
@@ -41,19 +41,19 @@ public:
    *
    * \param X_f_c Transformation from the frame to the convex
    */
-  Convex(ctor_token, S_ObjectPtr object, FreeFramePtr frame, sva::PTransformd X_f_c = sva::PTransformd::Identity());
+  Convex(ctor_token, S_ObjectPtr object, FramePtr frame, sva::PTransformd X_f_c = sva::PTransformd::Identity());
 
   Convex(const Convex &) = delete;
   Convex & operator=(const Convex &) = delete;
 
   /** Access the underlying frame object */
-  inline const FreeFrame & frame() const noexcept
+  inline const Frame & frame() const noexcept
   {
     return *frame_;
   }
 
   /** Access the underlying frame (non-const) */
-  inline FreeFrame & frame() noexcept
+  inline Frame & frame() noexcept
   {
     return *frame_;
   }
@@ -84,7 +84,7 @@ public:
 
 private:
   S_ObjectPtr object_;
-  FreeFramePtr frame_;
+  FramePtr frame_;
   sva::PTransformd X_f_c_;
 
   void updatePosition();

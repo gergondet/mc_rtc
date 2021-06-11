@@ -37,9 +37,9 @@ VectorOrientationFunction::VectorOrientationFunction(mc_rbdyn::RobotFrame & fram
   addInternalDependency<VectorOrientationFunction>(Update::NormalAcceleration, Update::Velocity);
 }
 
-void VectorOrientationFunction::addFrameDependency(mc_rbdyn::FreeFrame & frame)
+void VectorOrientationFunction::addFrameDependency(mc_rbdyn::Frame & frame)
 {
-  addInputDependency<VectorOrientationFunction>(Update::Value, frame, mc_rbdyn::FreeFrame::Output::Position);
+  addInputDependency<VectorOrientationFunction>(Update::Value, frame, mc_rbdyn::Frame::Output::Position);
 }
 
 void VectorOrientationFunction::frameVector(const Eigen::Vector3d & frameVector) noexcept

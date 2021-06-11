@@ -157,15 +157,15 @@ cdef extern from "<mc_rbdyn/Limits.h>" namespace "mc_rbdyn":
         VectorXd tdl
         VectorXd tdu
 
-cdef extern from "<mc_rbdyn/FreeFrame.h>" namespace "mc_rbdyn":
-    cdef cppclass FreeFrame:
+cdef extern from "<mc_rbdyn/Frame.h>" namespace "mc_rbdyn":
+    cdef cppclass Frame:
         string name()
         PTransformd X_p_f()
         PTransformd position()
         MotionVecd velocity()
 
 cdef extern from "<mc_rbdyn/RobotFrame.h>" namespace "mc_rbdyn":
-    cdef cppclass RobotFrame(FreeFrame):
+    cdef cppclass RobotFrame(Frame):
         Robot & robot()
         MotionVecd normalAcceleration()
         string body()
@@ -183,7 +183,7 @@ cdef extern from "<mc_rbdyn/CoM.h>" namespace "mc_rbdyn":
 
 cdef extern from "<mc_rbdyn/Convex.h>" namespace "mc_rbdyn":
     cdef cppclass Convex:
-        FreeFrame & frame()
+        Frame & frame()
         shared_ptr[sch.S_Object] convex()
         PTransformd X_f_c()
 

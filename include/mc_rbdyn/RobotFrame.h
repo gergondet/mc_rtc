@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <mc_rbdyn/FreeFrame.h>
+#include <mc_rbdyn/Frame.h>
 
 #include <mc_rbdyn/ForceSensor.h>
 #include <mc_rbdyn/Robot.h>
@@ -25,7 +25,7 @@ namespace mc_rbdyn
  * - JDot: derivative of the jacobian of the frame in world coordinate
  *
  */
-struct MC_RBDYN_DLLAPI RobotFrame : public FreeFrame, mc_rtc::shared<RobotFrame, false>
+struct MC_RBDYN_DLLAPI RobotFrame : public Frame, mc_rtc::shared<RobotFrame, false>
 {
   SET_OUTPUTS(RobotFrame, Jacobian, NormalAcceleration, JDot)
   SET_UPDATES(RobotFrame, Jacobian, NormalAcceleration, JDot)

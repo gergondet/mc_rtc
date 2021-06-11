@@ -13,7 +13,7 @@ namespace mc_tasks
 
 LookAtFrameTask::LookAtFrameTask(mc_rbdyn::RobotFrame & frame,
                                  const Eigen::Vector3d & frameVector,
-                                 mc_rbdyn::FreeFrame & targetFrame,
+                                 mc_rbdyn::Frame & targetFrame,
                                  double stiffness,
                                  double weight)
 : LookAtTask(frame, frameVector, stiffness, weight), targetFrame_(targetFrame), offset_(sva::PTransformd::Identity())

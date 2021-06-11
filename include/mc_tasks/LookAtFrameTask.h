@@ -32,7 +32,7 @@ public:
    */
   LookAtFrameTask(mc_rbdyn::RobotFrame & frame,
                   const Eigen::Vector3d & frameVector,
-                  mc_rbdyn::FreeFrame & targetFrame,
+                  mc_rbdyn::Frame & targetFrame,
                   double stiffness = 0.5,
                   double weight = 200);
 
@@ -53,7 +53,7 @@ public:
 
 private:
   /** Target frame */
-  mc_rbdyn::ConstFreeFramePtr targetFrame_;
+  mc_rbdyn::ConstFramePtr targetFrame_;
   /** Offset to the surface in surface frame */
   sva::PTransformd offset_;
 };

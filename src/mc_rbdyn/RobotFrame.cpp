@@ -25,7 +25,7 @@ inline unsigned int frameGetBodyId(std::string_view frame, const Robot & robot, 
 } // namespace details
 
 RobotFrame::RobotFrame(ctor_token, std::string_view name, Robot & robot, std::string_view body)
-: FreeFrame(nullptr, name, sva::PTransformd::Identity()), robot_(robot),
+: Frame(nullptr, name, sva::PTransformd::Identity()), robot_(robot),
   bodyId_(details::frameGetBodyId(name, robot, body)), jac_(robot.mb(), std::string(body)), jacTmp_(6, jac_.dof()),
   jacobian_(6, robot.mb().nrDof()), jacDot_(6, robot.mb().nrDof())
 {
@@ -69,7 +69,7 @@ RobotFrame::RobotFrame(ctor_token, std::string_view name, Robot & robot, std::st
 }
 
 RobotFrame::RobotFrame(ctor_token, std::string_view name, RobotFrame & frame, sva::PTransformd X_f1_f2)
-: FreeFrame(frame, name, X_f1_f2), robot_(frame.robot()),
+: Frame(frame, name, X_f1_f2), robot_(frame.robot()),
   bodyId_(details::frameGetBodyId(name, robot_, frame.body())), jac_(robot_.mb(), frame.body()),
   jacTmp_(6, jac_.dof()), jacobian_(6, robot_.mb().nrDof()), jacDot_(6, robot_.mb().nrDof())
 {
