@@ -559,7 +559,7 @@ RobotFrame & Robot::makeFrame(std::string_view name, std::string_view body, sva:
   return makeFrame(name, frame(body), X_b_f);
 }
 
-RobotFrame & Robot::makeFrame(std::string_view name, RobotFrame & parent, sva::PTransformd X_p_f)
+RobotFrame & Robot::makeFrame(std::string_view name, RobotFrame & parent, sva::PTransformd X_p_f, bool baked)
 {
   if(hasFrame(name))
   {
@@ -570,6 +570,10 @@ RobotFrame & Robot::makeFrame(std::string_view name, RobotFrame & parent, sva::P
     mc_rtc::log::error_and_throw<std::runtime_error>(
         "Parent frame {} provided to build frame {} in {} belong to a different robot {}", parent.name(), name,
         this->name(), parent.robot().name());
+  }
+  if(baked)
+  {
+    return makeFrame(name, parent.body(), X_p_f * parent.X_b_f());
   }
   auto out =
       frames_.emplace(name, std::make_shared<RobotFrame>(RobotFrame::ctor_token{}, name, parent, std::move(X_p_f)));

@@ -162,11 +162,13 @@ public:
    *
    * \param X_p_f Transformation from the parent frame to the frame
    *
+   * \param baked Attach the newly created frame to \p frame parent body rather to \p frame
+   *
    * \returns The newly created frame
    *
    * \throws If a frame with this name already exists or the parent frame does not belong to this robot
    */
-  RobotFrame & makeFrame(std::string_view name, RobotFrame & parent, sva::PTransformd X_p_f);
+  RobotFrame & makeFrame(std::string_view name, RobotFrame & parent, sva::PTransformd X_p_f, bool baked = false);
 
   /** @name Body sensors
    *
