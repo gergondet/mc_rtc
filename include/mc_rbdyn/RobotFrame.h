@@ -161,6 +161,19 @@ public:
     return robot_.frameWrench(name_);
   }
 
+  /** Create a frame whose parent is this frame
+   *
+   * \param name Name of the new frame
+   *
+   * \param X_p_f Transformation from this frame to the newly created frame
+   *
+   * \param bake Attach the newly created frame to the parent body of this frame rather than the frame
+   */
+  inline RobotFrame & makeFrame(std::string_view name, const sva::PTransformd & X_p_f, bool baked = false)
+  {
+    return robot_.makeFrame(name, *this, X_p_f, baked);
+  }
+
 private:
   Robot & robot_;
   unsigned int bodyId_;
