@@ -259,4 +259,11 @@ mc_rbdyn::Robot & Robots::fromConfig(const mc_rtc::Configuration & config,
 
 MC_RTC_diagnostic_pop
 
+RobotsPtr loadRobot(const RobotModule & rm, std::optional<std::string_view> name)
+{
+  RobotsPtr out = std::make_shared<Robots>();
+  out->load(rm, name ? name.value() : rm.name);
+  return out;
+}
+
 } // namespace mc_rbdyn

@@ -224,4 +224,7 @@ protected:
   Robot & addRobot(RobotPtr robot);
 };
 
+/** Helper function to create a Robots instance from a RobotModule */
+MC_RBDYN_DLLAPI RobotsPtr loadRobot(const RobotModule & rm, std::optional<std::string_view> name = std::nullopt);
+
 } // namespace mc_rbdyn
