@@ -249,3 +249,77 @@ BOOST_AUTO_TEST_CASE(FrameTest)
   TestOneFrame(xyz, f0, 10000);
   TestOneFrame(xyz, f1, 10000);
 }
+
+BOOST_AUTO_TEST_CASE(CoMTest)
+{
+  rbd::parsers::ParserResult pr;
+  std::tie(pr.mb, pr.mbg, pr.mbc) = XYZRobot();
+
+  mc_rbdyn::Robots robots;
+  robots.load({"XYZ", pr}, "XYZ");
+
+  auto & xyz = robots.robot("XYZ");
+  auto & com = xyz.com();
+
+  tvm::graph::CallGraph callgraph;
+  auto inputs = std::make_shared<tvm::graph::internal::Inputs>();
+  inputs->addInput(com, mc_rbdyn::CoM::Output::CoM);
+  inputs->addInput(com, mc_rbdyn::CoM::Output::Jacobian);
+  inputs->addInput(com, mc_rbdyn::CoM::Output::Velocity);
+  inputs->addInput(com, mc_rbdyn::CoM::Output::NormalAcceleration);
+  inputs->addInput(com, mc_rbdyn::CoM::Output::JDot);
+  callgraph.add(inputs);
+  callgraph.update();
+
+  for(int i = 0; i < 100; ++i)
+  {
+    double h = 1e-8;
+    Eigen::Vector3d q = Eigen::Vector3d::Random();
+    xyz.q()->set(q);
+    callgraph.execute();
+    Eigen::Vector3d c0 = com.com();
+    Eigen::MatrixXd J0 = com.jacobian();
+
+    // test Jacobian matrix by finite differences
+    Eigen::MatrixXd Jd(3, 3);
+    for(int i = 0; i < 3; ++i)
+    {
+      q[i] += h;
+      xyz.q()->set(q);
+      callgraph.execute();
+      Eigen::Vector3d ci = com.com();
+      Jd.col(i) = (ci - c0) / h;
+
+      q[i] -= h;
+    }
+    BOOST_CHECK_SMALL((J0 - Jd).norm(), 1e-6);
+
+    // Check velocity (is it equal to J dq ?)
+    Eigen::Vector3d dq = Eigen::Vector3d::Random();
+    xyz.q()->set(q);
+    dot(xyz.q())->set(dq);
+    callgraph.execute();
+    BOOST_CHECK_SMALL((com.velocity() - com.jacobian() * dq).norm(), 1e-6);
+
+    // Checking normal acceleration (is it equal to dv/dt - J ddq, with dv/dt approximated by finite forward differences
+    // ?)
+    Eigen::Vector3d ddq = Eigen::Vector3d::Random().normalized();
+
+    // we consider a constant-acceleration trajectory in variable space
+    Eigen::Vector3d dq1 = dq + ddq * h;
+    Eigen::Vector3d q1 = q + dq * h + 0.5 * ddq.cwiseProduct(ddq) * h * h;
+
+    Eigen::Vector3d v0 = com.velocity();
+    xyz.q()->set(q1);
+    dot(xyz.q())->set(dq1);
+    callgraph.execute();
+    Eigen::Vector3d v1 = com.velocity();
+    Eigen::Vector3d a = (v1 - v0) / h - J0 * ddq;
+
+    const auto & na = com.normalAcceleration();
+    BOOST_CHECK_SMALL((na - a).norm(), 1e-6);
+
+    // test JDot
+    BOOST_CHECK_SMALL((na - com.JDot() * dq).norm(), 1e-6);
+  }
+}
