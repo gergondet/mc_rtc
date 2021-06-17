@@ -131,6 +131,32 @@ public:
     X_p_f_ = X_p_f;
   }
 
+  /** Create a frame whose parent is this frame
+   *
+   * \param name Name of the new frame
+   *
+   * \param X_p_f Transformation from this frame to the newly created frame
+   *
+   * \param baked Attach the newly created frame to the parent body of this frame rather than the frame
+   */
+  virtual FramePtr makeFrame(std::string_view name, const sva::PTransformd & X_p_f, bool baked = false)
+  {
+    if(baked && parent_)
+    {
+      return std::make_shared<Frame>(name, *parent_, X_p_f * parent_->X_p_f_);
+    }
+    else
+    {
+      return std::make_shared<Frame>(name, *this, X_p_f);
+    }
+  }
+
+  /** Return true only if this frame is a RobotFrame.*/
+  virtual bool isRobotFrame() const noexcept
+  {
+    return false;
+  }
+
 protected:
   Frame(FramePtr parent,
         std::string_view name,

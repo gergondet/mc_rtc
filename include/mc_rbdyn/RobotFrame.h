@@ -167,11 +167,17 @@ public:
    *
    * \param X_p_f Transformation from this frame to the newly created frame
    *
-   * \param bake Attach the newly created frame to the parent body of this frame rather than the frame
+   * \param baked Attach the newly created frame to the parent body of this frame rather than the frame
    */
-  inline RobotFrame & makeFrame(std::string_view name, const sva::PTransformd & X_p_f, bool baked = false)
+  FramePtr makeFrame(std::string_view name, const sva::PTransformd & X_p_f, bool baked = false) override
   {
-    return robot_.makeFrame(name, *this, X_p_f, baked);
+    return robot_.makeFrame(name, *this, X_p_f, baked).shared_from_this();
+  }
+
+  /** Return true only if this frame is a RobotFrame.*/
+  virtual bool isRobotFrame() const noexcept override
+  {
+    return true;
   }
 
 private:
