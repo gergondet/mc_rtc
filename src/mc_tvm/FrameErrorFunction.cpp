@@ -55,7 +55,7 @@ FrameErrorFunction::FrameErrorFunction(mc_rbdyn::FramePtr f1, mc_rbdyn::FramePtr
                          rbd::Jacobian & jac) -> tvm::Variable * {
     fOut = fIn;
     auto fRobot = std::dynamic_pointer_cast<mc_rbdyn::RobotFrame>(fIn);
-    if(fRobot->rbdJacobian().dof() > 0)
+    if(fRobot && fRobot->rbdJacobian().dof() > 0)
     {
       const auto & r = fRobot->robot();
       useF = true;
