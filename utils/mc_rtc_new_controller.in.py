@@ -120,8 +120,6 @@ struct {controller_class_name}_DLLAPI {controller_class_name} : public {base_cla
     bool run() override;
 
     void reset(const mc_control::ControllerResetData & reset_data) override;
-private:
-    mc_rtc::Configuration config_;
 }};""".format(controller_class_name = controller_class_name, base_class = base_class, extra_includes = extra_includes))
 
     with open(project_dir + '/src/' + controller_class_name + '.cpp', 'w') as fd:
@@ -130,11 +128,8 @@ private:
             base_init += ", config"
         base_init += ')'
         if min_code:
-            min_code = """  config_.load(config);
-  solver().addConstraintSet(contactConstraint);
-  solver().addConstraintSet(kinematicsConstraint);
-  solver().addTask(postureTask);
-  solver().setContacts({{}});
+            min_code = """  solver().addConstraint(kinematicsConstraint_);
+  solver().addTask(postureTask_);
 """
         else:
             min_code = ""
