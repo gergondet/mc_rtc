@@ -239,7 +239,6 @@ void MCGlobalController::initEncoders(const std::vector<double> & initq)
         "{}.\nMake sure that the MainRobot is compatible with the real/simulated robot used by the interface.",
         initq.size(), controller_->robot().name(), controller_->robot().module().ref_joint_order().size());
   }
-  auto & q = robot().mbc().q;
   const auto & rjo = ref_joint_order();
   for(size_t i = 0; i < rjo.size(); ++i)
   {
