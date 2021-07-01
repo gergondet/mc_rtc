@@ -543,10 +543,16 @@ public:
   }
 
   /*! \brief Access to the control robots instance. */
-  mc_rbdyn::Robots & robots();
+  inline mc_rbdyn::Robots & robots() noexcept
+  {
+    return controller_->robots();
+  }
 
   /*! \brief Const access to the control robots instance. */
-  const mc_rbdyn::Robots & robots() const;
+  inline const mc_rbdyn::Robots & robots() const noexcept
+  {
+    return controller_->robots();
+  }
 
   /*! \brief Access the main robot */
   inline mc_rbdyn::Robot & robot() noexcept
