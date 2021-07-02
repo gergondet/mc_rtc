@@ -35,7 +35,9 @@ public:
    *
    * \param velocityPercent Maximum joint velocity percentage, 0.5 is advised
    */
-  KinematicsConstraint(mc_rbdyn::Robot & robot, const std::array<double, 3> & damper, double velocityPercent = 0.5);
+  KinematicsConstraint(mc_rbdyn::Robot & robot,
+                       const std::array<double, 3> & damper = {0.1, 0.01, 0.5},
+                       double velocityPercent = 0.5);
 
   void addToSolver(QPSolver & solver) override;
 
