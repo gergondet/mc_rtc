@@ -143,10 +143,13 @@ MCController::~MCController() {}
 
 mc_rbdyn::Robot & MCController::loadRobot(const mc_rbdyn::RobotModule & rm,
                                           std::string_view name,
-                                          const sva::PTransformd & posW)
+                                          const std::optional<sva::PTransformd> & posW)
 {
   auto & r = internal::loadRobot(*robots_, *gui_, rm, name);
-  r.posW(posW);
+  if(posW)
+  {
+    r.posW(*posW);
+  }
   realRobots_->robotCopy(r, r.name());
   return r;
 }

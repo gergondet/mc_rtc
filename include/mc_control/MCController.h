@@ -375,14 +375,14 @@ public:
    *
    * \param name Name of the robot
    *
-   * \param posW Initial position of the robot
+   * \param posW Initial position of the robot if provided, otherwise use from the module
    *
    * \return The loaded control robot.
    * You may access the corresponding real robot through realRobots().robot(name)
    */
   inline mc_rbdyn::Robot & loadRobot(mc_rbdyn::RobotModulePtr rm,
                                      std::string_view name,
-                                     const sva::PTransformd & posW = sva::PTransformd::Identity())
+                                     const std::optional<sva::PTransformd> & posW = std::nullopt)
   {
     return loadRobot(*rm, name, posW);
   }
@@ -394,14 +394,14 @@ public:
    *
    * \param name Name of the robot
    *
-   * \param posW Initial position of the robot
+   * \param posW Initial position of the robot if provided, otherwise use from the module
    *
    * \return The loaded control robot.
    * You may access the corresponding real robot through realRobots().robot(name)
    */
   mc_rbdyn::Robot & loadRobot(const mc_rbdyn::RobotModule & rm,
                               std::string_view name,
-                              const sva::PTransformd & posW = sva::PTransformd::Identity());
+                              const std::optional<sva::PTransformd> & posW = std::nullopt);
 
   /** Remove a robot from the controller
    *
