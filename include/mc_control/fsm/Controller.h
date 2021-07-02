@@ -117,10 +117,6 @@ private:
   void teardownIdleState();
 
 protected:
-  /** Holds dynamics, kinematics and contact constraints that are added
-   * from the start by the controller */
-  std::vector<mc_solver::ConstraintPtr> constraints_;
-
   /** Creates a posture task for each actuated robots
    * (i.e. robot.dof() - robot.joint(0).dof() > 0 ) */
   std::map<std::string, std::shared_ptr<mc_tasks::PostureTask>> posture_tasks_;

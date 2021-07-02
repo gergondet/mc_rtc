@@ -14,6 +14,8 @@
 #include <mc_rtc/io_utils.h>
 #include <mc_rtc/logging.h>
 
+#include <mc_solver/ConstraintLoader.h>
+
 #include <mc_tasks/MetaTaskLoader.h>
 
 #include <RBDyn/FK.h>
@@ -136,6 +138,85 @@ MCController::MCController(const std::vector<mc_rbdyn::RobotModulePtr> & modules
   collisionConstraint_->addCollisions(solver(), {robot().name(), modules[0]->minimalSelfCollisions()});
   compoundJointConstraint_ = std::make_shared<mc_solver::CompoundJointConstraint>(robot(), dt);
   postureTask_ = std::make_shared<mc_tasks::PostureTask>(robot());
+  /** Load additional robots from the configuration */
+  {
+    auto config_robots = config("robots", std::map<std::string, mc_rtc::Configuration>{});
+    for(const auto & cr : config_robots)
+    {
+      const auto & name = cr.first;
+      if(hasRobot(name))
+      {
+        mc_rtc::log::error_and_throw<std::runtime_error>("A controller cannot have two robots with the same name");
+      }
+      std::string mod = cr.second("module");
+      auto params = cr.second("params", std::vector<std::string>{});
+      mc_rbdyn::RobotModulePtr rm = nullptr;
+      if(params.size() == 0)
+      {
+        rm = mc_rbdyn::RobotLoader::get_robot_module(mod);
+      }
+      else if(params.size() == 1)
+      {
+        rm = mc_rbdyn::RobotLoader::get_robot_module(mod, params.at(0));
+      }
+      else if(params.size() == 2)
+      {
+        rm = mc_rbdyn::RobotLoader::get_robot_module(mod, params.at(0), params.at(1));
+      }
+      else
+      {
+        mc_rtc::log::error_and_throw<std::runtime_error>(
+            "Controller can only handle robot modules that require two parameters at most");
+      }
+      if(!rm)
+      {
+        mc_rtc::log::error_and_throw<std::runtime_error>("Failed to load {} as specified in configuration", name);
+      }
+      if(cr.second.has("init_pos"))
+      {
+        loadRobot(rm, name, cr.second("init_pos"));
+      }
+      else
+      {
+        loadRobot(rm, name);
+      }
+    }
+    mc_rtc::log::info("Robots loaded in the controller:");
+    for(const auto & r : robots())
+    {
+      mc_rtc::log::info("- {}", r->name());
+    }
+  }
+  /** Load global constraints (robots' kinematics/dynamics constraints and contact constraint */
+  {
+    auto config_constraints = config("constraints", std::vector<mc_rtc::Configuration>{});
+    for(const auto & cc : config_constraints)
+    {
+      constraints_.emplace_back(mc_solver::ConstraintLoader::load(solver(), cc));
+      solver().addConstraint(*constraints_.back());
+    }
+  }
+  /** Load collision managers */
+  {
+    auto config_collisions = config("collisions", std::vector<mc_rtc::Configuration>{});
+    for(auto & config_cc : config_collisions)
+    {
+      auto & r1 = robots().fromConfig(config_cc, "collision", false, "r1Index", "r1");
+      auto & r2 = robots().fromConfig(config_cc, "collision", false, "r2Index", "r2");
+      if(r1.name() == r2.name())
+      {
+        if(config_cc("useCommon", false))
+        {
+          addCollisions(r1.name(), r1.name(), r1.module().commonSelfCollisions());
+        }
+        if(config_cc("useMinimal", false))
+        {
+          addCollisions(r1.name(), r1.name(), r1.module().minimalSelfCollisions());
+        }
+      }
+      addCollisions(r1.name(), r2.name(), config_cc("collisions", std::vector<mc_rbdyn::CollisionDescription>{}));
+    }
+  }
   mc_rtc::log::info("MCController(base) ready");
 }
 
@@ -360,6 +441,17 @@ void MCController::reset(const ControllerResetData & reset_data)
                        mc_rtc::gui::FormCheckbox{"Virtual", false, false},
                        mc_rtc::gui::FormNumberInput{"Friction", false, mc_rbdyn::Contact::defaultFriction},
                        mc_rtc::gui::FormArrayInput<Eigen::Vector6d>{"dof", false, Eigen::Vector6d::Ones()}));
+  if(config().has("init_pos"))
+  {
+    robot().posW(config()("init_pos"));
+    realRobot().posW(robot().posW());
+  }
+  /** Create contacts */
+  auto contacts = config()("contacts", std::vector<mc_rbdyn::Contact>{});
+  for(const auto & c : contacts)
+  {
+    addContact(c);
+  }
 }
 
 const mc_rbdyn::Robot & MCController::realRobot(std::string_view name) const

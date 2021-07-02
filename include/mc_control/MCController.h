@@ -554,6 +554,8 @@ protected:
   mc_tasks::PostureTaskPtr postureTask_;
   /* Controller's name */
   std::string name_;
+  /** Holds extra constraints created from the configuration */
+  std::vector<mc_solver::ConstraintPtr> constraints_;
 };
 
 } // namespace mc_control

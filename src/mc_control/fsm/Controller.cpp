@@ -37,78 +37,6 @@ Controller::Controller(std::shared_ptr<mc_rbdyn::RobotModule> rm, double dt, con
   factory_.set_verbosity(config("VerboseStateFactory", false));
 #endif
   idle_keep_state_ = config("IdleKeepState", false);
-  /** Load additional robots from the configuration */
-  {
-    auto config_robots = config("robots", std::map<std::string, mc_rtc::Configuration>{});
-    for(const auto & cr : config_robots)
-    {
-      const auto & name = cr.first;
-      if(hasRobot(name))
-      {
-        mc_rtc::log::error_and_throw<std::runtime_error>("FSM controller cannot have two robots with the same name");
-      }
-      std::string module = cr.second("module");
-      auto params = cr.second("params", std::vector<std::string>{});
-      mc_rbdyn::RobotModulePtr rm = nullptr;
-      if(params.size() == 0)
-      {
-        rm = mc_rbdyn::RobotLoader::get_robot_module(module);
-      }
-      else if(params.size() == 1)
-      {
-        rm = mc_rbdyn::RobotLoader::get_robot_module(module, params.at(0));
-      }
-      else if(params.size() == 2)
-      {
-        rm = mc_rbdyn::RobotLoader::get_robot_module(module, params.at(0), params.at(1));
-      }
-      else
-      {
-        mc_rtc::log::error_and_throw<std::runtime_error>(
-            "FSM controller only handles robot modules that require two parameters at most");
-      }
-      if(!rm)
-      {
-        mc_rtc::log::error_and_throw<std::runtime_error>("Failed to load {} as specified in configuration", name);
-      }
-      loadRobot(rm, name, cr.second("init_pos", sva::PTransformd::Identity()));
-    }
-    mc_rtc::log::info("Robots loaded in FSM controller:");
-    for(const auto & r : robots())
-    {
-      mc_rtc::log::info("- {}", r->name());
-    }
-  }
-  /** Load global constraints (robots' kinematics/dynamics constraints and contact constraint */
-  {
-    auto config_constraints = config("constraints", std::vector<mc_rtc::Configuration>{});
-    for(const auto & cc : config_constraints)
-    {
-      constraints_.emplace_back(mc_solver::ConstraintLoader::load(solver(), cc));
-      solver().addConstraint(*constraints_.back());
-    }
-  }
-  /** Load collision managers */
-  {
-    auto config_collisions = config("collisions", std::vector<mc_rtc::Configuration>{});
-    for(auto & config_cc : config_collisions)
-    {
-      auto & r1 = robots().fromConfig(config_cc, "collision", false, "r1Index", "r1");
-      auto & r2 = robots().fromConfig(config_cc, "collision", false, "r2Index", "r2");
-      if(r1.name() == r2.name())
-      {
-        if(config_cc("useCommon", false))
-        {
-          addCollisions(r1.name(), r1.name(), r1.module().commonSelfCollisions());
-        }
-        if(config_cc("useMinimal", false))
-        {
-          addCollisions(r1.name(), r1.name(), r1.module().minimalSelfCollisions());
-        }
-      }
-      addCollisions(r1.name(), r2.name(), config_cc("collisions", std::vector<mc_rbdyn::CollisionDescription>{}));
-    }
-  }
   /** Create posture task for actuated robots */
   for(auto & robot : robots())
   {
@@ -147,12 +75,6 @@ Controller::Controller(std::shared_ptr<mc_rbdyn::RobotModule> rm, double dt, con
       t->name("FSM_" + t->name());
       ff_tasks_[robot->name()] = t;
     }
-  }
-  /** Create contacts */
-  auto contacts = config("contacts", std::vector<mc_rbdyn::Contact>{});
-  for(const auto & c : contacts)
-  {
-    addContact(c);
   }
   /** Load more states if they are provided in the configuration */
   if(config.has("states"))
@@ -198,11 +120,6 @@ bool Controller::run(mc_solver::FeedbackType fType)
 void Controller::reset(const ControllerResetData & data)
 {
   MCController::reset(data);
-  if(config().has("init_pos"))
-  {
-    robot().posW(config()("init_pos"));
-    realRobot().posW(robot().posW());
-  }
   /** GUI information */
   auto all_states = factory_.states();
   std::sort(all_states.begin(), all_states.end());
