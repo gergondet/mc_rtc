@@ -50,6 +50,10 @@ bool MCPostureController::run()
 void MCPostureController::reset(const ControllerResetData & reset_data)
 {
   MCController::reset(reset_data);
+  for(auto & t : solver().tasks())
+  {
+    t->reset();
+  }
   for(auto & r_ptr : robots())
   {
     auto & robot = *r_ptr;
