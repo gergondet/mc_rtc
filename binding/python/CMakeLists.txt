@@ -13,6 +13,7 @@ set(BINDINGS_LIBRARIES
   mc_solver
   mc_tasks
   mc_trajectory
+  mc_tvm
   mc_control_client
 )
 if(WIN32)

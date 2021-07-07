@@ -34,6 +34,9 @@ macro(controller_test_common NAME)
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${NAME}
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${NAME}
     )
+  if(NOT Boost_USE_STATIC_LIBS)
+    target_link_libraries(${NAME} PUBLIC Boost::dynamic_linking)
+  endif()
   if(ENABLE_FAST_TESTS)
     target_compile_definitions(${NAME} PRIVATE "-DMC_RTC_FAST_TESTS")
   endif()
@@ -139,6 +142,9 @@ if(NOT DEFINED PYTHON_DEB_ROOT)
   add_library(TestPostureController2 SHARED TestPostureController2.cpp)
   set_target_properties(TestPostureController2 PROPERTIES FOLDER tests/controllers/run)
   target_link_libraries(TestPostureController2 PUBLIC ${Boost_LIBRARIES} mc_control)
+  if(NOT Boost_USE_STATIC_LIBS)
+    target_link_libraries(TestPostureController2 PUBLIC Boost::dynamic_linking)
+  endif()
   set_target_properties(TestPostureController2 PROPERTIES
     COMPILE_FLAGS "-DMC_CONTROL_EXPORTS"
     PREFIX ""
